@@ -1,6 +1,0 @@
-setup.py
-connecteur_sages.egg-info/PKG-INFO
-connecteur_sages.egg-info/SOURCES.txt
-connecteur_sages.egg-info/dependency_links.txt
-connecteur_sages.egg-info/requires.txt
-connecteur_sages.egg-info/top_level.txt
