@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.services.connex import connect_to_sqlserver, connect_to_postgres, save_credentials, load_credentials
 from app.services.chantier import transfer_chantiers
+from app.services.chantier import transfer_chantiers_vers_batisimply
 
 # Création du routeur FastAPI
 router = APIRouter()
@@ -132,4 +133,25 @@ async def transfer_data(request: Request):
     return templates.TemplateResponse("form.html", {"request": request, "message": message})
 
 
+@router.post("/transfer-batisimply", response_class=HTMLResponse)
+async def transfer_batisimply(request: Request):
+    """
+    Route pour transférer les chantiers vers BatiSimply.
 
+    Args:
+        request (Request): Objet de requête FastAPI.
+
+    Returns:
+        TemplateResponse: Affiche le résultat dans le template HTML.
+    """
+    try:
+        success = transfer_chantiers_vers_batisimply()
+        if success:
+            message = "✅ Chantier créé avec succès dans BatiSimply."
+        else:
+            message = "❌ Échec de la création du chantier dans BatiSimply."
+
+    except Exception as e:
+        message = f"❌ Erreur lors de la création du chantier : {str(e)}"
+
+    return templates.TemplateResponse("form.html", {"request": request, "message": message})
