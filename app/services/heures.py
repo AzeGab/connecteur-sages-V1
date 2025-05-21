@@ -70,12 +70,7 @@ def transfer_heures():
             # Utilisation de ON CONFLICT pour éviter les doublons
             postgres_cursor.execute(
                 """
-                INSERT INTO batigest_chantiers 
-                (code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (code) DO NOTHING
-                """,
-                (code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier)
+                SELECT * FROM batisimply_heures
             )
         # Validation des modifications dans PostgreSQL
         postgres_conn.commit()
