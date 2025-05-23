@@ -6,6 +6,7 @@ import pyodbc
 import psycopg2
 import json
 import os
+import requests
 
 # Chemin du fichier stockant les identifiants de connexion
 CREDENTIALS_FILE = "app/services/credentials.json"
@@ -90,3 +91,27 @@ def load_credentials():
         return None
     with open(CREDENTIALS_FILE, "r") as f:
         return json.load(f)
+
+def recup_batisimply_token():
+    url = "https://sso.staging.batisimply.fr/auth/realms/jhipster/protocol/openid-connect/token"
+
+    payload = {
+        "client_id": "bridge-data", 
+        "grant_type": "password",
+        "username": "dev3@groupe-sages.fr",
+        "client_secret": "e46938bc-e853-4240-be78-48dbeccdcceb",
+        "password": "Dev3060606"  
+    }
+
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    response = requests.post(url, data=payload, headers=headers)
+
+    if response.status_code == 200:
+        token_data = response.json()
+        return token_data["access_token"]
+    else:
+        print(f"❌ Erreur lors de la récupération du token : {response.status_code} → {response.text}")
+        return None
