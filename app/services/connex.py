@@ -115,3 +115,44 @@ def recup_batisimply_token():
     else:
         print(f"❌ Erreur lors de la récupération du token : {response.status_code} → {response.text}")
         return None
+
+def check_connection_status():
+    """
+    Vérifie l'état des connexions aux bases de données.
+    
+    Returns:
+        tuple: (sql_connected, pg_connected) - États de connexion pour SQL Server et PostgreSQL
+    """
+    creds = load_credentials()
+    sql_connected = False
+    pg_connected = False
+    
+    if creds:
+        # Vérifier SQL Server
+        if "sqlserver" in creds:
+            sql_creds = creds["sqlserver"]
+            conn = connect_to_sqlserver(
+                sql_creds["server"],
+                sql_creds["user"],
+                sql_creds["password"],
+                sql_creds["database"]
+            )
+            sql_connected = conn is not None
+            if conn:
+                conn.close()
+        
+        # Vérifier PostgreSQL
+        if "postgres" in creds:
+            pg_creds = creds["postgres"]
+            conn = connect_to_postgres(
+                pg_creds["host"],
+                pg_creds["user"],
+                pg_creds["password"],
+                pg_creds["database"],
+                pg_creds.get("port", "5432")
+            )
+            pg_connected = conn is not None
+            if conn:
+                conn.close()
+    
+    return sql_connected, pg_connected
