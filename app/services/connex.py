@@ -98,9 +98,9 @@ def recup_batisimply_token():
     payload = {
         "client_id": "bridge-data", 
         "grant_type": "password",
-        "username": "enzo@apication.fr",
+        "username": "dev3@groupe-sages.fr",
         "client_secret": "e46938bc-e853-4240-be78-48dbeccdcceb",
-        "password": "TestBS123"  
+        "password": "Dev3060606"
     }
 
     headers = {
