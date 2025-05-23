@@ -5,10 +5,13 @@
 
 import psycopg2
 from app.services.connex import connect_to_sqlserver, connect_to_postgres, load_credentials, recup_batisimply_token
-
 import requests
 import json
 from datetime import date
+
+# ============================================================================
+# TRANSFERT VERS POSTGRESQL
+# ============================================================================
 
 def transfer_chantiers():
     """
@@ -89,18 +92,37 @@ def transfer_chantiers():
         # En cas d'erreur, on retourne le message d'erreur
         return False, f"❌ Erreur lors du transfert : {e}"
 
+# ============================================================================
+# TRANSFERT VERS BATISIMPLY
+# ============================================================================
 
 def transfer_chantiers_vers_batisimply():
+    """
+    Transfère les chantiers depuis PostgreSQL vers BatiSimply.
+    
+    Cette fonction :
+    1. Récupère le token d'authentification
+    2. Vérifie les identifiants PostgreSQL
+    3. Récupère les chantiers non synchronisés
+    4. Les envoie à l'API BatiSimply
+    5. Met à jour le statut de synchronisation
+    
+    Returns:
+        bool: True si au moins un chantier a été transféré avec succès, False sinon
+    """
+    # Récupération du token
     token = recup_batisimply_token()
     if not token:
         print("Impossible de continuer sans token.")
         return False
 
+    # Vérification des identifiants PostgreSQL
     creds = load_credentials()
     if not creds or "postgres" not in creds:
         print("❌ Informations Postgres manquantes.")
         return False
 
+    # Connexion à PostgreSQL
     pg = creds["postgres"]
     postgres_conn = connect_to_postgres(
         pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
@@ -110,14 +132,15 @@ def transfer_chantiers_vers_batisimply():
         print("❌ Connexion à la base Postgres échouée.")
         return False
 
+    # Configuration de l'API BatiSimply
     API_URL = "https://api.staging.batisimply.fr/api/project"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
 
+    # Récupération des chantiers non synchronisés
     postgres_cursor = postgres_conn.cursor()
-
     postgres_cursor.execute("""
         SELECT code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier, total_mo
         FROM batigest_chantiers
@@ -125,11 +148,13 @@ def transfer_chantiers_vers_batisimply():
     """)
 
     rows = postgres_cursor.fetchall()
-    success = False  # <- Flag de succès
+    success = False
 
+    # Traitement de chaque chantier
     for row in rows:
         code, date_debut, date_fin, nom_client, description, adr, cp, ville, total_mo = row
 
+        # Préparation des données pour l'API
         data = {
             "address": {
                 "city": ville,
@@ -154,7 +179,7 @@ def transfer_chantiers_vers_batisimply():
             "projectCode": code,
             "comment": description,
             "projectName": nom_client,
-            "customerName":nom_client,
+            "customerName": nom_client,
             "projectManager": "DEFINIR",
             "startEstimated": date_debut.strftime("%Y-%m-%d") if date_debut else None,
             "isArchived": False,
@@ -162,6 +187,7 @@ def transfer_chantiers_vers_batisimply():
             "projectColor": "#9b1ff1"
         }
 
+        # Envoi à l'API et mise à jour du statut
         response = requests.post(API_URL, headers=headers, data=json.dumps(data))
         if response.status_code == 201:
             print(f"✅ Projet '{code}' envoyé avec succès")
@@ -172,90 +198,7 @@ def transfer_chantiers_vers_batisimply():
         else:
             print(f"❌ Erreur pour le projet '{code}' : {response.status_code} → {response.text}")
 
-    postgres_cursor.close()
-    postgres_conn.close()
-
-    return success 
-
-
-def transfer_chantiers_vers_batisimply():
-    token = recup_batisimply_token()
-    if not token:
-        print("Impossible de continuer sans token.")
-        return False
-
-    creds = load_credentials()
-    if not creds or "postgres" not in creds:
-        print("❌ Informations Postgres manquantes.")
-        return False
-
-    pg = creds["postgres"]
-    postgres_conn = connect_to_postgres(
-        pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
-    )
-
-    if not postgres_conn:
-        print("❌ Connexion à la base Postgres échouée.")
-        return False
-
-    API_URL = "https://api.staging.batisimply.fr/api/project"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-
-    postgres_cursor = postgres_conn.cursor()
-
-    postgres_cursor.execute("""
-        SELECT code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier
-        FROM batigest_chantiers
-        WHERE sync = false
-    """)
-
-    rows = postgres_cursor.fetchall()
-    success = False  # <- Flag de succès
-
-    for row in rows:
-        code, date_debut, date_fin, nom_client, description, adr, cp, ville = row
-
-        data = {
-            "address": {
-                "city": ville,
-                "countryCode": "FR",
-                "geoPoint": {
-                    "xLon": 3.8777,
-                    "yLat": 43.6119
-                },
-                "googleFormattedAddress": f"{adr}, {cp} {ville}, France",
-                "postalCode": cp,
-                "street": adr
-            },
-            "budget": {
-                "amount": 500000.0,
-                "currency": "EUR"
-            },
-            "endEstimated": date_fin.strftime("%Y-%m-%d") if date_fin else None,
-            "headQuarter": {
-                "id": 33
-            },
-            "hoursSold": 200.0,
-            "projectCode": code,
-            "projectName": nom_client,
-            "startEstimated": date_debut.strftime("%Y-%m-%d") if date_debut else None,
-            "isArchived": False,
-            "isFinished": False
-        }
-
-        response = requests.post(API_URL, headers=headers, data=json.dumps(data))
-        if response.status_code == 201:
-            print(f"✅ Projet '{code}' envoyé avec succès")
-            postgres_cursor.execute(
-                "UPDATE batigest_chantiers SET sync = true, sync_date = NOW() WHERE code = %s", (code,))
-            postgres_conn.commit()
-            success = True
-        else:
-            print(f"❌ Erreur pour le projet '{code}' : {response.status_code} → {response.text}")
-
+    # Nettoyage
     postgres_cursor.close()
     postgres_conn.close()
 

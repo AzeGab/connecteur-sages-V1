@@ -1,15 +1,17 @@
-# app/services/chantier_service.py
-# Module de gestion du transfert des chantiers
+# app/services/heures_service.py
+# Module de gestion du transfert des heures
 # Ce fichier contient les fonctions nécessaires pour transférer les données
-# des chantiers depuis SQL Server vers PostgreSQL
+# des heures depuis SQL Server vers PostgreSQL et BatiSimply
 
 import psycopg2
 from app.services.connex import connect_to_sqlserver, connect_to_postgres, load_credentials, recup_batisimply_token
-
 import requests
 import json
 from datetime import date, datetime, timedelta
 
+# ============================================================================
+# TRANSFERT VERS POSTGRESQL
+# ============================================================================
 
 def transfer_heures_to_postgres():
     """
