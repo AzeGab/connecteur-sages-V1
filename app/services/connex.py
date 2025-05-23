@@ -11,6 +11,10 @@ import requests
 # Chemin du fichier stockant les identifiants de connexion
 CREDENTIALS_FILE = "app/services/credentials.json"
 
+# ============================================================================
+# CONNEXION SQL SERVER
+# ============================================================================
+
 def connect_to_sqlserver(server, user, password, database):
     """
     Établit une connexion à une base de données SQL Server.
@@ -40,6 +44,9 @@ def connect_to_sqlserver(server, user, password, database):
         print("❌ Erreur de connexion SQL Server:", e)
         return None
 
+# ============================================================================
+# CONNEXION POSTGRESQL
+# ============================================================================
 
 def connect_to_postgres(host, user, password, database, port="5432"):
     """
@@ -68,8 +75,11 @@ def connect_to_postgres(host, user, password, database, port="5432"):
     except Exception as e:
         print("❌ Erreur PostgreSQL :", e)
         return None
-    
-    
+
+# ============================================================================
+# GESTION DES IDENTIFIANTS
+# ============================================================================
+
 def save_credentials(data):
     """
     Sauvegarde les identifiants de connexion dans un fichier JSON.
@@ -92,15 +102,25 @@ def load_credentials():
     with open(CREDENTIALS_FILE, "r") as f:
         return json.load(f)
 
+# ============================================================================
+# AUTHENTIFICATION BATISIMPLY
+# ============================================================================
+
 def recup_batisimply_token():
+    """
+    Récupère le token d'authentification pour l'API BatiSimply.
+    
+    Returns:
+        str: Token d'accès si réussi, None si échec
+    """
     url = "https://sso.staging.batisimply.fr/auth/realms/jhipster/protocol/openid-connect/token"
 
     payload = {
         "client_id": "bridge-data", 
         "grant_type": "password",
-        "username": "dev3@groupe-sages.fr",
+        "username": "enzo@apication.fr",
         "client_secret": "e46938bc-e853-4240-be78-48dbeccdcceb",
-        "password": "Dev3060606"
+        "password": "TestBS123"  
     }
 
     headers = {
@@ -115,6 +135,10 @@ def recup_batisimply_token():
     else:
         print(f"❌ Erreur lors de la récupération du token : {response.status_code} → {response.text}")
         return None
+
+# ============================================================================
+# VÉRIFICATION DES CONNEXIONS
+# ============================================================================
 
 def check_connection_status():
     """
