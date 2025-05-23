@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Connexion Base de Données</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center py-10 px-4">
 
@@ -17,7 +18,13 @@
 
     <!-- SQL Server Form -->
     <div class="bg-white shadow-lg rounded-lg p-6 w-full md:w-1/2">
-      <h2 class="text-xl font-semibold mb-4 text-gray-700">Connexion SQL Server</h2>
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-700">Connexion SQL Server</h2>
+        <div id="sql-status" class="flex items-center gap-2 px-3 py-1 rounded-full {% if sql_connected %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+          <i class="fas {% if sql_connected %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
+          <span class="text-sm font-medium">{% if sql_connected %}Connecté{% else %}Déconnecté{% endif %}</span>
+        </div>
+      </div>
       <form method="post" action="/connect-sqlserver" class="space-y-4">
         <div>
           <label class="block text-gray-600">Serveur</label>
@@ -48,7 +55,13 @@
 
     <!-- PostgreSQL Form -->
     <div class="bg-white shadow-lg rounded-lg p-6 w-full md:w-1/2">
-      <h2 class="text-xl font-semibold mb-4 text-gray-700">Connexion PostgreSQL</h2>
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-700">Connexion PostgreSQL</h2>
+        <div id="pg-status" class="flex items-center gap-2 px-3 py-1 rounded-full {% if pg_connected %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+          <i class="fas {% if pg_connected %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
+          <span class="text-sm font-medium">{% if pg_connected %}Connecté{% else %}Déconnecté{% endif %}</span>
+        </div>
+      </div>
       <form method="post" action="/connect-postgres" class="space-y-4">
         <div>
           <label class="block text-gray-600">Hôte</label>

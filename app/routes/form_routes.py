@@ -8,7 +8,7 @@ from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from app.services.connex import connect_to_sqlserver, connect_to_postgres, save_credentials, load_credentials
+from app.services.connex import connect_to_sqlserver, connect_to_postgres, save_credentials, load_credentials, check_connection_status
 from app.services.chantier import transfer_chantiers
 from app.services.chantier import transfer_chantiers_vers_batisimply
 
@@ -29,7 +29,12 @@ async def form_page(request: Request):
     Returns:
         TemplateResponse: Page HTML du formulaire
     """
-    return templates.TemplateResponse("form.html", {"request": request})
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("form.html", {
+        "request": request,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
 
 
 @router.post("/connect-sqlserver", response_class=HTMLResponse)
@@ -67,7 +72,14 @@ async def connect_sqlserver(
         message = "✅ Connexion SQL Server réussie !"
     else:
         message = "❌ Connexion SQL Server échouée."
-    return templates.TemplateResponse("form.html", {"request": request, "message": message})
+    
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("form.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
 
 
 @router.post("/connect-postgres", response_class=HTMLResponse)
@@ -108,7 +120,14 @@ async def connect_postgres(
         message = "✅ Connexion PostgreSQL réussie !"
     else:
         message = "❌ Connexion PostgreSQL échouée."
-    return templates.TemplateResponse("form.html", {"request": request, "message": message})
+    
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("form.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
 
 
 @router.post("/transfer", response_class=HTMLResponse)
@@ -127,10 +146,16 @@ async def transfer_data(request: Request):
 
     if not creds or "sqlserver" not in creds or "postgres" not in creds:
         message = "❌ Merci de renseigner les informations de connexion SQL Server et PostgreSQL avant de lancer le transfert."
-        return templates.TemplateResponse("form.html", {"request": request, "message": message})
-
-    success, message = transfer_chantiers()
-    return templates.TemplateResponse("form.html", {"request": request, "message": message})
+    else:
+        success, message = transfer_chantiers()
+    
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("form.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
 
 
 @router.post("/transfer-batisimply", response_class=HTMLResponse)
@@ -154,4 +179,10 @@ async def transfer_batisimply(request: Request):
     except Exception as e:
         message = f"❌ Erreur lors de la création du chantier : {str(e)}"
 
-    return templates.TemplateResponse("form.html", {"request": request, "message": message})
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("form.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })

@@ -85,4 +85,5 @@ def transfer_heures():
 
     except Exception as e:
         # En cas d'erreur, on retourne le message d'erreur
-        return False, f"❌ Erreur lors du transfert : {e}"
+        return False, f"❌ Erreur lors du transfert : {e}
+                """

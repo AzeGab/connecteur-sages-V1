@@ -1,0 +1,103 @@
+{
+	"info": {
+		"_postman_id": "d822b472-991a-4124-85cc-5cb2fb0e0e7c",
+		"name": "BATISIMPLY",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "33056765"
+	},
+	"item": [
+		{
+			"name": "Récupérer un Token API",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "username",
+							"value": "enzo@apication.fr",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "TestBS123",
+							"type": "text"
+						},
+						{
+							"key": "client_id",
+							"value": "bridge-data",
+							"type": "text"
+						},
+						{
+							"key": "client_secret",
+							"value": "e46938bc-e853-4240-be78-48dbeccdcceb",
+							"type": "text"
+						},
+						{
+							"key": "grant_type",
+							"value": "password",
+							"type": "text"
+						},
+						{
+							"key": "scope",
+							"value": "openid",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://sso.staging.batisimply.fr/auth/realms/jhipster/protocol/openid-connect/token",
+					"protocol": "https",
+					"host": [
+						"sso",
+						"staging",
+						"batisimply",
+						"fr"
+					],
+					"path": [
+						"auth",
+						"realms",
+						"jhipster",
+						"protocol",
+						"openid-connect",
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Lister les projets",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJLUjNoUkc5Y0s1Vk1EZ0wxUWV4RHRmZTZOcnB4YXIwMXVMdGQzcExWbmpJIn0.eyJleHAiOjE3Mzg2NTgzNDYsImlhdCI6MTczODY1ODA0NiwianRpIjoiZmViOTA3MTgtNTY2OS00NjU3LTg3NjQtNGVjMjcwNjk1YjdjIiwiaXNzIjoiaHR0cHM6Ly9zc28uc3RhZ2luZy5iYXRpc2ltcGx5LmZyL2F1dGgvcmVhbG1zL2poaXBzdGVyIiwiYXVkIjoiYWNjb3VudCIsInN1YiI6ImQ3YjRiYTMzLTMzZGItNGExYy04MGRiLWU3NjQ1ODI4Nzk1YiIsInR5cCI6IkJlYXJlciIsImF6cCI6ImJyaWRnZS1kYXRhIiwic2Vzc2lvbl9zdGF0ZSI6IjU1OGE0YjA2LTY2MDEtNGEyMC1hZmQ4LTBiNDE2MzM4NzZlZSIsImFjciI6IjEiLCJzY29wZSI6Im9wZW5pZCBqaGlwc3RlciBlbWFpbCBwcm9maWxlIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwiUk9MRV9BRE1JTiJdLCJuYW1lIjoiRW56byBUZXN0IiwiZ3JvdXBzIjpbIjAwMDAwMDAwMDAzNDM0Il0sInByZWZlcnJlZF91c2VybmFtZSI6ImVuem9AYXBpY2F0aW9uLmZyIiwiZ2l2ZW5fbmFtZSI6IkVuem8iLCJmYW1pbHlfbmFtZSI6IlRlc3QiLCJlbWFpbCI6ImVuem9AYXBpY2F0aW9uLmZyIn0.bEsBiQ68P7Q7Vbgvg3L8E72GYbPRYPlJexj6-59Z3uL_cOf0ichd-uVoT0k0o4G9R4LUiH61yLNpq0rAnrfYd4gq84Dkc3-QvCur2Q1hph2Z1j7FR-x9E6XpST9H8MOxWgbLF-BwYJpYET1chjOmpDA52pJsE4IHnPNeEZPzeFlUD6QVvoBfxyJ9tQYuRXg78cLq8aC3xcXf8Dq4hc2kfUwoBu3__Fx_irgIanjEh3eVDzyO6J-GezIgjzMA3NTi_qRupDQ3W8ZMP3jpAGjTjol95QxUmSWeJ1CpjdSVD3DG454lkV1bVRVVcIeVHNg80hhtwh_FO4ieMLnFe53NGA",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://api.staging.batisimply.fr/api/project",
+					"protocol": "https",
+					"host": [
+						"api",
+						"staging",
+						"batisimply",
+						"fr"
+					],
+					"path": [
+						"api",
+						"project"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
