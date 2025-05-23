@@ -176,3 +176,87 @@ def transfer_chantiers_vers_batisimply():
     postgres_conn.close()
 
     return success 
+
+
+def transfer_chantiers_vers_batisimply():
+    token = recup_batisimply_token()
+    if not token:
+        print("Impossible de continuer sans token.")
+        return False
+
+    creds = load_credentials()
+    if not creds or "postgres" not in creds:
+        print("❌ Informations Postgres manquantes.")
+        return False
+
+    pg = creds["postgres"]
+    postgres_conn = connect_to_postgres(
+        pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
+    )
+
+    if not postgres_conn:
+        print("❌ Connexion à la base Postgres échouée.")
+        return False
+
+    API_URL = "https://api.staging.batisimply.fr/api/project"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    postgres_cursor = postgres_conn.cursor()
+
+    postgres_cursor.execute("""
+        SELECT code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier
+        FROM batigest_chantiers
+        WHERE sync = false
+    """)
+
+    rows = postgres_cursor.fetchall()
+    success = False  # <- Flag de succès
+
+    for row in rows:
+        code, date_debut, date_fin, nom_client, description, adr, cp, ville = row
+
+        data = {
+            "address": {
+                "city": ville,
+                "countryCode": "FR",
+                "geoPoint": {
+                    "xLon": 3.8777,
+                    "yLat": 43.6119
+                },
+                "googleFormattedAddress": f"{adr}, {cp} {ville}, France",
+                "postalCode": cp,
+                "street": adr
+            },
+            "budget": {
+                "amount": 500000.0,
+                "currency": "EUR"
+            },
+            "endEstimated": date_fin.strftime("%Y-%m-%d") if date_fin else None,
+            "headQuarter": {
+                "id": 33
+            },
+            "hoursSold": 200.0,
+            "projectCode": code,
+            "projectName": nom_client,
+            "startEstimated": date_debut.strftime("%Y-%m-%d") if date_debut else None,
+            "isArchived": False,
+            "isFinished": False
+        }
+
+        response = requests.post(API_URL, headers=headers, data=json.dumps(data))
+        if response.status_code == 201:
+            print(f"✅ Projet '{code}' envoyé avec succès")
+            postgres_cursor.execute(
+                "UPDATE batigest_chantiers SET sync = true, sync_date = NOW() WHERE code = %s", (code,))
+            postgres_conn.commit()
+            success = True
+        else:
+            print(f"❌ Erreur pour le projet '{code}' : {response.status_code} → {response.text}")
+
+    postgres_cursor.close()
+    postgres_conn.close()
+
+    return success 
