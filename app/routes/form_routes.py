@@ -12,6 +12,7 @@ from app.services.connex import connect_to_sqlserver, connect_to_postgres, save_
 from app.services.chantier import transfer_chantiers
 from app.services.chantier import transfer_chantiers_vers_batisimply
 from app.services.heures import transfer_heures_to_postgres
+from app.services.chantier import update_code_projet_chantiers
 
 # ============================================================================
 # CONFIGURATION
@@ -228,3 +229,33 @@ async def recup_heures_batisimply(request: Request):
         "sql_connected": sql_connected,
         "pg_connected": pg_connected
     })
+
+@router.post("/update-code-projet", response_class=HTMLResponse)
+async def update_code_projet(request: Request):
+    """
+    Route pour mettre à jour les codes projet des chantiers dans PostgreSQL.
+
+    Args:
+        request (Request): Objet de requête FastAPI.
+
+    Returns:
+        TemplateResponse: Affiche le résultat dans le template HTML.
+    """ 
+    try:
+        success = update_code_projet_chantiers()
+        if success:
+            message = "✅ Codes projet mis à jour avec succès dans PostgreSQL."
+        else:
+            message = "❌ Échec de la mise à jour des codes projet dans PostgreSQL."    
+
+    except Exception as e:
+        message = f"❌ Erreur lors de la mise à jour des codes projet : {str(e)}"
+
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("form.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
+
