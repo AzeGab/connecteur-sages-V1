@@ -8,82 +8,93 @@ from app.services.connex import connect_to_sqlserver, connect_to_postgres, load_
 
 import requests
 import json
-from datetime import date
+from datetime import date, datetime, timedelta
 
 
-def transfer_heures():
+def transfer_heures_to_postgres():
     """
-    Transfère les données les heures depuis SQL Server vers PostgreSQL.
-    
-    Cette fonction :
-    1. Vérifie les identifiants de connexion
-    2. Établit les connexions aux deux bases de données
-    3. Récupère les heures depuis SQL Server
-    4. Les insère dans PostgreSQL en ignorant les doublons
-    5. Ferme proprement les connexions
+    Transfère les heures depuis BatiSimply vers PostgreSQL pour une période
+    allant d'aujourd'hui à +5 ans.
     
     Returns:
-        tuple: (bool, str)
-            - bool: True si le transfert a réussi, False sinon
-            - str: Message décrivant le résultat de l'opération
+        bool: True si succès, False sinon.
     """
-    # 
-    token = recup_batisimply_token()
-    if not token:
-        print("Impossible de continuer sans token.")
-        return False
-    
     try:
-        # Vérification des identifiants
+        token = recup_batisimply_token()
+        if not token:
+            print("❌ Token BatiSimply manquant.")
+            return False
+
         creds = load_credentials()
-        if not creds or "sqlserver" not in creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion manquantes"
+        if not creds or "postgres" not in creds:
+            print("❌ Informations Postgres manquantes.")
+            return False
 
-        sql = creds["sqlserver"]
         pg = creds["postgres"]
-
-        # Établissement des connexions
-        sqlserver_conn = connect_to_sqlserver(
-            sql["server"], sql["user"], sql["password"], sql["database"]
-        )
         postgres_conn = connect_to_postgres(
             pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
         )
-        
-        if not sqlserver_conn or not postgres_conn:
-            return False, "❌ Connexion aux bases échouée"
-        
-        # Création des curseurs pour l'exécution des requêtes
-        sqlserver_cursor = sqlserver_conn.cursor()
+        if not postgres_conn:
+            print("❌ Connexion à la base Postgres échouée.")
+            return False
+
         postgres_cursor = postgres_conn.cursor()
-        
-        # Récupération des heures depuis SQL Server
-        sqlserver_cursor.execute("""
-            SELECT Code, DateDebut, DateFin, NomClient, Libelle, AdrChantier, CPChantier, VilleChantier 
-            FROM dbo.ChantierDef
-        """)
-        rows = sqlserver_cursor.fetchall()
 
-        # Insertion des heures dans PostgreSQL
-        for row in rows:
-            # Requete pour récupérer les heures depuis Batisimply
-            # Utilisation de ON CONFLICT pour éviter les doublons
-            postgres_cursor.execute(
-                """
-                SELECT * FROM batisimply_heures
-            )
-        # Validation des modifications dans PostgreSQL
+        # Dates au format UTC avec "Z"
+        today = datetime.utcnow()
+        end_date = today + timedelta(days=5 * 365)  # ~ 5 ans
+
+        start_date_str = today.strftime("%Y-%m-%dT00:00:00Z")
+        end_date_str = end_date.strftime("%Y-%m-%dT00:00:00Z")
+
+        API_URL = "https://api.staging.batisimply.fr/api/timeSlotManagement/allUsers"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        params = {
+            "startDate": start_date_str,
+            "endDate": end_date_str
+        }
+
+        response = requests.get(API_URL, headers=headers, params=params)
+        if response.status_code != 200:
+            print(f"❌ Erreur API : {response.status_code} → {response.text}")
+            return False
+
+        heures = response.json()
+        for h in heures:
+            heure_id = h["id"]
+            date_debut = h["startDate"]
+            date_fin = h["endDate"]
+            user_id = h["user"]["id"]
+            id_projet = h.get("project", {}).get("id")
+            status = h["managementStatus"]
+            total_heure = h["totalTimeMinutes"]
+            panier = h.get("hasPackedLunch", False)
+            trajet = h.get("hasHomeToWorkJourney", False)
+
+            postgres_cursor.execute("""
+                INSERT INTO batigest_heures(
+                    id_heure, date_debut, date_fin, id_utilisateur,
+                    id_projet, status_management,
+                    total_heure, panier, trajet
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id_heure) DO NOTHING
+            """, (
+                heure_id, date_debut, date_fin, user_id,
+                id_projet, status,
+                total_heure, panier, trajet
+            ))
+
         postgres_conn.commit()
-
-        # Fermeture propre des connexions
-        sqlserver_cursor.close()
         postgres_cursor.close()
-        sqlserver_conn.close()
         postgres_conn.close()
 
-        return True, "✅ Transfert terminé avec succès"
+        print("✅ Transfert terminé avec succès.")
+        return True
 
     except Exception as e:
-        # En cas d'erreur, on retourne le message d'erreur
-        return False, f"❌ Erreur lors du transfert : {e}
-                """
+        print(f"❌ Exception lors du transfert : {e}")
+        return False

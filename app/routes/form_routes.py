@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from app.services.connex import connect_to_sqlserver, connect_to_postgres, save_credentials, load_credentials, check_connection_status
 from app.services.chantier import transfer_chantiers
 from app.services.chantier import transfer_chantiers_vers_batisimply
+from app.services.heures import transfer_heures_to_postgres
 
 # Création du routeur FastAPI
 router = APIRouter()
@@ -178,6 +179,36 @@ async def transfer_batisimply(request: Request):
 
     except Exception as e:
         message = f"❌ Erreur lors de la création du chantier : {str(e)}"
+
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("form.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
+
+
+@router.post("/recup-heures", response_class=HTMLResponse)
+async def recup_heures_batisimply(request: Request):
+    """
+    Route pour récupérer les heures depuis BatiSimply et les insérer dans PostgreSQL.
+
+    Args:
+        request (Request): Objet de requête FastAPI.
+
+    Returns:
+        TemplateResponse: Affiche le résultat dans le template HTML.
+    """
+    try:
+        success = transfer_heures_to_postgres()
+        if success:
+            message = "✅ Heures récupérées et insérées dans PostgreSQL avec succès."
+        else:
+            message = "❌ Échec du transfert des heures depuis BatiSimply."
+
+    except Exception as e:
+        message = f"❌ Erreur lors du transfert des heures : {str(e)}"
 
     sql_connected, pg_connected = check_connection_status()
     return templates.TemplateResponse("form.html", {
