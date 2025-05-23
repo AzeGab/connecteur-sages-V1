@@ -12,11 +12,18 @@ from app.services.connex import connect_to_sqlserver, connect_to_postgres, save_
 from app.services.chantier import transfer_chantiers
 from app.services.chantier import transfer_chantiers_vers_batisimply
 
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
 # Création du routeur FastAPI
 router = APIRouter()
 # Configuration du moteur de templates
 templates = Jinja2Templates(directory="app/templates")
 
+# ============================================================================
+# ROUTES PRINCIPALES
+# ============================================================================
 
 @router.get("/", response_class=HTMLResponse)
 async def form_page(request: Request):
@@ -36,6 +43,9 @@ async def form_page(request: Request):
         "pg_connected": pg_connected
     })
 
+# ============================================================================
+# ROUTES DE CONNEXION
+# ============================================================================
 
 @router.post("/connect-sqlserver", response_class=HTMLResponse)
 async def connect_sqlserver(
@@ -80,7 +90,6 @@ async def connect_sqlserver(
         "sql_connected": sql_connected,
         "pg_connected": pg_connected
     })
-
 
 @router.post("/connect-postgres", response_class=HTMLResponse)
 async def connect_postgres(
@@ -129,6 +138,9 @@ async def connect_postgres(
         "pg_connected": pg_connected
     })
 
+# ============================================================================
+# ROUTES DE TRANSFERT
+# ============================================================================
 
 @router.post("/transfer", response_class=HTMLResponse)
 async def transfer_data(request: Request):
@@ -156,7 +168,6 @@ async def transfer_data(request: Request):
         "sql_connected": sql_connected,
         "pg_connected": pg_connected
     })
-
 
 @router.post("/transfer-batisimply", response_class=HTMLResponse)
 async def transfer_batisimply(request: Request):
