@@ -1,19 +1,21 @@
-# app/services/chantier_service.py
-# Module de gestion du transfert des chantiers
+# app/services/heures_service.py
+# Module de gestion du transfert des heures
 # Ce fichier contient les fonctions nécessaires pour transférer les données
-# des chantiers depuis SQL Server vers PostgreSQL
+# des heures depuis SQL Server vers PostgreSQL et BatiSimply
 
 import psycopg2
 from app.services.connex import connect_to_sqlserver, connect_to_postgres, load_credentials, recup_batisimply_token
-
 import requests
 import json
 from datetime import date
 
+# ============================================================================
+# TRANSFERT VERS POSTGRESQL
+# ============================================================================
 
 def transfer_heures():
     """
-    Transfère les données les heures depuis SQL Server vers PostgreSQL.
+    Transfère les données des heures depuis SQL Server vers PostgreSQL.
     
     Cette fonction :
     1. Vérifie les identifiants de connexion
@@ -27,12 +29,6 @@ def transfer_heures():
             - bool: True si le transfert a réussi, False sinon
             - str: Message décrivant le résultat de l'opération
     """
-    # 
-    token = recup_batisimply_token()
-    if not token:
-        print("Impossible de continuer sans token.")
-        return False
-    
     try:
         # Vérification des identifiants
         creds = load_credentials()
@@ -66,12 +62,13 @@ def transfer_heures():
 
         # Insertion des heures dans PostgreSQL
         for row in rows:
-            # Requete pour récupérer les heures depuis Batisimply
-            # Utilisation de ON CONFLICT pour éviter les doublons
+            # Requête pour récupérer les heures depuis Batisimply
             postgres_cursor.execute(
                 """
                 SELECT * FROM batisimply_heures
+                """
             )
+
         # Validation des modifications dans PostgreSQL
         postgres_conn.commit()
 
@@ -85,5 +82,72 @@ def transfer_heures():
 
     except Exception as e:
         # En cas d'erreur, on retourne le message d'erreur
-        return False, f"❌ Erreur lors du transfert : {e}
-                """
+        return False, f"❌ Erreur lors du transfert : {e}"
+
+# ============================================================================
+# TRANSFERT VERS BATISIMPLY
+# ============================================================================
+
+def transfer_heures_vers_batisimply():
+    """
+    Transfère les heures depuis PostgreSQL vers BatiSimply.
+    
+    Cette fonction :
+    1. Récupère le token d'authentification
+    2. Vérifie les identifiants PostgreSQL
+    3. Récupère les heures non synchronisées
+    4. Les envoie à l'API BatiSimply
+    5. Met à jour le statut de synchronisation
+    
+    Returns:
+        bool: True si au moins une heure a été transférée avec succès, False sinon
+    """
+    # Récupération du token
+    token = recup_batisimply_token()
+    if not token:
+        print("Impossible de continuer sans token.")
+        return False
+
+    # Vérification des identifiants PostgreSQL
+    creds = load_credentials()
+    if not creds or "postgres" not in creds:
+        print("❌ Informations Postgres manquantes.")
+        return False
+
+    # Connexion à PostgreSQL
+    pg = creds["postgres"]
+    postgres_conn = connect_to_postgres(
+        pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
+    )
+
+    if not postgres_conn:
+        print("❌ Connexion à la base Postgres échouée.")
+        return False
+
+    # Configuration de l'API BatiSimply
+    API_URL = "https://api.staging.batisimply.fr/api/hours"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    # Récupération des heures non synchronisées
+    postgres_cursor = postgres_conn.cursor()
+    postgres_cursor.execute("""
+        SELECT * FROM batisimply_heures
+        WHERE sync = false
+    """)
+
+    rows = postgres_cursor.fetchall()
+    success = False
+
+    # Traitement de chaque heure
+    for row in rows:
+        # TODO: Implémenter la logique de transfert des heures vers BatiSimply
+        pass
+
+    # Nettoyage
+    postgres_cursor.close()
+    postgres_conn.close()
+
+    return success
