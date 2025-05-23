@@ -2,127 +2,122 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Connexion Base de Données</title>
+  <title>Connecteur Sages - Gestion des Chantiers</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { plugins: [tailwindcss], daisyui: { themes: ["light"] } }</script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.css" rel="stylesheet" type="text/css" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center py-10 px-4">
+<body class="min-h-screen bg-gray-50 flex flex-col items-center py-8 px-2">
+  <div class="w-full max-w-4xl">
+    <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Connecteur Sages — Gestion des Chantiers</h1>
 
-  <h1 class="text-3xl font-bold mb-8 text-center text-gray-800">Connexion à une base de données</h1>
+    {% if message %}
+      <div class="alert alert-success shadow mb-6">
+        <span class="text-base font-medium">{{ message }}</span>
+      </div>
+    {% endif %}
 
-  {% if message %}
-    <p class="mb-6 text-lg font-semibold text-center text-green-600">{{ message }}</p>
-  {% endif %}
-
-  <div class="flex flex-col md:flex-row gap-8 w-full max-w-6xl">
-
-    <!-- SQL Server Form -->
-    <div class="bg-white shadow-lg rounded-lg p-6 w-full md:w-1/2">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold text-gray-700">Connexion SQL Server</h2>
-        <div id="sql-status" class="flex items-center gap-2 px-3 py-1 rounded-full {% if sql_connected %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
-          <i class="fas {% if sql_connected %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
-          <span class="text-sm font-medium">{% if sql_connected %}Connecté{% else %}Déconnecté{% endif %}</span>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- SQL Server Card -->
+      <div class="card bg-white shadow border border-gray-200">
+        <div class="card-body">
+          <div class="flex justify-between items-center mb-1">
+            <h2 class="card-title text-base font-semibold">Connexion SQL Server</h2>
+            <span class="badge px-2 py-1 text-xs font-medium {% if sql_connected %}badge-success bg-green-100 text-green-800{% else %}badge-outline bg-red-100 text-red-800{% endif %}">
+              <i class="fas {% if sql_connected %}fa-check-circle{% else %}fa-times-circle{% endif %} mr-1"></i>
+              {% if sql_connected %}Connecté{% else %}Déconnecté{% endif %}
+            </span>
+          </div>
+          <form method="post" action="/connect-sqlserver" class="space-y-2">
+            <label class="form-control w-full">
+              <span class="label-text text-xs">Serveur</span>
+              <input type="text" name="server" placeholder="localhost\SAGEBAT" required class="input input-bordered input-sm w-full bg-white" />
+            </label>
+            <label class="form-control w-full">
+              <span class="label-text text-xs">Utilisateur</span>
+              <input type="text" name="user" placeholder="test" required class="input input-bordered input-sm w-full bg-white" />
+            </label>
+            <label class="form-control w-full">
+              <span class="label-text text-xs">Mot de passe</span>
+              <input type="password" name="password" required class="input input-bordered input-sm w-full bg-white" />
+            </label>
+            <label class="form-control w-full">
+              <span class="label-text text-xs">Base de données</span>
+              <input type="text" name="database" placeholder="BTG_DOS_DEMO" required class="input input-bordered input-sm w-full bg-white" />
+            </label>
+            <button type="submit" class="btn btn-primary btn-sm w-full mt-2">
+              <i class="fas fa-database mr-2"></i>Connexion SQL Server
+            </button>
+          </form>
         </div>
       </div>
-      <form method="post" action="/connect-sqlserver" class="space-y-4">
-        <div>
-          <label class="block text-gray-600">Serveur</label>
-          <input type="text" name="server" placeholder="localhost\\SAGEBAT" required
-                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <!-- PostgreSQL Card -->
+      <div class="card bg-white shadow border border-gray-200">
+        <div class="card-body">
+          <div class="flex justify-between items-center mb-1">
+            <h2 class="card-title text-base font-semibold">Connexion PostgreSQL</h2>
+            <span class="badge px-2 py-1 text-xs font-medium {% if pg_connected %}badge-success bg-green-100 text-green-800{% else %}badge-outline bg-red-100 text-red-800{% endif %}">
+              <i class="fas {% if pg_connected %}fa-check-circle{% else %}fa-times-circle{% endif %} mr-1"></i>
+              {% if pg_connected %}Connecté{% else %}Déconnecté{% endif %}
+            </span>
+          </div>
+          <form method="post" action="/connect-postgres" class="space-y-2">
+            <label class="form-control w-full">
+              <span class="label-text text-xs">Hôte</span>
+              <input type="text" name="host" placeholder="localhost" required class="input input-bordered input-sm w-full bg-white" />
+            </label>
+            <label class="form-control w-full">
+              <span class="label-text text-xs">Utilisateur</span>
+              <input type="text" name="user" placeholder="postgres" required class="input input-bordered input-sm w-full bg-white" />
+            </label>
+            <label class="form-control w-full">
+              <span class="label-text text-xs">Mot de passe</span>
+              <input type="password" name="password" required class="input input-bordered input-sm w-full bg-white" />
+            </label>
+            <label class="form-control w-full">
+              <span class="label-text text-xs">Base de données</span>
+              <input type="text" name="database" placeholder="connecteur_buffer" required class="input input-bordered input-sm w-full bg-white" />
+            </label>
+            <label class="form-control w-full">
+              <span class="label-text text-xs">Port</span>
+              <input type="text" name="port" placeholder="5432" value="5432" class="input input-bordered input-sm w-full bg-white" />
+            </label>
+            <button type="submit" class="btn btn-primary btn-sm w-full mt-2">
+              <i class="fas fa-database mr-2"></i>Connexion PostgreSQL
+            </button>
+          </form>
         </div>
-        <div>
-          <label class="block text-gray-600">Utilisateur</label>
-          <input type="text" name="user" placeholder="test" required
-                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
-        </div>
-        <div>
-          <label class="block text-gray-600">Mot de passe</label>
-          <input type="password" name="password" required
-                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
-        </div>
-        <div>
-          <label class="block text-gray-600">Base de données</label>
-          <input type="text" name="database" placeholder="BTG_DOS_DEMO" required
-                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
-        </div>
-        <button type="submit"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg">
-          Se connecter à SQL Server
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form method="post" action="/transfer">
+        <button type="submit" class="btn btn-info btn-sm w-full">
+          <i class="fas fa-arrow-right-arrow-left mr-2"></i>Transférer les chantiers vers PostgreSQL
+        </button>
+      </form>
+      <form method="post" action="/transfer-batisimply">
+        <button type="submit" class="btn btn-success btn-sm w-full">
+          <i class="fas fa-cloud-upload-alt mr-2"></i>Créer chantier dans Batisimply
+        </button>
+      </form>
+      <form method="post" action="/recup-heures">
+        <button type="submit" class="btn btn-warning btn-sm w-full">
+          <i class="fas fa-clock mr-2"></i>Récupérer les heures
+        </button>
+      </form>
+      <form method="post" action="/update-code-projet">
+        <button type="submit" class="btn btn-neutral btn-sm w-full">
+          <i class="fas fa-sync-alt mr-2"></i>Mettre à jour les codes projet
         </button>
       </form>
     </div>
 
-    <!-- PostgreSQL Form -->
-    <div class="bg-white shadow-lg rounded-lg p-6 w-full md:w-1/2">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold text-gray-700">Connexion PostgreSQL</h2>
-        <div id="pg-status" class="flex items-center gap-2 px-3 py-1 rounded-full {% if pg_connected %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
-          <i class="fas {% if pg_connected %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
-          <span class="text-sm font-medium">{% if pg_connected %}Connecté{% else %}Déconnecté{% endif %}</span>
-        </div>
-      </div>
-      <form method="post" action="/connect-postgres" class="space-y-4">
-        <div>
-          <label class="block text-gray-600">Hôte</label>
-          <input type="text" name="host" placeholder="localhost" required
-                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
-        </div>
-        <div>
-          <label class="block text-gray-600">Utilisateur</label>
-          <input type="text" name="user" placeholder="postgres" required
-                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
-        </div>
-        <div>
-          <label class="block text-gray-600">Mot de passe</label>
-          <input type="password" name="password" required
-                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
-        </div>
-        <div>
-          <label class="block text-gray-600">Base de données</label>
-          <input type="text" name="database" placeholder="connecteur_buffer" required
-                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
-        </div>
-        <div>
-          <label class="block text-gray-600">Port</label>
-          <input type="text" name="port" placeholder="5432" value="5432"
-                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
-        </div>
-        <button type="submit"
-                class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg">
-          Se connecter à PostgreSQL
-        </button>
-      </form>
-    </div>
-        <!-- Transfert des chantiers -->
-        <form method="post" action="/transfer" class="mt-6">
-            <button type="submit"
-                    class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">
-                Transférer les chantiers vers PostgreSQL
-            </button>
-        </form>
-          <!-- Transfert des chantiers -->
-          <form method="post" action="/transfer-batisimply" class="mt-6">
-              <button type="submit"
-                    class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">
-                Créer chantier dans Batisimply
-              </button>
-          </form>
-          <!-- Transfert des chantiers -->
-          <form method="post" action="/recup-heures" class="mt-6">
-              <button type="submit"
-                    class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">
-              Récup les heures
-              </button>
-          </form>
-          <!-- Mise à jour des codes projet des chantiers -->
-          <form method="post" action="/update-code-projet" class="mt-6">
-            <button type="submit"
-                  class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">
-              Mettre à jour les codes projet
-            </button>
-        </form>
+    <footer class="mt-10 text-center text-gray-400 text-xs">
+      <span>Connecteur Sages &copy; {{ year or 2024 }} — Design clair avec DaisyUI &amp; TailwindCSS</span>
+    </footer>
   </div>
-  
 </body>
 </html>
