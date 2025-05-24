@@ -11,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from app.services.connex import connect_to_sqlserver, connect_to_postgres, save_credentials, load_credentials, check_connection_status
 from app.services.chantier import transfer_chantiers
 from app.services.chantier import transfer_chantiers_vers_batisimply
-from app.services.heures import transfer_heures_to_postgres
+from app.services.heures import transfer_heures_to_postgres, transfer_heures_to_sqlserver
 from app.services.chantier import update_code_projet_chantiers
 
 # ============================================================================
@@ -259,3 +259,31 @@ async def update_code_projet(request: Request):
         "pg_connected": pg_connected
     })
 
+
+@router.post("/transfer-heure-batigest", response_class=HTMLResponse)
+async def transfer_heure_batigest(request: Request):
+    """
+    Route pour transférer les heures depuis PostgreSQL vers SQL Server (Batigest).
+
+    Args:
+        request (Request): Objet de requête FastAPI.
+
+    Returns:
+        TemplateResponse: Retourne la page principale avec message de confirmation ou d'erreur.
+    """
+    try:
+        transferred_count = transfer_heures_to_sqlserver()
+        if transferred_count > 0:
+            message = f"✅ {transferred_count} heure(s) envoyée(s) avec succès dans Batigest."
+        else:
+            message = "ℹ️ Aucune heure à transférer ou aucune correspondance trouvée."
+    except Exception as e:
+        message = f"❌ Erreur lors du transfert des heures vers Batigest : {str(e)}"
+
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("form.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
