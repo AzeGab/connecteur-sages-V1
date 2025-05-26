@@ -204,12 +204,14 @@ def transfer_chantiers_vers_batisimply():
             "projectColor": "#9b1ff1"
         }
 
-        # Détermination de la méthode HTTP et de l'URL
+        # Détermination de la méthode HTTP
         if code in existing_projects:
             project_id = existing_projects[code]
             method = "PUT"
-            url = f"{API_URL}/{project_id}"
-            print(f"🔄 Mise à jour du projet existant '{code}' (ID: {project_id})")
+            url = API_URL
+            # Inclure l'id dans le payload pour la mise à jour
+            data["id"] = project_id
+            print(f"🔄 Mise à jour du projet existant '{code}' (ID: {data['id']})")
         else:
             method = "POST"
             url = API_URL
@@ -672,10 +674,11 @@ def sync_batigest_to_batisimply():
 
                 # Détermination de la méthode HTTP
                 if code in batisimply_projects:
-                    project_id = batisimply_projects[code].get('id')
                     method = "PUT"
-                    url = f"{API_URL}/{project_id}"
-                    print(f"→ Mise à jour du projet existant {code} (ID: {project_id})")
+                    url = API_URL
+                    # Inclure l'id dans le payload pour la mise à jour
+                    data["id"] = batisimply_projects[code].get("id")
+                    print(f"→ Mise à jour du projet existant {code} (ID: {data['id']})")
                 else:
                     method = "POST"
                     url = API_URL
@@ -847,14 +850,14 @@ def sync_batisimply_to_batigest():
                 # Mise à jour dans Batigest
                 sqlserver_cursor.execute("""
                     UPDATE dbo.ChantierDef
-                    SET DateDebut = %s,
-                        DateFin = %s,
-                        NomClient = %s,
-                        Libelle = %s,
-                        AdrChantier = %s,
-                        CPChantier = %s,
-                        VilleChantier = %s
-                    WHERE Code = %s
+                    SET DateDebut = ?,
+                        DateFin = ?,
+                        NomClient = ?,
+                        Libelle = ?,
+                        AdrChantier = ?,
+                        CPChantier = ?,
+                        VilleChantier = ?
+                    WHERE Code = ?
                 """, (date_debut, date_fin, nom_client, description, adr, cp, ville, code))
                 
                 updated_to_batigest += 1
