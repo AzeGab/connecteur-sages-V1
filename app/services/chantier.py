@@ -80,7 +80,8 @@ def transfer_chantiers():
                 adr_chantier = EXCLUDED.adr_chantier,
                 cp_chantier = EXCLUDED.cp_chantier,
                 ville_chantier = EXCLUDED.ville_chantier,
-                total_mo = EXCLUDED.total_mo
+                total_mo = EXCLUDED.total_mo,
+                sync = EXCLUDED.sync = False
                 """,
                 (code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier, TotalMo)
             )
@@ -112,7 +113,7 @@ def transfer_chantiers_vers_batisimply():
     1. Récupère le token d'authentification
     2. Vérifie les identifiants PostgreSQL
     3. Récupère les chantiers non synchronisés
-    4. Les envoie à l'API BatiSimply
+    4. Les envoie à l'API BatiSimply (POST pour nouveaux, PUT pour existants)
     5. Met à jour le statut de synchronisation
     
     Returns:
@@ -158,6 +159,14 @@ def transfer_chantiers_vers_batisimply():
     rows = postgres_cursor.fetchall()
     success = False
 
+    # Récupération des chantiers existants dans BatiSimply
+    existing_projects = {}
+    response = requests.get(API_URL, headers=headers)
+    if response.status_code == 200:
+        projects = response.json().get("elements", [])
+        for project in projects:
+            existing_projects[project.get('projectCode')] = project.get('id')
+
     # Traitement de chaque chantier
     for row in rows:
         code, date_debut, date_fin, nom_client, description, adr, cp, ville, total_mo = row
@@ -195,10 +204,21 @@ def transfer_chantiers_vers_batisimply():
             "projectColor": "#9b1ff1"
         }
 
+        # Détermination de la méthode HTTP et de l'URL
+        if code in existing_projects:
+            project_id = existing_projects[code]
+            method = "PUT"
+            url = f"{API_URL}/{project_id}"
+            print(f"🔄 Mise à jour du projet existant '{code}' (ID: {project_id})")
+        else:
+            method = "POST"
+            url = API_URL
+            print(f"➕ Création du nouveau projet '{code}'")
+
         # Envoi à l'API et mise à jour du statut
-        response = requests.post(API_URL, headers=headers, data=json.dumps(data))
-        if response.status_code == 201:
-            print(f"✅ Projet '{code}' envoyé avec succès")
+        response = requests.request(method, url, headers=headers, data=json.dumps(data))
+        if response.status_code in [200, 201]:
+            print(f"✅ Projet '{code}' traité avec succès")
             postgres_cursor.execute(
                 "UPDATE batigest_chantiers SET sync = true, sync_date = NOW() WHERE code = %s", (code,))
             postgres_conn.commit()
@@ -210,7 +230,7 @@ def transfer_chantiers_vers_batisimply():
     postgres_cursor.close()
     postgres_conn.close()
 
-    return success 
+    return success
 
 # ============================================================================
 # Récupération des chantiers depuis Batisimply
@@ -279,6 +299,215 @@ def recup_chantiers_postgres():
     postgres_cursor.close()
     postgres_conn.close()
     return chantiers_batigest
+
+# ============================================================================
+# Récupération du code projet des chantiers
+# ============================================================================
+
+def recup_code_projet_chantiers():
+    """
+    Récupère les codes projet des chantiers en commun entre Batisimply et Batigest.
+    
+    Cette fonction :
+    1. Récupère les chantiers depuis Batisimply
+    2. Récupère les chantiers depuis Batigest
+    3. Compare les codes des chantiers
+    4. Retourne les codes en commun
+    """
+    # Récupération des chantiers depuis Batisimply
+    chantiers_batisimply = recup_chantiers_batisimply()
+    if not chantiers_batisimply:
+        print("❌ Impossible de récupérer les chantiers depuis BatiSimply")
+        return []
+
+    # Récupération des chantiers depuis Batigest
+    chantiers_batigest = recup_chantiers_postgres()
+    if not chantiers_batigest:
+        print("❌ Impossible de récupérer les chantiers depuis Batigest")
+        return []
+
+    # Comparaison des codes des chantiers
+    codes_projet_communs = []
+    for chantier in chantiers_batisimply:
+        try:
+            code = chantier.get('projectCode')
+            id_projet = chantier.get('id')
+            if code and id_projet and code in [c[0] for c in chantiers_batigest]:
+                codes_projet_communs.append({
+                    'code': code,
+                    'id_projet': id_projet
+                })
+        except Exception as e:
+            print(f"❌ Erreur lors du traitement du chantier : {e}")
+            continue
+
+    print(f"✅ {len(codes_projet_communs)} codes projet trouvés")
+    return codes_projet_communs
+
+# ============================================================================
+# Vérification du contenu de la table batigest_heures
+# ============================================================================
+
+def check_batigest_heures_content():
+    """
+    Vérifie le contenu de la table batigest_heures pour déboguer.
+    Cette fonction :
+    1. Vérifie le contenu de la table batigest_heures
+    2. Affiche le contenu de la table
+    3. Ferme la connexion à PostgreSQL
+    """
+
+    print("\n=== VÉRIFICATION DU CONTENU DE LA TABLE BATIGEST_HEURES ===")
+    
+    # Connexion PostgreSQL
+    creds = load_credentials()
+    if not creds or "postgres" not in creds:
+        print("❌ Informations Postgres manquantes.")
+        return False
+
+    pg = creds["postgres"]
+    postgres_conn = connect_to_postgres(
+        pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
+    )
+    if not postgres_conn:
+        print("❌ Connexion à PostgreSQL échouée.")
+        return False
+
+    postgres_cursor = postgres_conn.cursor()
+
+    # Vérification des enregistrements
+    postgres_cursor.execute("""
+        SELECT code_projet, COUNT(*) as count 
+        FROM batigest_heures 
+        WHERE code_projet IS NOT NULL 
+        GROUP BY code_projet
+    """)
+    
+    results = postgres_cursor.fetchall()
+    print("\n📊 Contenu de la table batigest_heures :")
+    if results:
+        for code, count in results:
+            print(f"  - Code: {code}, Nombre d'enregistrements: {count}")
+    else:
+        print("  ⚠️ Aucun enregistrement trouvé avec un code_projet non NULL")
+
+    # Fermeture propre
+    postgres_cursor.close()
+    postgres_conn.close()
+    
+    print("=== FIN DE LA VÉRIFICATION ===")
+    return True
+
+# ============================================================================
+# Mise à jour des codes projet des chantiers
+# ============================================================================
+
+def update_code_projet_chantiers():
+    """
+    Met à jour les codes projet des chantiers dans PostgreSQL.
+
+    Cette fonction :
+    1. Récupère les correspondances code ↔ id_projet entre Batisimply et Batigest
+    2. Met à jour la table `batigest_heures` en insérant le `code_projet` pour chaque `code`
+    3. Ferme la connexion à PostgreSQL
+    4. Affiche le nombre de mises à jour effectuées
+    5. Affiche le détail des mises à jour effectuées
+    6. Affiche un message de succès si les mises à jour ont été effectuées
+    7. Affiche un message d'erreur si aucune mise à jour n'a été effectuée
+    """
+    print("=== DÉBUT DE LA MISE À JOUR DES CODES PROJET ===")
+    
+    # Vérification du contenu actuel
+    check_batigest_heures_content()
+    
+    # Récupération des correspondances depuis les deux systèmes
+    codes_projet_communs = recup_code_projet_chantiers()
+    print(f"✅ {len(codes_projet_communs)} codes projet trouvés")
+    
+    if not codes_projet_communs:
+        print("❌ Aucun code projet trouvé")
+        return False
+
+    print("\n📊 Nombre de correspondances trouvées :", len(codes_projet_communs))
+    print("Détail des correspondances :")
+    for code_projet in codes_projet_communs:
+        print(f"  - Code: {code_projet['code']}, ID Projet: {code_projet['id_projet']}")
+
+    # Connexion PostgreSQL
+    creds = load_credentials()
+    if not creds or "postgres" not in creds:
+        print("❌ Informations Postgres manquantes.")
+        return False
+
+    pg = creds["postgres"]
+    postgres_conn = connect_to_postgres(
+        pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
+    )
+    if not postgres_conn:
+        print("❌ Connexion à PostgreSQL échouée.")
+        return False
+
+    print("✅ Connexion PostgreSQL réussie")
+    postgres_cursor = postgres_conn.cursor()
+
+    # Vérification de la structure de la table
+    postgres_cursor.execute("""
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'batigest_heures'
+    """)
+    columns = postgres_cursor.fetchall()
+    print("\n📋 Vérification de la structure de la table :")
+    for col in columns:
+        print(f"  - {col[0]}: {col[1]}")
+
+    print("\n🔄 Début des mises à jour :")
+    updates_count = 0
+
+    # Mise à jour ligne par ligne
+    for code_projet in codes_projet_communs:
+        try:
+            code = code_projet.get('code')
+            id_projet = code_projet.get('id_projet')
+            if code is None or id_projet is None:
+                raise ValueError(f"Données manquantes : {code_projet}")
+
+            print(f"\n🔍 Traitement du code : {code} -> id_projet : {id_projet}")
+            
+            # Mise à jour sans condition
+            postgres_cursor.execute(
+                "UPDATE batigest_heures SET code_projet = %s WHERE id_projet = %s",
+                (str(code), id_projet)
+            )
+            
+            # Vérification après mise à jour
+            postgres_cursor.execute(
+                "SELECT COUNT(*) FROM batigest_heures WHERE code_projet = %s",
+                (str(code),)
+            )
+            updated_count = postgres_cursor.fetchone()[0]
+            print(f"  ✅ Mise à jour effectuée : {updated_count} enregistrements modifiés")
+            
+            updates_count += updated_count
+
+        except Exception as e:
+            print(f"❌ Erreur pour le code projet {code_projet} : {e}")
+
+    # Commit final
+    postgres_conn.commit()
+    print(f"\n📊 Total des mises à jour effectuées : {updates_count}")
+
+    # Fermeture propre
+    postgres_cursor.close()
+    postgres_conn.close()
+
+    if updates_count == 0:
+        print("\n⚠️ Aucune mise à jour n'a été effectuée.")
+    else:
+        print("\n✅ Mise à jour des codes projet terminée avec succès.")
+    
+    print("=== FIN DE LA MISE À JOUR DES CODES PROJET ===")
+    return True
 
 # ============================================================================
 # Recuperation du code projet des chantiers
@@ -490,3 +719,126 @@ def update_code_projet_chantiers():
     return True
 
 # ============================================================================
+# SYNCHRONISATION DES MODIFICATIONS BATISIMPLY VERS BATIGEST
+# ============================================================================
+
+def sync_batisimply_to_batigest():
+    """
+    Synchronise les modifications des chantiers depuis BatiSimply vers Batigest.
+    
+    Cette fonction :
+    1. Récupère le token d'authentification
+    2. Récupère tous les chantiers depuis BatiSimply
+    3. Met à jour les informations correspondantes dans PostgreSQL
+    4. Gère les erreurs et retourne un statut
+    
+    Returns:
+        tuple: (bool, str)
+            - bool: True si la synchronisation a réussi, False sinon
+            - str: Message décrivant le résultat de l'opération
+    """
+    try:
+        # Récupération du token
+        token = recup_batisimply_token()
+        if not token:
+            return False, "❌ Impossible de continuer sans token"
+
+        # Configuration de l'API BatiSimply
+        API_URL = "https://api.staging.batisimply.fr/api/project"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+
+        # Récupération des chantiers depuis BatiSimply
+        response = requests.get(API_URL, headers=headers)
+        if response.status_code != 200:
+            return False, f"❌ Erreur lors de la récupération des chantiers : {response.status_code}"
+
+        projects = response.json().get("elements", [])
+        if not projects:
+            return True, "ℹ️ Aucun chantier trouvé dans BatiSimply"
+
+        # Connexion à PostgreSQL
+        creds = load_credentials()
+        if not creds or "postgres" not in creds:
+            return False, "❌ Informations Postgres manquantes"
+
+        pg = creds["postgres"]
+        postgres_conn = connect_to_postgres(
+            pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
+        )
+        if not postgres_conn:
+            return False, "❌ Connexion à PostgreSQL échouée"
+
+        postgres_cursor = postgres_conn.cursor()
+        updated_count = 0
+
+        # Traitement de chaque chantier
+        for project in projects:
+            try:
+                code = project.get('projectCode')
+                if not code:
+                    continue
+
+                # Extraction des données du projet
+                data = {
+                    'date_debut': project.get('startEstimated'),
+                    'date_fin': project.get('endEstimated'),
+                    'nom_client': project.get('customerName'),
+                    'description': project.get('comment'),
+                    'adr_chantier': project.get('address', {}).get('street'),
+                    'cp_chantier': project.get('address', {}).get('postalCode'),
+                    'ville_chantier': project.get('address', {}).get('city'),
+                    'total_mo': project.get('hoursSold')
+                }
+
+                # Mise à jour dans PostgreSQL
+                postgres_cursor.execute("""
+                    UPDATE batigest_chantiers 
+                    SET 
+                        date_debut = %s,
+                        date_fin = %s,
+                        nom_client = %s,
+                        description = %s,
+                        adr_chantier = %s,
+                        cp_chantier = %s,
+                        ville_chantier = %s,
+                        total_mo = %s,
+                        last_sync_date = NOW()
+                    WHERE code = %s
+                    RETURNING code
+                """, (
+                    data['date_debut'],
+                    data['date_fin'],
+                    data['nom_client'],
+                    data['description'],
+                    data['adr_chantier'],
+                    data['cp_chantier'],
+                    data['ville_chantier'],
+                    data['total_mo'],
+                    code
+                ))
+
+                if postgres_cursor.fetchone():
+                    updated_count += 1
+                    print(f"✅ Chantier '{code}' mis à jour")
+
+            except Exception as e:
+                print(f"❌ Erreur lors de la mise à jour du chantier '{code}': {e}")
+                continue
+
+        # Commit des modifications
+        postgres_conn.commit()
+
+        # Nettoyage
+        postgres_cursor.close()
+        postgres_conn.close()
+
+        return True, f"✅ Synchronisation terminée : {updated_count} chantiers mis à jour"
+
+    except Exception as e:
+        return False, f"❌ Erreur lors de la synchronisation : {e}"
+
+# ============================================================================
+    

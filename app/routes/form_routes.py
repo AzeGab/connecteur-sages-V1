@@ -7,12 +7,18 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from datetime import datetime
 
 from app.services.connex import connect_to_sqlserver, connect_to_postgres, save_credentials, load_credentials, check_connection_status
 from app.services.chantier import transfer_chantiers
 from app.services.chantier import transfer_chantiers_vers_batisimply
 from app.services.heures import transfer_heures_to_postgres, transfer_heures_to_sqlserver
 from app.services.chantier import update_code_projet_chantiers
+from app.services.chantier import (
+    recup_chantiers_batisimply,
+    recup_code_projet_chantiers,
+    sync_batisimply_to_batigest
+)
 
 # ============================================================================
 # CONFIGURATION
