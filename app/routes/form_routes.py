@@ -17,7 +17,9 @@ from app.services.chantier import update_code_projet_chantiers
 from app.services.chantier import (
     recup_chantiers_batisimply,
     recup_code_projet_chantiers,
-    sync_batisimply_to_batigest
+    sync_batigest_to_batisimply,
+    sync_batisimply_to_batigest,
+    init_postgres_table
 )
 
 # ============================================================================
@@ -286,6 +288,84 @@ async def transfer_heure_batigest(request: Request):
     except Exception as e:
         message = f"❌ Erreur lors du transfert des heures vers Batigest : {str(e)}"
 
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("form.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
+
+@router.post("/sync-batigest-to-batisimply", response_class=HTMLResponse)
+async def sync_batigest_to_batisimply_route(request: Request):
+    """
+    Route pour synchroniser les chantiers de Batigest vers Batisimply.
+    
+    Args:
+        request (Request): Requête FastAPI
+        
+    Returns:
+        TemplateResponse: Page HTML avec le message de résultat
+    """
+    try:
+        success, message = sync_batigest_to_batisimply()
+    except Exception as e:
+        success = False
+        message = f"❌ Erreur lors de la synchronisation : {e}"
+    
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("form.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
+
+@router.post("/sync-batisimply-to-batigest", response_class=HTMLResponse)
+async def sync_batisimply_to_batigest_route(request: Request):
+    """
+    Route pour synchroniser les chantiers de Batisimply vers Batigest.
+    
+    Args:
+        request (Request): Requête FastAPI
+        
+    Returns:
+        TemplateResponse: Page HTML avec le message de résultat
+    """
+    try:
+        success, message = sync_batisimply_to_batigest()
+    except Exception as e:
+        success = False
+        message = f"❌ Erreur lors de la synchronisation : {e}"
+    
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("form.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
+
+@router.post("/init-table", response_class=HTMLResponse)
+async def init_table_route(request: Request):
+    """
+    Route pour initialiser la table PostgreSQL.
+    
+    Args:
+        request (Request): Requête FastAPI
+        
+    Returns:
+        TemplateResponse: Page HTML avec le message de résultat
+    """
+    try:
+        success = init_postgres_table()
+        if success:
+            message = "✅ Table PostgreSQL initialisée avec succès"
+        else:
+            message = "❌ Erreur lors de l'initialisation de la table"
+    except Exception as e:
+        message = f"❌ Erreur lors de l'initialisation : {e}"
+    
     sql_connected, pg_connected = check_connection_status()
     return templates.TemplateResponse("form.html", {
         "request": request,
