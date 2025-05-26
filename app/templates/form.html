@@ -106,6 +106,7 @@
 
     <!-- Actions -->
     <div class="row mt-5 g-3">
+      <!-- Boutons de transfert -->
       <div class="col-md-4">
         <form method="post" action="/transfer">
           <button type="submit" class="btn btn-info w-100">
@@ -127,6 +128,8 @@
           </button>
         </form>
       </div>
+
+      <!-- Boutons de mise à jour -->
       <div class="col-md-6">
         <form method="post" action="/update-code-projet">
           <button type="submit" class="btn btn-secondary w-100">
@@ -138,6 +141,31 @@
         <form method="post" action="/transfer-heure-batigest">
           <button type="submit" class="btn btn-dark w-100">
             <i class="fas fa-paper-plane me-2"></i>Envoyer les heures
+          </button>
+        </form>
+      </div>
+
+      <!-- Boutons de synchronisation -->
+      <div class="col-md-6">
+        <form action="/sync-batigest-to-batisimply" method="post">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fas fa-sync-alt me-2"></i>Synchroniser Batigest vers Batisimply
+          </button>
+        </form>
+      </div>
+      <div class="col-md-6">
+        <form action="/sync-batisimply-to-batigest" method="post">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fas fa-sync-alt me-2"></i>Synchroniser Batisimply vers Batigest
+          </button>
+        </form>
+      </div>
+
+      <!-- Bouton d'initialisation de la table -->
+      <div class="col-md-12 mt-3">
+        <form action="/init-table" method="post">
+          <button type="submit" class="btn btn-warning w-100">
+            <i class="fas fa-database me-2"></i>Initialiser la table PostgreSQL
           </button>
         </form>
       </div>
