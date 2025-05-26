@@ -72,7 +72,15 @@ def transfer_chantiers():
                 INSERT INTO batigest_chantiers 
                 (code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier, total_mo)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (code) DO NOTHING
+                ON CONFLICT (code) DO UPDATE SET 
+                date_debut = EXCLUDED.date_debut,
+                date_fin = EXCLUDED.date_fin,
+                nom_client = EXCLUDED.nom_client,
+                description = EXCLUDED.description,
+                adr_chantier = EXCLUDED.adr_chantier,
+                cp_chantier = EXCLUDED.cp_chantier,
+                ville_chantier = EXCLUDED.ville_chantier,
+                total_mo = EXCLUDED.total_mo
                 """,
                 (code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier, TotalMo)
             )
@@ -317,13 +325,18 @@ def recup_code_projet_chantiers():
     return codes_projet_communs
 
 # ============================================================================
-# Mise à jour des codes projet des chantiers
+# Vérification du contenu de la table batigest_heures
 # ============================================================================
 
 def check_batigest_heures_content():
     """
     Vérifie le contenu de la table batigest_heures pour déboguer.
+    Cette fonction :
+    1. Vérifie le contenu de la table batigest_heures
+    2. Affiche le contenu de la table
+    3. Ferme la connexion à PostgreSQL
     """
+
     print("\n=== VÉRIFICATION DU CONTENU DE LA TABLE BATIGEST_HEURES ===")
     
     # Connexion PostgreSQL
@@ -365,6 +378,10 @@ def check_batigest_heures_content():
     print("=== FIN DE LA VÉRIFICATION ===")
     return True
 
+# ============================================================================
+# Mise à jour des codes projet des chantiers
+# ============================================================================
+
 def update_code_projet_chantiers():
     """
     Met à jour les codes projet des chantiers dans PostgreSQL.
@@ -372,6 +389,11 @@ def update_code_projet_chantiers():
     Cette fonction :
     1. Récupère les correspondances code ↔ id_projet entre Batisimply et Batigest
     2. Met à jour la table `batigest_heures` en insérant le `code_projet` pour chaque `code`
+    3. Ferme la connexion à PostgreSQL
+    4. Affiche le nombre de mises à jour effectuées
+    5. Affiche le détail des mises à jour effectuées
+    6. Affiche un message de succès si les mises à jour ont été effectuées
+    7. Affiche un message d'erreur si aucune mise à jour n'a été effectuée
     """
     print("=== DÉBUT DE LA MISE À JOUR DES CODES PROJET ===")
     
@@ -466,3 +488,5 @@ def update_code_projet_chantiers():
     
     print("=== FIN DE LA MISE À JOUR DES CODES PROJET ===")
     return True
+
+# ============================================================================
