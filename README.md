@@ -1,60 +1,128 @@
 # Connecteur SAGES
 
 ## Description
-Le Connecteur SAGES est une application FastAPI qui sert d'interface entre SQL Server (Batigest), PostgreSQL (buffer) et l'API BatiSimply. Il permet la synchronisation bidirectionnelle des données de chantiers et des heures de travail entre ces différents systèmes.
+Le Connecteur SAGES est une application FastAPI permettant la synchronisation bidirectionnelle des données de chantiers et d'heures entre Batigest (SQL Server), PostgreSQL (base tampon) et BatiSimply (API). Il facilite la gestion, le suivi et la cohérence des données entre ces systèmes métiers du bâtiment.
+
+## Architecture
+- **FastAPI** : Serveur web et API
+- **SQL Server** : Base de données Batigest (source principale des chantiers et heures vendues)
+- **PostgreSQL** : Base tampon pour la synchronisation et le suivi des modifications
+- **BatiSimply** : Plateforme SaaS, synchronisation via API REST
+
+## Flux de synchronisation
+- **Batigest → PostgreSQL → BatiSimply** :
+  - Les chantiers et leurs heures vendues (issues des devis) sont extraits de Batigest, stockés dans PostgreSQL, puis synchronisés vers BatiSimply.
+- **BatiSimply → PostgreSQL → Batigest** :
+  - Les modifications de chantiers dans BatiSimply sont récupérées via l'API, stockées dans PostgreSQL, puis répercutées dans Batigest.
+- **Heures réalisées** :
+  - Les heures saisies dans BatiSimply peuvent être importées dans Batigest via la table `batigest_heures` (flux optionnel, non activé par défaut).
+
+## Structure du projet
+```
+app/
+├── main.py                # Point d'entrée FastAPI
+├── requirements.txt       # Dépendances Python
+├── services/              # Logique métier (transferts, connexions, synchronisation)
+│   ├── chantier.py        # Fonctions de synchronisation des chantiers
+│   ├── heures.py          # Fonctions de synchronisation des heures
+│   └── connex.py          # Connexions et gestion des identifiants
+├── routes/                # Définition des routes FastAPI
+├── templates/             # Templates HTML (interface utilisateur)
+├── static/                # Fichiers statiques (logo, CSS, JS)
+└── ...
+```
 
 ## Prérequis
 - Python 3.8+
-- SQL Server (avec ODBC Driver 17)
+- SQL Server (ODBC Driver 17)
 - PostgreSQL 14+
-- Compte BatiSimply (accès API)
+- Accès API BatiSimply (identifiants fournis)
+- Git
 
 ## Installation
+1. **Cloner le dépôt**
+   ```bash
+   git clone <URL_DU_REPO>
+   cd connecteur-sages-V1
+   ```
+2. **Créer un environnement virtuel**
+   ```bash
+   python -m venv venv
+   # Windows
+   venv\Scripts\activate
+   # Linux/Mac
+   source venv/bin/activate
+   ```
+3. **Installer les dépendances**
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. **Configurer les accès aux bases**
+   - Renseigner les identifiants SQL Server et PostgreSQL dans le fichier `app/services/credentials.json` (créé automatiquement via l'interface ou à la main).
 
-1. Cloner le repository :
-```bash
-git clone [URL_DU_REPO]
-cd connecteur-sages-V1
-```
+## Configuration
+- **Fichier `app/services/credentials.json`**
+  ```json
+  {
+    "sqlserver": {
+      "server": "<ADRESSE_SQL_SERVER>",
+      "user": "<UTILISATEUR>",
+      "password": "<MOT_DE_PASSE>",
+      "database": "<NOM_BDD>"
+    },
+    "postgres": {
+      "host": "<ADRESSE_POSTGRES>",
+      "user": "<UTILISATEUR>",
+      "password": "<MOT_DE_PASSE>",
+      "database": "<NOM_BDD>",
+      "port": "5432"
+    }
+  }
+  ```
+- **Variables d'environnement** (optionnel) : pour surcharger les accès ou sécuriser les secrets.
 
-2. Créer un environnement virtuel :
-```bash
-python -m venv venv
-# Linux/Mac
-source venv/bin/activate
-# Windows
-venv\Scripts\activate
-```
+## Utilisation
+- **Lancer le serveur**
+  ```bash
+  uvicorn app.main:app --reload
+  ```
+- **Accéder à l'interface**
+  - Ouvrir [http://localhost:8000](http://localhost:8000) dans un navigateur.
+- **Synchroniser les chantiers**
+  - Utiliser les boutons de l'interface pour lancer les synchronisations dans chaque sens.
+- **Initialiser la base PostgreSQL**
+  - Utiliser le bouton dédié pour ajouter les colonnes de suivi si besoin.
 
-3. Installer les dépendances :
-```bash
-pip install -r requirements.txt
-```
+## Principales fonctions
+Voir le fichier [`fonctions.md`](./fonctions.md) pour la liste complète et la description de toutes les fonctions métier.
 
-4. (Optionnel) Configurer un fichier `.env` si besoin de variables d'environnement spécifiques.
+## Sécurité
+- Les identifiants de connexion sont stockés dans un fichier local non versionné (`.gitignore`).
+- Les accès API BatiSimply sont protégés par token OAuth2.
+- Les routes critiques sont protégées côté interface (pas d'API publique exposée).
 
-## Structure du Projet
+## FAQ
+- **Q : Les heures vendues ne remontent pas dans BatiSimply ?**
+  - Vérifier la requête SQL dans `transfer_chantiers` et la présence de la colonne `TempsMO` dans les devis.
+- **Q : J'ai une erreur de colonne `sync` ?**
+  - Cette colonne ne doit être utilisée que pour l'import des heures de BatiSimply vers Batigest.
+- **Q : Comment ajouter un nouveau flux de synchronisation ?**
+  - Ajouter une fonction dans `services/`, puis une route dans `routes/` et un bouton dans `templates/form.html`.
 
-```
-app/
-├── main.py              # Point d'entrée FastAPI
-├── routes/
-│   └── form_routes.py   # Routes HTTP et synchronisation
-├── services/
-│   ├── connex.py        # Connexions aux bases de données
-│   ├── chantier.py      # Logique métier chantiers & synchronisation
-│   └── heures.py        # Logique métier heures
-├── static/              # Fichiers statiques (logo, CSS)
-└── templates/           # Templates HTML (interface utilisateur)
-```
+## Bonnes pratiques
+- Toujours tester la synchronisation sur une base de test avant la production.
+- Ne jamais modifier la structure des tables Batigest sans sauvegarde préalable.
+- Utiliser des logs pour tracer chaque étape de synchronisation.
+- Garder le fichier `requirements.txt` à jour.
+- Documenter toute nouvelle fonction dans `fonctions.md`.
 
-## Fonctionnalités principales
-- Connexion et test aux bases SQL Server et PostgreSQL
-- Synchronisation bidirectionnelle des chantiers entre Batigest, PostgreSQL et BatiSimply
-- Transfert des heures entre BatiSimply, PostgreSQL et Batigest
-- Interface web moderne (Bootstrap) pour piloter les synchronisations
-- Initialisation automatique de la table PostgreSQL (ajout des colonnes de suivi)
-- Gestion des erreurs et logs détaillés
+## Auteurs & Contact
+- Développement : jp.amar & équipe
+- Contact technique : [votre.email@domaine.fr]
+
+---
+
+*Dernière mise à jour : {date du jour}*
 
 ## Routes principales
 
