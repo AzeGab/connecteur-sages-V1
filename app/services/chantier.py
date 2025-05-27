@@ -8,6 +8,7 @@ from app.services.connex import connect_to_sqlserver, connect_to_postgres, load_
 import requests
 import json
 from datetime import date
+from app.services.heures import transfer_heures_to_postgres
 
 # ============================================================================
 # TRANSFERT VERS POSTGRESQL
@@ -53,19 +54,31 @@ def transfer_chantiers():
         sqlserver_cursor = sqlserver_conn.cursor()
         postgres_cursor = postgres_conn.cursor()
 
-        # Récupération des chantiers depuis SQL Server
+        # Récupération des chantiers actifs depuis Batigest avec heures vendues
         sqlserver_cursor.execute("""
-            SELECT ChantierDef.Code, DateDebut, DateFin, NomClient, Libelle, AdrChantier, CPChantier, VilleChantier, SUM(TempsMO) AS "TotalMo"
+            SELECT 
+                ChantierDef.Code,
+                DateDebut,
+                DateFin,
+                NomClient,
+                Libelle,
+                AdrChantier,
+                CPChantier,
+                VilleChantier,
+                SUM(Devis.TempsMO) AS TotalMo
             FROM dbo.ChantierDef
-            JOIN Devis ON devis.CodeClient = ChantierDef.CodeClient
-            WHERE Devis.Etat = 3
-            GROUP BY chantierDef.Code, DateDebut, DateFin, NomClient, Libelle, AdrChantier, CPChantier, VilleChantier
+            JOIN Devis ON Devis.CodeClient = ChantierDef.CodeClient
+            WHERE (ChantierDef.DateFin IS NULL OR ChantierDef.DateFin > GETDATE())
+              AND Devis.Etat = 3
+            GROUP BY ChantierDef.Code, DateDebut, DateFin, NomClient, Libelle, AdrChantier, CPChantier, VilleChantier
         """)
-        rows = sqlserver_cursor.fetchall()
+        
+        batigest_chantiers = sqlserver_cursor.fetchall()
+        print(f"📊 {len(batigest_chantiers)} chantiers récupérés depuis Batigest")
 
         # Insertion des chantiers dans PostgreSQL
-        for row in rows:
-            code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier, TotalMo = row
+        for row in batigest_chantiers:
+            code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier, total_mo = row
             # Utilisation de ON CONFLICT pour éviter les doublons
             postgres_cursor.execute(
                 """
@@ -83,7 +96,7 @@ def transfer_chantiers():
                 total_mo = EXCLUDED.total_mo,
                 sync = EXCLUDED.sync = False
                 """,
-                (code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier, TotalMo)
+                (code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier, total_mo)
             )
 
         # Validation des modifications dans PostgreSQL
@@ -192,7 +205,7 @@ def transfer_chantiers_vers_batisimply():
             "headQuarter": {
                 "id": 33
             },
-            "hoursSold": total_mo,
+            "hoursSold": total_mo if total_mo is not None else 0,
             "projectCode": code,
             "comment": description,
             "projectName": nom_client,
@@ -518,6 +531,7 @@ def update_code_projet_chantiers():
 def sync_batigest_to_batisimply():
     """
     Synchronise les chantiers de Batigest vers Batisimply via PostgreSQL.
+    Prend aussi les heures de Batigest et les insère dans PostgreSQL.
     
     Flux : Batigest (SQL Server) → PostgreSQL → Batisimply
     
@@ -561,24 +575,28 @@ def sync_batigest_to_batisimply():
 
         print("✅ Connexions aux bases de données établies")
 
-        # 1. Synchronisation Batigest → PostgreSQL
+        # 1. Synchronisation Batigest → PostgreSQL (chantiers)
         print("\n🔄 Synchronisation Batigest → PostgreSQL")
         sqlserver_cursor = sqlserver_conn.cursor()
         postgres_cursor = postgres_conn.cursor()
 
-        # Récupération des chantiers actifs depuis Batigest
+        # Récupération des chantiers actifs depuis Batigest avec heures vendues
         sqlserver_cursor.execute("""
             SELECT 
-                Code,
+                ChantierDef.Code,
                 DateDebut,
                 DateFin,
                 NomClient,
                 Libelle,
                 AdrChantier,
                 CPChantier,
-                VilleChantier
+                VilleChantier,
+                SUM(Devis.TempsMO) AS TotalMo
             FROM dbo.ChantierDef
-            WHERE DateFin IS NULL OR DateFin > GETDATE()
+            JOIN Devis ON Devis.CodeClient = ChantierDef.CodeClient
+            WHERE (ChantierDef.DateFin IS NULL OR ChantierDef.DateFin > GETDATE())
+              AND Devis.Etat = 3
+            GROUP BY ChantierDef.Code, DateDebut, DateFin, NomClient, Libelle, AdrChantier, CPChantier, VilleChantier
         """)
         
         batigest_chantiers = sqlserver_cursor.fetchall()
@@ -588,14 +606,14 @@ def sync_batigest_to_batisimply():
         updated_batigest = 0
         for chantier in batigest_chantiers:
             try:
-                code, date_debut, date_fin, nom_client, description, adr, cp, ville = chantier
+                code, date_debut, date_fin, nom_client, description, adr, cp, ville, total_mo = chantier
                 
                 # Mise à jour dans PostgreSQL
                 postgres_cursor.execute("""
                     INSERT INTO batigest_chantiers 
                     (code, date_debut, date_fin, nom_client, description, adr_chantier, 
-                     cp_chantier, ville_chantier, last_modified_batigest)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                     cp_chantier, ville_chantier, total_mo, last_modified_batigest)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (code) DO UPDATE SET 
                     date_debut = EXCLUDED.date_debut,
                     date_fin = EXCLUDED.date_fin,
@@ -604,12 +622,21 @@ def sync_batigest_to_batisimply():
                     adr_chantier = EXCLUDED.adr_chantier,
                     cp_chantier = EXCLUDED.cp_chantier,
                     ville_chantier = EXCLUDED.ville_chantier,
+                    total_mo = EXCLUDED.total_mo,
                     last_modified_batigest = NOW()
-                """, (code, date_debut, date_fin, nom_client, description, adr, cp, ville))
+                """, (code, date_debut, date_fin, nom_client, description, adr, cp, ville, total_mo))
                 updated_batigest += 1
-                print(f"✅ Chantier {code} mis à jour dans PostgreSQL")
+                print(f"✅ Chantier {code} mis à jour dans PostgreSQL (heures vendues : {total_mo})")
             except Exception as e:
                 print(f"❌ Erreur lors de la mise à jour du chantier {code} dans PostgreSQL : {e}")
+
+        # 1bis. Synchronisation Batigest → PostgreSQL (heures)
+        print("\n🔄 Synchronisation des heures Batigest → PostgreSQL")
+        heures_success = transfer_heures_to_postgres()
+        if heures_success:
+            print("✅ Heures transférées de Batigest vers PostgreSQL")
+        else:
+            print("❌ Erreur lors du transfert des heures de Batigest vers PostgreSQL")
 
         # 2. Synchronisation PostgreSQL → Batisimply
         print("\n🔄 Synchronisation PostgreSQL → Batisimply")
@@ -633,7 +660,7 @@ def sync_batigest_to_batisimply():
             if code:
                 batisimply_projects[code] = project
 
-        # Synchronisation vers Batisimply
+        # Synchronisation des chantiers vers Batisimply
         updated_to_batisimply = 0
         for row in postgres_cursor.fetchall():
             try:
@@ -660,7 +687,7 @@ def sync_batigest_to_batisimply():
                     "headQuarter": {
                         "id": 33
                     },
-                    "hoursSold": total_mo,
+                    "hoursSold": total_mo if total_mo is not None else 0,
                     "projectCode": code,
                     "comment": description,
                     "projectName": nom_client,
