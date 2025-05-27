@@ -1,15 +1,18 @@
 # Connecteur SAGES
 
 ## Description
+
 Le Connecteur SAGES est une application FastAPI permettant la synchronisation bidirectionnelle des données de chantiers et d'heures entre Batigest (SQL Server), PostgreSQL (base tampon) et BatiSimply (API). Il facilite la gestion, le suivi et la cohérence des données entre ces systèmes métiers du bâtiment.
 
 ## Architecture
+
 - **FastAPI** : Serveur web et API
 - **SQL Server** : Base de données Batigest (source principale des chantiers et heures vendues)
 - **PostgreSQL** : Base tampon pour la synchronisation et le suivi des modifications
 - **BatiSimply** : Plateforme SaaS, synchronisation via API REST
 
 ## Flux de synchronisation
+
 - **Batigest → PostgreSQL → BatiSimply** :
   - Les chantiers et leurs heures vendues (issues des devis) sont extraits de Batigest, stockés dans PostgreSQL, puis synchronisés vers BatiSimply.
 - **BatiSimply → PostgreSQL → Batigest** :
@@ -18,6 +21,7 @@ Le Connecteur SAGES est une application FastAPI permettant la synchronisation bi
   - Les heures saisies dans BatiSimply peuvent être importées dans Batigest via la table `batigest_heures` (flux optionnel, non activé par défaut).
 
 ## Structure du projet
+
 ```
 app/
 ├── main.py                # Point d'entrée FastAPI
@@ -33,6 +37,7 @@ app/
 ```
 
 ## Prérequis
+
 - Python 3.8+
 - SQL Server (ODBC Driver 17)
 - PostgreSQL 14+
@@ -40,12 +45,16 @@ app/
 - Git
 
 ## Installation
+
 1. **Cloner le dépôt**
+
    ```bash
    git clone <URL_DU_REPO>
    cd connecteur-sages-V1
    ```
+
 2. **Créer un environnement virtuel**
+
    ```bash
    python -m venv venv
    # Windows
@@ -53,15 +62,21 @@ app/
    # Linux/Mac
    source venv/bin/activate
    ```
+
 3. **Installer les dépendances**
+
    ```bash
    pip install -r requirements.txt
    ```
+
 4. **Configurer les accès aux bases**
+
    - Renseigner les identifiants SQL Server et PostgreSQL dans le fichier `app/services/credentials.json` (créé automatiquement via l'interface ou à la main).
 
 ## Configuration
+
 - **Fichier `app/services/credentials.json`**
+
   ```json
   {
     "sqlserver": {
@@ -79,29 +94,38 @@ app/
     }
   }
   ```
+
 - **Variables d'environnement** (optionnel) : pour surcharger les accès ou sécuriser les secrets.
 
 ## Utilisation
-- **Lancer le serveur**
-  ```bash
-  uvicorn app.main:app --reload
-  ```
-- **Accéder à l'interface**
-  - Ouvrir [http://localhost:8000](http://localhost:8000) dans un navigateur.
-- **Synchroniser les chantiers**
-  - Utiliser les boutons de l'interface pour lancer les synchronisations dans chaque sens.
-- **Initialiser la base PostgreSQL**
-  - Utiliser le bouton dédié pour ajouter les colonnes de suivi si besoin.
+
+1. Lancer l'application :
+
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+
+2. Accéder à l'interface :
+
+   ```
+   http://localhost:8000
+   ```
+
+3. Configurer les connexions aux bases de données
+4. Utiliser les boutons pour transférer ou synchroniser les données
 
 ## Principales fonctions
+
 Voir le fichier [`fonctions.md`](./fonctions.md) pour la liste complète et la description de toutes les fonctions métier.
 
 ## Sécurité
+
 - Les identifiants de connexion sont stockés dans un fichier local non versionné (`.gitignore`).
 - Les accès API BatiSimply sont protégés par token OAuth2.
 - Les routes critiques sont protégées côté interface (pas d'API publique exposée).
 
 ## FAQ
+
 - **Q : Les heures vendues ne remontent pas dans BatiSimply ?**
   - Vérifier la requête SQL dans `transfer_chantiers` et la présence de la colonne `TempsMO` dans les devis.
 - **Q : J'ai une erreur de colonne `sync` ?**
@@ -110,6 +134,7 @@ Voir le fichier [`fonctions.md`](./fonctions.md) pour la liste complète et la d
   - Ajouter une fonction dans `services/`, puis une route dans `routes/` et un bouton dans `templates/form.html`.
 
 ## Bonnes pratiques
+
 - Toujours tester la synchronisation sur une base de test avant la production.
 - Ne jamais modifier la structure des tables Batigest sans sauvegarde préalable.
 - Utiliser des logs pour tracer chaque étape de synchronisation.
@@ -117,6 +142,7 @@ Voir le fichier [`fonctions.md`](./fonctions.md) pour la liste complète et la d
 - Documenter toute nouvelle fonction dans `fonctions.md`.
 
 ## Auteurs & Contact
+
 - Développement : jp.amar & équipe
 - Contact technique : [votre.email@domaine.fr]
 
@@ -150,26 +176,34 @@ Voir le fichier [`fonctions.md`](./fonctions.md) pour la liste complète et la d
 ## Utilisation
 
 1. Lancer l'application :
-```bash
-uvicorn app.main:app --reload
-```
+
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+
 2. Accéder à l'interface :
-```
-http://localhost:8000
-```
+
+   ```
+   http://localhost:8000
+   ```
+
 3. Configurer les connexions aux bases de données
 4. Utiliser les boutons pour transférer ou synchroniser les données
 
 ## Bonnes pratiques
+
 - Toujours initialiser la table PostgreSQL après une première installation ou migration (bouton dédié)
 - Vérifier les logs pour tout problème de connexion ou de synchronisation
 - Les identifiants de connexion sont stockés localement dans `app/services/credentials.json` (ajouté au `.gitignore`)
 
 ## Dépendances
+
 Voir `requirements.txt` pour la liste complète.
 
 ## Support
+
 Pour toute question ou bug, contactez :
+
 - dev2@groupe-sages.fr
 - dev3@groupe-sages.fr
 
