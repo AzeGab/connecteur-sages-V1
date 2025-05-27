@@ -1,14 +1,13 @@
 # Connecteur SAGES
 
 ## Description
-Le Connecteur SAGES est une application FastAPI qui sert d'interface entre différentes bases de données (SQL Server, PostgreSQL) et le service BatiSimply. Il permet la synchronisation des données de chantiers et des heures de travail entre ces différents systèmes.
+Le Connecteur SAGES est une application FastAPI qui sert d'interface entre SQL Server (Batigest), PostgreSQL (buffer) et l'API BatiSimply. Il permet la synchronisation bidirectionnelle des données de chantiers et des heures de travail entre ces différents systèmes.
 
 ## Prérequis
-
 - Python 3.8+
 - SQL Server (avec ODBC Driver 17)
-- PostgreSQL
-- Compte BatiSimply
+- PostgreSQL 14+
+- Compte BatiSimply (accès API)
 
 ## Installation
 
@@ -21,8 +20,10 @@ cd connecteur-sages-V1
 2. Créer un environnement virtuel :
 ```bash
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
+# Linux/Mac
+source venv/bin/activate
+# Windows
+venv\Scripts\activate
 ```
 
 3. Installer les dépendances :
@@ -30,177 +31,78 @@ venv\Scripts\activate     # Windows
 pip install -r requirements.txt
 ```
 
-4. Configurer les variables d'environnement :
-
-- Créer un fichier `.env` à la racine du projet
-- Ajouter les variables nécessaires (voir section Configuration)
+4. (Optionnel) Configurer un fichier `.env` si besoin de variables d'environnement spécifiques.
 
 ## Structure du Projet
 
 ```
 app/
-├── main.py              # Point d'entrée de l'application
+├── main.py              # Point d'entrée FastAPI
 ├── routes/
-│   └── form_routes.py   # Gestion des routes HTTP
+│   └── form_routes.py   # Routes HTTP et synchronisation
 ├── services/
-│   ├── connex.py        # Gestion des connexions aux bases de données
-│   ├── chantier.py      # Gestion des chantiers
-│   └── heures.py        # Gestion des heures
-├── static/             # Fichiers statiques (CSS, JS)
-└── templates/          # Templates HTML
+│   ├── connex.py        # Connexions aux bases de données
+│   ├── chantier.py      # Logique métier chantiers & synchronisation
+│   └── heures.py        # Logique métier heures
+├── static/              # Fichiers statiques (logo, CSS)
+└── templates/           # Templates HTML (interface utilisateur)
 ```
 
-## Fonctionnalités Détaillées
+## Fonctionnalités principales
+- Connexion et test aux bases SQL Server et PostgreSQL
+- Synchronisation bidirectionnelle des chantiers entre Batigest, PostgreSQL et BatiSimply
+- Transfert des heures entre BatiSimply, PostgreSQL et Batigest
+- Interface web moderne (Bootstrap) pour piloter les synchronisations
+- Initialisation automatique de la table PostgreSQL (ajout des colonnes de suivi)
+- Gestion des erreurs et logs détaillés
 
-### 1. Gestion des Connexions (`services/connex.py`)
+## Routes principales
 
-#### `connect_to_sqlserver(server, user, password, database)`
+- **GET /** : Page principale (formulaire de connexion, boutons d'action)
+- **POST /connect-sqlserver** : Connexion à SQL Server
+- **POST /connect-postgres** : Connexion à PostgreSQL
+- **POST /transfer** : Transfert des chantiers SQL Server → PostgreSQL
+- **POST /transfer-batisimply** : Transfert des chantiers PostgreSQL → BatiSimply
+- **POST /recup-heures** : Récupération des heures depuis BatiSimply
+- **POST /update-code-projet** : Mise à jour des codes projet dans PostgreSQL
+- **POST /transfer-heure-batigest** : Envoi des heures PostgreSQL → Batigest
+- **POST /sync-batigest-to-batisimply** : Synchronisation Batigest → PostgreSQL → BatiSimply
+- **POST /sync-batisimply-to-batigest** : Synchronisation BatiSimply → PostgreSQL → Batigest
+- **POST /init-table** : Initialisation de la table PostgreSQL
 
-- **Description** : Établit une connexion à SQL Server
-- **Paramètres** :
+## Synchronisation bidirectionnelle
 
-  - `server` : Nom ou adresse IP du serveur
-  - `user` : Nom d'utilisateur
-  - `password` : Mot de passe
-  - `database` : Nom de la base de données
-- **Retour** : Objet de connexion ou None en cas d'échec
-
-#### `connect_to_postgres(host, user, password, database, port="5432")`
-
-- **Description** : Établit une connexion à PostgreSQL
-- **Paramètres** :
-
-  - `host` : Nom d'hôte ou adresse IP
-  - `user` : Nom d'utilisateur
-  - `password` : Mot de passe
-  - `database` : Nom de la base de données
-  - `port` : Port de connexion (défaut: 5432)
-- **Retour** : Objet de connexion ou None en cas d'échec
-
-#### `recup_batisimply_token()`
-
-- **Description** : Récupère le token d'authentification BatiSimply
-- **Retour** : Token d'accès ou None en cas d'échec
-
-### 2. Gestion des Chantiers (`services/chantier.py`)
-
-#### `transfer_chantiers()`
-
-- **Description** : Transfère les chantiers de SQL Server vers PostgreSQL
-- **Processus** :
-
-  1. Vérifie les identifiants de connexion
-  2. Établit les connexions aux bases
-  3. Récupère les chantiers depuis SQL Server
-  4. Les insère dans PostgreSQL
-  5. Gère les doublons avec ON CONFLICT
-- **Retour** : (bool, str) - Succès et message
-
-#### `transfer_chantiers_vers_batisimply()`
-
-- **Description** : Transfère les chantiers vers BatiSimply
-- **Processus** :
-
-  1. Récupère le token d'authentification
-  2. Vérifie les identifiants PostgreSQL
-  3. Récupère les chantiers non synchronisés
-  4. Les envoie à l'API BatiSimply
-  5. Met à jour le statut de synchronisation
-- **Retour** : bool - Succès ou échec
-
-### 3. Gestion des Heures (`services/heures.py`)
-
-#### `transfer_heures_to_postgres()`
-
-- **Description** : Transfère les heures depuis BatiSimply vers PostgreSQL
-- **Processus** :
-
-  1. Récupère le token BatiSimply
-  2. Établit la connexion PostgreSQL
-  3. Récupère les heures depuis l'API
-  4. Les insère dans PostgreSQL
-- **Retour** : bool - Succès ou échec
-
-#### `transfer_heures_to_sqlserver()`
-
-- **Description** : Transfère les heures de PostgreSQL vers SQL Server
-- **Processus** :
-
-  1. Vérifie les connexions aux deux bases
-  2. Récupère les heures validées non synchronisées
-  3. Les transfère vers SQL Server
-  4. Met à jour le statut de synchronisation
-- **Retour** : bool - Succès ou échec
-
-## Routes API (`routes/form_routes.py`)
-
-### GET `/`
-
-- **Description** : Page principale avec formulaire de connexion
-- **Retour** : Template HTML avec statut des connexions
-
-### POST `/connect-sqlserver`
-
-- **Description** : Teste et sauvegarde la connexion SQL Server
-- **Paramètres** : server, user, password, database
-- **Retour** : Template HTML avec message de résultat
-
-### POST `/connect-postgres`
-
-- **Description** : Teste et sauvegarde la connexion PostgreSQL
-- **Paramètres** : host, user, password, database, port
-- **Retour** : Template HTML avec message de résultat
-
-### POST `/transfer`
-
-- **Description** : Lance le transfert des données
-- **Retour** : Template HTML avec résultat du transfert
-
-### POST `/transfer-batisimply`
-
-- **Description** : Transfère les chantiers vers BatiSimply
-- **Retour** : Template HTML avec résultat du transfert
-
-### POST `/recup-heures`
-
-- **Description** : Récupère les heures depuis BatiSimply
-- **Retour** : Template HTML avec résultat de la récupération
-
-### POST `/update-code-projet`
-
-- **Description** : Met à jour les codes projet
-- **Retour** : Template HTML avec résultat de la mise à jour
+- **Batigest → PostgreSQL → BatiSimply** :
+  - Les modifications dans SQL Server sont propagées vers PostgreSQL puis vers BatiSimply.
+  - Les dates de dernière modification sont suivies pour éviter les conflits.
+- **Batisimply → PostgreSQL → Batigest** :
+  - Les modifications dans BatiSimply sont récupérées via l'API, stockées dans PostgreSQL, puis envoyées vers Batigest.
+  - Les conflits sont gérés par la date de modification la plus récente.
 
 ## Utilisation
 
-1. Démarrer l'application :
+1. Lancer l'application :
 ```bash
 uvicorn app.main:app --reload
 ```
-
-2. Accéder à l'interface web :
+2. Accéder à l'interface :
 ```
 http://localhost:8000
 ```
+3. Configurer les connexions aux bases de données
+4. Utiliser les boutons pour transférer ou synchroniser les données
 
-3. Suivre le processus de synchronisation :
-
-   - Configurer les connexions aux bases de données
-   - Lancer les transferts de données
-   - Vérifier les résultats dans l'interface
-
-## Sécurité
-
-- Les identifiants sont stockés localement dans un fichier JSON
-- Les connexions utilisent des certificats SSL
-- Les tokens BatiSimply sont gérés de manière sécurisée
+## Bonnes pratiques
+- Toujours initialiser la table PostgreSQL après une première installation ou migration (bouton dédié)
+- Vérifier les logs pour tout problème de connexion ou de synchronisation
+- Les identifiants de connexion sont stockés localement dans `app/services/credentials.json` (ajouté au `.gitignore`)
 
 ## Dépendances
-
-Voir `requirements.txt` pour la liste complète des dépendances.
+Voir `requirements.txt` pour la liste complète.
 
 ## Support
-
-dev2@groupe-sages.fr - dev3@groupe-sages.fr
+Pour toute question ou bug, contactez :
+- dev2@groupe-sages.fr
+- dev3@groupe-sages.fr
 
  
