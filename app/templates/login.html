@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - l'Évidence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'evidence-blue': '#4F46E5'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <!-- Bouton retour -->
+        <div class="mb-8">
+            <button onclick="window.location.href='index.html'" 
+                    class="flex items-center space-x-2 text-gray-500 hover:text-gray-700 transition-colors group">
+                <i class="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+                <span>Retour à l'accueil</span>
+            </button>
+        </div>
+
+        <!-- Carte de connexion -->
+        <div class="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-evidence-blue to-indigo-600 p-8 text-center">
+                <div class="w-16 h-16 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-shield-alt text-white text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">Accès sécurisé</h2>
+                <p class="text-indigo-100">Configuration du connecteur</p>
+            </div>
+
+            <!-- Formulaire -->
+            <div class="p-8">
+                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-6">
+                    <div>
+                        <label for="password" class="block text-sm font-semibold text-gray-700 mb-3">
+                            Mot de passe d'accès
+                        </label>
+                        <div class="relative">
+                            <input type="password" 
+                                   id="password" 
+                                   name="password"
+                                   class="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-evidence-blue focus:border-transparent transition-all duration-200 text-lg"
+                                   placeholder="Entrez le mot de passe"
+                                   required>
+                            <i class="fas fa-lock absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                    </div>
+
+                    <!-- Message d'erreur -->
+                    <div id="errorMessage" class="hidden">
+                        <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                                <span class="text-red-700 font-medium">Mot de passe incorrect</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" 
+                            class="w-full bg-gradient-to-r from-evidence-blue to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-200 shadow-lg">
+                        <i class="fas fa-unlock mr-2"></i>
+                        Accéder à la configuration
+                    </button>
+                </form>
+
+                <!-- Info -->
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-500 flex items-center justify-center">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Accès réservé aux administrateurs système
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+            const form = document.getElementById('loginForm');
+            
+            if (password === 'gumgum') {
+                // Animation de succès
+                form.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-check text-green-500 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Accès autorisé</h3>
+                        <p class="text-gray-600 mb-4">Redirection en cours...</p>
+                        <div class="w-8 h-8 border-2 border-evidence-blue border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    window.location.href = 'configuration.html';
+                }, 2000);
+            } else {
+                errorMessage.classList.remove('hidden');
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+                
+                // Animation d'erreur
+                form.classList.add('animate-pulse');
+                setTimeout(() => {
+                    form.classList.remove('animate-pulse');
+                }, 500);
+            }
+        }
+
+        // Masquer l'erreur quand l'utilisateur tape
+        document.getElementById('password').addEventListener('input', function() {
+            document.getElementById('errorMessage').classList.add('hidden');
+        });
+    </script>
+</body>
+</html>

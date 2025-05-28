@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>l'Évidence - Connecteur Sages</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'evidence-blue': '#4F46E5',
+                        'evidence-purple': '#A855F7',
+                        'sync-blue': '#60A5FA',
+                        'sync-purple': '#C084FC'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-evidence-blue rounded-xl flex items-center justify-center relative">
+                        <i class="fas fa-file-alt text-white text-lg"></i>
+                        <div class="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full"></div>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold text-gray-900">l'Évidence</h1>
+                        <p class="text-sm text-gray-500">Connecteur Sages</p>
+                    </div>
+                </div>
+                <button onclick="window.location.href='login.html'" 
+                        class="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors">
+                    <i class="fas fa-cog text-lg"></i>
+                    <span class="font-medium">Configuration</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-6 py-12">
+        <!-- Badge de synchronisation -->
+        <div class="flex justify-center mb-8">
+            <div class="inline-flex items-center space-x-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full border border-blue-200">
+                <i class="fas fa-sync-alt text-sm"></i>
+                <span class="text-sm font-medium">Synchronisation en temps réel</span>
+            </div>
+        </div>
+
+        <!-- Titre principal -->
+        <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold text-evidence-blue mb-4">Connecteur Sages</h2>
+            <p class="text-lg text-gray-600">
+                Interface de synchronisation intelligente entre 
+                <span class="text-evidence-blue font-semibold">Batigest</span> et 
+                <span class="text-evidence-purple font-semibold">Batisimply</span>
+            </p>
+        </div>
+
+        <!-- Statut des connexions -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+            <div class="flex items-center space-x-2 mb-6">
+                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                <h3 class="text-lg font-semibold text-gray-900">Statut des connexions</h3>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- SQL Server -->
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">SQL</span>
+                        </div>
+                        <span class="font-medium text-gray-900">SQL Server</span>
+                    </div>
+                    <div id="sqlStatus" class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm font-medium flex items-center space-x-1">
+                        <i class="fas fa-times-circle text-xs"></i>
+                        <span>Déconnecté</span>
+                    </div>
+                </div>
+
+                <!-- PostgreSQL -->
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-evidence-purple rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">PG</span>
+                        </div>
+                        <span class="font-medium text-gray-900">PostgreSQL</span>
+                    </div>
+                    <div id="pgStatus" class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm font-medium flex items-center space-x-1">
+                        <i class="fas fa-times-circle text-xs"></i>
+                        <span>Déconnecté</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Synchronisation -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center space-x-2 mb-4">
+                    <div class="w-8 h-8 bg-evidence-blue rounded-lg flex items-center justify-center">
+                        <i class="fas fa-sync-alt text-white text-sm"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900">Synchronisation</h3>
+                </div>
+                <p class="text-gray-600">Synchronisation bidirectionnelle entre vos systèmes de gestion</p>
+            </div>
+
+            <!-- Boutons de synchronisation -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Batigest vers Batisimply -->
+                <button onclick="syncBatigestToBatisimply()" 
+                        class="group relative overflow-hidden bg-gradient-to-br from-sync-blue to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white p-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-center mb-4">
+                            <i class="fas fa-arrow-right text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-2">Batigest → Batisimply</h4>
+                        <p class="text-blue-100 text-sm">Synchroniser vers Batisimply</p>
+                    </div>
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                </button>
+
+                <!-- Batisimply vers Batigest -->
+                <button onclick="syncBatisimplyToBatigest()" 
+                        class="group relative overflow-hidden bg-gradient-to-br from-sync-purple to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white p-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-center mb-4">
+                            <i class="fas fa-arrow-left text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-2">Batisimply → Batigest</h4>
+                        <p class="text-purple-100 text-sm">Synchroniser vers Batigest</p>
+                    </div>
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Message de statut -->
+        <div id="statusMessage" class="hidden mt-6"></div>
+    </main>
+
+    <script>
+        function syncBatigestToBatisimply() {
+            showSyncStatus('Synchronisation Batigest → Batisimply en cours...', 'blue');
+            setTimeout(() => {
+                showSyncSuccess('Synchronisation Batigest → Batisimply terminée avec succès !');
+            }, 3000);
+        }
+
+        function syncBatisimplyToBatigest() {
+            showSyncStatus('Synchronisation Batisimply → Batigest en cours...', 'purple');
+            setTimeout(() => {
+                showSyncSuccess('Synchronisation Batisimply → Batigest terminée avec succès !');
+            }, 3000);
+        }
+
+        function showSyncStatus(message, color) {
+            const statusDiv = document.getElementById('statusMessage');
+            const colorClasses = color === 'blue' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-purple-50 border-purple-200 text-purple-700';
+            
+            statusDiv.innerHTML = `
+                <div class="${colorClasses} border rounded-2xl p-6 text-center">
+                    <div class="flex items-center justify-center mb-4">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-current"></div>
+                    </div>
+                    <p class="font-medium">${message}</p>
+                </div>
+            `;
+            statusDiv.classList.remove('hidden');
+        }
+
+        function showSyncSuccess(message) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.innerHTML = `
+                <div class="bg-green-50 border border-green-200 text-green-700 rounded-2xl p-6 text-center">
+                    <div class="flex items-center justify-center mb-4">
+                        <i class="fas fa-check-circle text-3xl text-green-500"></i>
+                    </div>
+                    <p class="font-medium">${message}</p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                statusDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Simulation de mise à jour du statut des connexions
+        function updateConnectionStatus() {
+            // Vous pouvez connecter ceci à votre API réelle
+            const sqlStatus = document.getElementById('sqlStatus');
+            const pgStatus = document.getElementById('pgStatus');
+            
+            // Exemple de mise à jour (à remplacer par votre logique)
+            // sqlStatus.innerHTML = '<i class="fas fa-check-circle text-xs"></i><span>Connecté</span>';
+            // sqlStatus.className = 'px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm font-medium flex items-center space-x-1';
+        }
+    </script>
+</body>
+</html>
