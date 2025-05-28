@@ -74,10 +74,6 @@
                             <p class="text-gray-500 text-sm">Connexion à la base de données Sage Batigest</p>
                         </div>
                     </div>
-                    <div id="sqlStatusBadge" class="px-3 py-1 bg-red-500 text-white rounded-full text-sm font-medium flex items-center space-x-1">
-                        <i class="fas fa-times-circle text-xs"></i>
-                        <span>Déconnecté</span>
-                    </div>
                 </div>
                 
                 <form action="/connect-sqlserver"  method="post" class="space-y-6">
@@ -117,7 +113,7 @@
                     </div>
                     
                     <button type="submit" 
-                            class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2">
+                            class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 mt-4">
                         <i class="fas fa-database"></i>
                         <span>Connexion SQL Server</span>
                     </button>
@@ -138,27 +134,7 @@
                         </div>
                     </div>
                     <!-- Badge de connexion -->
-                    <div id="pgStatusBadge"
-                    class="px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1
-                        {% if pg_connected %}
-                            bg-green-500 text-white
-                        {% else %}
-                            bg-red-500 text-white
-                        {% endif %}">
-                   <i class="fas 
-                       {% if pg_connected %}
-                           fa-check-circle
-                       {% else %}
-                           fa-times-circle
-                       {% endif %} text-xs"></i>
-                   <span>
-                       {% if pg_connected %}
-                           Connecté
-                       {% else %}
-                           Déconnecté
-                       {% endif %}
-                   </span>
-               </div>
+                    
                
                 </div>
                 
@@ -208,13 +184,26 @@
                     </div>
                     
                     <button type="submit" 
-                            class="w-full bg-evidence-purple hover:bg-purple-600 text-white font-medium py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2">
+                            class="w-full bg-evidence-purple hover:bg-purple-600 text-white font-medium py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 mt-4">
                         <i class="fas fa-database"></i>
                         <span>Connexion PostgreSQL</span>
                     </button>
                 </form>
             </div>
         </div>
+
+        <!-- Switch Type de données -->
+        <div  class="bg-white rounded-2xl shadow-sm border border-gray-100 mt-4 p-8 relative flex items-center justify-center">
+            <span class="mr-3 font-medium text-gray-700">Chantier</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="sr-only peer" name="type" id="type">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-all duration-200"></div>
+                <div class="absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full shadow-md transition-all duration-200 peer-checked:translate-x-5"></div>
+            </label>
+            <span class="ml-3 font-medium text-gray-700">Devis</span>
+        </div>
+        <!-- Switch Type de données -->
+
     </main>
 
     <script>
