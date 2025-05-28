@@ -180,3 +180,35 @@ def check_connection_status():
                 conn.close()
     
     return sql_connected, pg_connected
+
+# ============================================================================
+# CONNEXION 
+# ============================================================================
+
+def connexion():
+    """
+    Établit une connexion aux BDD (SQL Server et PostgreSQL) en utilisant les identifiants stockés.
+
+    Returns:
+        tuple: (postgres_conn, sqlserver_conn) - Objets de connexion pour PostgreSQL et SQL Server
+    """
+    creds = load_credentials()
+    if not creds or "sqlserver" not in creds or "postgres" not in creds:
+        return None, None
+
+    sql = creds["sqlserver"]
+    pg = creds["postgres"]
+
+    postgres_conn = connect_to_postgres(
+        pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
+    )
+    sqlserver_conn = connect_to_sqlserver(
+        sql["server"], sql["user"], sql["password"], sql["database"]
+    )
+
+    return postgres_conn, sqlserver_conn
+
+# ============================================================================
+# 
+
+
