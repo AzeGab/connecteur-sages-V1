@@ -32,11 +32,11 @@
                         <div class="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full"></div>
                     </div>
                     <div>
-                        <h1 class="text-lg font-semibold text-gray-900">l'Évidence</h1>
+                        <h1 class="text-lg font-semibold text-gray-900">L'Évidence</h1>
                         <p class="text-sm text-gray-500">Connecteur Sages</p>
                     </div>
                 </div>
-                <button onclick="window.location.href='login.html'" 
+                <button onclick="window.location.href='/login'" 
                         class="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors">
                     <i class="fas fa-cog text-lg"></i>
                     <span class="font-medium">Configuration</span>
@@ -118,17 +118,20 @@
             <!-- Boutons de synchronisation -->
             <div class="grid md:grid-cols-2 gap-6">
                 <!-- Batigest vers Batisimply -->
-                <button onclick="syncBatigestToBatisimply()" 
+                <form action="/sync-batigest-to-batisimply" method="post">
+                    <button type="submit"
                         class="group relative overflow-hidden bg-gradient-to-br from-sync-blue to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white p-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-center mb-4">
-                            <i class="fas fa-arrow-right text-2xl"></i>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-center mb-4">
+                                <i class="fas fa-arrow-right text-2xl"></i>
+                            </div>
+                            <h4 class="text-xl font-bold mb-2">Batigest → Batisimply</h4>
+                            <p class="text-blue-100 text-sm">Synchroniser vers Batisimply</p>
                         </div>
-                        <h4 class="text-xl font-bold mb-2">Batigest → Batisimply</h4>
-                        <p class="text-blue-100 text-sm">Synchroniser vers Batisimply</p>
-                    </div>
-                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                </button>
+                        <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                    </button>
+                </form>
+                
 
                 <!-- Batisimply vers Batigest -->
                 <button onclick="syncBatisimplyToBatigest()" 
