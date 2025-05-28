@@ -4,7 +4,7 @@
 # des chantiers depuis SQL Server vers PostgreSQL
 
 import psycopg2
-from app.services.connex import connect_to_sqlserver, connect_to_postgres, load_credentials, recup_batisimply_token
+from app.services.connex import connect_to_sqlserver, connect_to_postgres, load_credentials, recup_batisimply_token, connexion
 import requests
 import json
 from datetime import date
@@ -36,17 +36,8 @@ def transfer_chantiers():
         if not creds or "sqlserver" not in creds or "postgres" not in creds:
             return False, "❌ Informations de connexion manquantes"
 
-        sql = creds["sqlserver"]
-        pg = creds["postgres"]
-
         # Établissement des connexions
-        sqlserver_conn = connect_to_sqlserver(
-            sql["server"], sql["user"], sql["password"], sql["database"]
-        )
-        postgres_conn = connect_to_postgres(
-            pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
-        )
-
+        postgres_conn, sqlserver_conn = connexion()
         if not sqlserver_conn or not postgres_conn:
             return False, "❌ Connexion aux bases échouée"
 
@@ -94,7 +85,7 @@ def transfer_chantiers():
                 cp_chantier = EXCLUDED.cp_chantier,
                 ville_chantier = EXCLUDED.ville_chantier,
                 total_mo = EXCLUDED.total_mo,
-                sync = EXCLUDED.sync = False
+                sync = False
                 """,
                 (code, date_debut, date_fin, nom_client, description, adr_chantier, cp_chantier, ville_chantier, total_mo)
             )
@@ -555,80 +546,11 @@ def sync_batigest_to_batisimply():
             "Content-Type": "application/json"
         }
 
-        # Connexion aux bases de données
-        creds = load_credentials()
-        if not creds or "postgres" not in creds or "sqlserver" not in creds:
-            return False, "❌ Informations de connexion manquantes"
-
-        pg = creds["postgres"]
-        sql = creds["sqlserver"]
-
-        postgres_conn = connect_to_postgres(
-            pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
-        )
-        sqlserver_conn = connect_to_sqlserver(
-            sql["server"], sql["user"], sql["password"], sql["database"]
-        )
-
-        if not postgres_conn or not sqlserver_conn:
-            return False, "❌ Connexion aux bases de données échouée"
-
-        print("✅ Connexions aux bases de données établies")
-
         # 1. Synchronisation Batigest → PostgreSQL (chantiers)
         print("\n🔄 Synchronisation Batigest → PostgreSQL")
-        sqlserver_cursor = sqlserver_conn.cursor()
-        postgres_cursor = postgres_conn.cursor()
-
-        # Récupération des chantiers actifs depuis Batigest avec heures vendues
-        sqlserver_cursor.execute("""
-            SELECT 
-                ChantierDef.Code,
-                DateDebut,
-                DateFin,
-                NomClient,
-                Libelle,
-                AdrChantier,
-                CPChantier,
-                VilleChantier,
-                SUM(Devis.TempsMO) AS TotalMo
-            FROM dbo.ChantierDef
-            JOIN Devis ON Devis.CodeClient = ChantierDef.CodeClient
-            WHERE (ChantierDef.DateFin IS NULL OR ChantierDef.DateFin > GETDATE())
-              AND Devis.Etat = 3
-            GROUP BY ChantierDef.Code, DateDebut, DateFin, NomClient, Libelle, AdrChantier, CPChantier, VilleChantier
-        """)
-        
-        batigest_chantiers = sqlserver_cursor.fetchall()
-        print(f"📊 {len(batigest_chantiers)} chantiers récupérés depuis Batigest")
-
-        # Mise à jour de PostgreSQL avec les données de Batigest
-        updated_batigest = 0
-        for chantier in batigest_chantiers:
-            try:
-                code, date_debut, date_fin, nom_client, description, adr, cp, ville, total_mo = chantier
-                
-                # Mise à jour dans PostgreSQL
-                postgres_cursor.execute("""
-                    INSERT INTO batigest_chantiers 
-                    (code, date_debut, date_fin, nom_client, description, adr_chantier, 
-                     cp_chantier, ville_chantier, total_mo, last_modified_batigest)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                    ON CONFLICT (code) DO UPDATE SET 
-                    date_debut = EXCLUDED.date_debut,
-                    date_fin = EXCLUDED.date_fin,
-                    nom_client = EXCLUDED.nom_client,
-                    description = EXCLUDED.description,
-                    adr_chantier = EXCLUDED.adr_chantier,
-                    cp_chantier = EXCLUDED.cp_chantier,
-                    ville_chantier = EXCLUDED.ville_chantier,
-                    total_mo = EXCLUDED.total_mo,
-                    last_modified_batigest = NOW()
-                """, (code, date_debut, date_fin, nom_client, description, adr, cp, ville, total_mo))
-                updated_batigest += 1
-                print(f"✅ Chantier {code} mis à jour dans PostgreSQL (heures vendues : {total_mo})")
-            except Exception as e:
-                print(f"❌ Erreur lors de la mise à jour du chantier {code} dans PostgreSQL : {e}")
+        success, message = transfer_chantiers()
+        if not success:
+            return False, message
 
         # 1bis. Synchronisation Batigest → PostgreSQL (heures)
         print("\n🔄 Synchronisation des heures Batigest → PostgreSQL")
@@ -641,12 +563,22 @@ def sync_batigest_to_batisimply():
         # 2. Synchronisation PostgreSQL → Batisimply
         print("\n🔄 Synchronisation PostgreSQL → Batisimply")
         
-        # Récupération des chantiers modifiés dans Batigest
+        # Connexion à PostgreSQL pour la suite
+        creds = load_credentials()
+        pg = creds["postgres"]
+        postgres_conn = connect_to_postgres(
+            pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
+        )
+        if not postgres_conn:
+            return False, "❌ Connexion à PostgreSQL échouée"
+
+        # Récupération des chantiers non synchronisés
+        postgres_cursor = postgres_conn.cursor()
         postgres_cursor.execute("""
             SELECT code, date_debut, date_fin, nom_client, description, adr_chantier, 
                    cp_chantier, ville_chantier, total_mo
             FROM batigest_chantiers
-            WHERE last_modified_batigest > COALESCE(last_modified_batisimply, '1970-01-01'::timestamp)
+            WHERE sync = false
         """)
         
         # Récupération des chantiers existants dans Batisimply
@@ -718,7 +650,7 @@ def sync_batigest_to_batisimply():
                     # Mise à jour du timestamp dans PostgreSQL
                     postgres_cursor.execute("""
                         UPDATE batigest_chantiers 
-                        SET last_modified_batisimply = NOW()
+                        SET sync = true, sync_date = NOW()
                         WHERE code = %s
                     """, (code,))
                     print(f"✅ Chantier {code} synchronisé vers Batisimply")
@@ -731,14 +663,11 @@ def sync_batigest_to_batisimply():
         postgres_conn.commit()
         postgres_cursor.close()
         postgres_conn.close()
-        sqlserver_cursor.close()
-        sqlserver_conn.close()
 
         print("\n=== FIN DE LA SYNCHRONISATION BATIGEST → BATISIMPLY ===")
 
         # Préparation du message final
         message = "✅ Synchronisation Batigest → Batisimply terminée :\n"
-        message += f"- {updated_batigest} chantiers mis à jour depuis Batigest vers PostgreSQL\n"
         message += f"- {updated_to_batisimply} chantiers synchronisés de PostgreSQL vers Batisimply"
 
         return True, message
@@ -834,8 +763,8 @@ def sync_batisimply_to_batigest():
                 postgres_cursor.execute("""
                     INSERT INTO batigest_chantiers 
                     (code, date_debut, date_fin, nom_client, description, adr_chantier, 
-                     cp_chantier, ville_chantier, total_mo, last_modified_batisimply)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                     cp_chantier, ville_chantier, total_mo, sync)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, false)
                     ON CONFLICT (code) DO UPDATE SET 
                     date_debut = EXCLUDED.date_debut,
                     date_fin = EXCLUDED.date_fin,
@@ -844,8 +773,7 @@ def sync_batisimply_to_batigest():
                     adr_chantier = EXCLUDED.adr_chantier,
                     cp_chantier = EXCLUDED.cp_chantier,
                     ville_chantier = EXCLUDED.ville_chantier,
-                    total_mo = EXCLUDED.total_mo,
-                    last_modified_batisimply = NOW()
+                    total_mo = EXCLUDED.total_mo
                 """, (
                     data['code'], data['date_debut'], data['date_fin'],
                     data['nom_client'], data['description'], data['adr_chantier'],
@@ -864,7 +792,7 @@ def sync_batisimply_to_batigest():
             SELECT code, date_debut, date_fin, nom_client, description, adr_chantier, 
                    cp_chantier, ville_chantier
             FROM batigest_chantiers
-            WHERE last_modified_batisimply > COALESCE(last_modified_batigest, '1970-01-01'::timestamp)
+            WHERE sync = false
         """)
         
         # Mise à jour dans Batigest
@@ -952,19 +880,12 @@ def init_postgres_table():
         existing_columns = [row[0] for row in postgres_cursor.fetchall()]
 
         # Ajout des colonnes si elles n'existent pas
-        if 'last_modified_batisimply' not in existing_columns:
+        if 'sync' not in existing_columns:
             postgres_cursor.execute("""
                 ALTER TABLE batigest_chantiers 
-                ADD COLUMN last_modified_batisimply TIMESTAMP WITH TIME ZONE
+                ADD COLUMN sync BOOLEAN
             """)
-            print("✅ Colonne last_modified_batisimply ajoutée")
-
-        if 'last_modified_batigest' not in existing_columns:
-            postgres_cursor.execute("""
-                ALTER TABLE batigest_chantiers 
-                ADD COLUMN last_modified_batigest TIMESTAMP WITH TIME ZONE
-            """)
-            print("✅ Colonne last_modified_batigest ajoutée")
+            print("✅ Colonne sync ajoutée")
 
         # Validation des modifications
         postgres_conn.commit()

@@ -142,15 +142,36 @@ def transfer_heures_to_sqlserver():
         for h in heures:
             id_heure, date_debut, id_utilisateur, code_projet, total_heure, panier, trajet = h
 
-            sqlserver_cursor.execute("SELECT Code FROM Salarie WHERE CODEBS = ?", (id_utilisateur,))
-            columns = [column[0] for column in sqlserver_cursor.description]
-            print("📋 Colonnes disponibles dans 'Salarie' :", columns)
-            result = sqlserver_cursor.fetchone()
-            if not result:
-                print(f"⚠️ Utilisateur {id_utilisateur} non trouvé dans SQL Server.")
+            # Vérification de la structure de la table Salarie
+            sqlserver_cursor.execute("""
+                SELECT COLUMN_NAME, DATA_TYPE 
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_NAME = 'Salarie'
+            """)
+            columns_info = sqlserver_cursor.fetchall()
+            print("\n📋 Structure de la table Salarie :")
+            for col in columns_info:
+                print(f"  - {col[0]}: {col[1]}")
+
+            # Recherche de l'utilisateur avec plus de détails
+            print(f"\n🔍 Recherche de l'utilisateur {id_utilisateur} dans Salarie...")
+            sqlserver_cursor.execute("""
+                SELECT TOP 5 * 
+                FROM Salarie 
+                WHERE codebs = ?
+            """, (id_utilisateur,))
+            
+            # Affichage des résultats de la recherche
+            results = sqlserver_cursor.fetchall()
+            if results:
+                print("✅ Utilisateurs trouvés :")
+                for row in results:
+                    print(f"  - {row}")
+            else:
+                print(f"⚠️ Aucun utilisateur trouvé avec l'ID {id_utilisateur}")
                 continue
 
-            code_salarie = result[0]  # ici on prend la colonne 'Code'
+            code_salarie = results[0][0]  # On prend le Code du premier résultat
             code_chantier = code_projet
             nb_h0 = (total_heure / 60)
             nb_h3 = 1 if trajet else 0
