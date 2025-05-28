@@ -5,7 +5,7 @@
 # et le transfert des données entre SQL Server et PostgreSQL
 
 from fastapi import APIRouter, Request, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from datetime import datetime
 
@@ -381,4 +381,15 @@ async def login_page(request: Request):
 
 @router.get("/configuration", response_class=HTMLResponse)
 async def configuration_page(request: Request):
-    return templates.TemplateResponse("configuration.html", {"request": request})
+    creds = load_credentials()
+    return templates.TemplateResponse("configuration.html", {"request": request, "mode": creds.get("mode", "chantier")})
+
+
+@router.post("/update-mode")
+def update_mode(request: Request, type: str = Form("chantier")):
+    creds = load_credentials()
+    if creds:
+        creds["mode"] = type  # type sera "chantier" ou "devis"
+        save_credentials(creds)
+        print(f"Mode mis à jour en: {type}")
+    return RedirectResponse(url="/configuration", status_code=303) #templates.TemplateResponse("configuration.html", {"request": request})

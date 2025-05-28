@@ -193,15 +193,22 @@
         </div>
 
         <!-- Switch Type de données -->
-        <div  class="bg-white rounded-2xl shadow-sm border border-gray-100 mt-4 p-8 relative flex items-center justify-center">
-            <span class="mr-3 font-medium text-gray-700">Chantier</span>
-            <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" class="sr-only peer" name="type" id="type">
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-all duration-200"></div>
-                <div class="absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full shadow-md transition-all duration-200 peer-checked:translate-x-5"></div>
-            </label>
-            <span class="ml-3 font-medium text-gray-700">Devis</span>
-        </div>
+        <form action="/update-mode" method="post">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mt-4 p-8 relative flex items-center justify-center">
+                <span class="mr-3 font-medium text-gray-700">Chantier</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer" name="type" id="type"
+                           value="devis" {{ 'checked' if mode == 'devis' else '' }}>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-all duration-200"></div>
+                    <div class="absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full shadow-md transition-all duration-200 peer-checked:translate-x-5"></div>
+                </label>
+                <span class="ml-3 font-medium text-gray-700">Devis</span>
+            </div>
+            <div class="text-center mt-4">
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-xl">Enregistrer</button>
+            </div>
+        </form>
+        
         <!-- Switch Type de données -->
 
     </main>
