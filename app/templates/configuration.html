@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration - l'Évidence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'evidence-blue': '#4F46E5',
+                        'evidence-purple': '#A855F7'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <button onclick="window.location.href='index.html'" 
+                        class="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors">
+                    <i class="fas fa-arrow-left"></i>
+                    <span class="font-medium">Retour</span>
+                </button>
+                
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-evidence-purple rounded-xl flex items-center justify-center">
+                        <i class="fas fa-database text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold text-gray-900">Configuration</h1>
+                        <p class="text-sm text-gray-500">Connexions aux bases de données</p>
+                    </div>
+                </div>
+                
+                <div class="w-20"></div> <!-- Spacer pour centrer le titre -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-6 py-12">
+        <!-- Titre principal -->
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-evidence-blue mb-4">Configuration des connexions</h2>
+            <p class="text-gray-600 text-lg">
+                Configurez les connexions sécurisées aux bases de données SQL Server<br>
+                et PostgreSQL
+            </p>
+        </div>
+
+        <!-- Messages de statut -->
+        <div id="statusMessage" class="hidden mb-8"></div>
+
+        <!-- Configuration des bases de données -->
+        <div class="grid lg:grid-cols-2 gap-8">
+            <!-- SQL Server Configuration -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 relative">
+                <!-- Header de la carte -->
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-database text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900">SQL Server</h3>
+                            <p class="text-gray-500 text-sm">Connexion à la base de données Sage Batigest</p>
+                        </div>
+                    </div>
+                    <div id="sqlStatusBadge" class="px-3 py-1 bg-red-500 text-white rounded-full text-sm font-medium flex items-center space-x-1">
+                        <i class="fas fa-times-circle text-xs"></i>
+                        <span>Déconnecté</span>
+                    </div>
+                </div>
+                
+                <form id="sqlServerForm" onsubmit="connectSqlServer(event)" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Serveur</label>
+                        <input type="text" 
+                               name="server" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white" 
+                               placeholder="localhost\SAGEBAT"
+                               value="localhost\SAGEBAT"
+                               required>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Utilisateur</label>
+                        <input type="text" 
+                               name="user" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white" 
+                               placeholder="test"
+                               value="test"
+                               required>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Mot de passe</label>
+                        <input type="password" 
+                               name="password" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
+                               required>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Base de données</label>
+                        <input type="text" 
+                               name="database" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white" 
+                               placeholder="BTG_DOS_DEMO"
+                               value="BTG_DOS_DEMO"
+                               required>
+                    </div>
+                    
+                    <button type="submit" 
+                            class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2">
+                        <i class="fas fa-database"></i>
+                        <span>Connexion SQL Server</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- PostgreSQL Configuration -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 relative">
+                <!-- Header de la carte -->
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-evidence-purple rounded-xl flex items-center justify-center">
+                            <i class="fas fa-database text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900">PostgreSQL</h3>
+                            <p class="text-gray-500 text-sm">Connexion à la base de données tampon</p>
+                        </div>
+                    </div>
+                    <div id="pgStatusBadge" class="px-3 py-1 bg-red-500 text-white rounded-full text-sm font-medium flex items-center space-x-1">
+                        <i class="fas fa-times-circle text-xs"></i>
+                        <span>Déconnecté</span>
+                    </div>
+                </div>
+                
+                <form id="postgresForm" onsubmit="connectPostgres(event)" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Hôte</label>
+                        <input type="text" 
+                               name="host" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white" 
+                               placeholder="localhost"
+                               value="localhost"
+                               required>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Utilisateur</label>
+                        <input type="text" 
+                               name="user" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white" 
+                               placeholder="postgres"
+                               value="postgres"
+                               required>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Mot de passe</label>
+                        <input type="password" 
+                               name="password" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white"
+                               required>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Base de données</label>
+                        <input type="text" 
+                               name="database" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white" 
+                               placeholder="connecteur_buffer"
+                               value="connecteur_buffer"
+                               required>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Port</label>
+                        <input type="text" 
+                               name="port" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white" 
+                               placeholder="5432"
+                               value="5432">
+                    </div>
+                    
+                    <button type="submit" 
+                            class="w-full bg-evidence-purple hover:bg-purple-600 text-white font-medium py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2">
+                        <i class="fas fa-database"></i>
+                        <span>Connexion PostgreSQL</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function connectSqlServer(event) {
+            event.preventDefault();
+            showLoading('Connexion à SQL Server en cours...');
+            
+            setTimeout(() => {
+                updateConnectionBadge('sqlStatusBadge', true);
+                showMessage('Connexion SQL Server établie avec succès !', 'success');
+            }, 2000);
+        }
+
+        function connectPostgres(event) {
+            event.preventDefault();
+            showLoading('Connexion à PostgreSQL en cours...');
+            
+            setTimeout(() => {
+                updateConnectionBadge('pgStatusBadge', true);
+                showMessage('Connexion PostgreSQL établie avec succès !', 'success');
+            }, 2000);
+        }
+
+        function updateConnectionBadge(badgeId, connected) {
+            const badge = document.getElementById(badgeId);
+            if (connected) {
+                badge.className = 'px-3 py-1 bg-green-500 text-white rounded-full text-sm font-medium flex items-center space-x-1';
+                badge.innerHTML = '<i class="fas fa-check-circle text-xs"></i><span>Connecté</span>';
+            } else {
+                badge.className = 'px-3 py-1 bg-red-500 text-white rounded-full text-sm font-medium flex items-center space-x-1';
+                badge.innerHTML = '<i class="fas fa-times-circle text-xs"></i><span>Déconnecté</span>';
+            }
+        }
+
+        function showMessage(message, type) {
+            const statusMessage = document.getElementById('statusMessage');
+            const colors = {
+                success: 'bg-green-50 border-green-200 text-green-700',
+                error: 'bg-red-50 border-red-200 text-red-700',
+                info: 'bg-blue-50 border-blue-200 text-blue-700'
+            };
+            const icons = {
+                success: 'fa-check-circle text-green-500',
+                error: 'fa-exclamation-triangle text-red-500',
+                info: 'fa-info-circle text-blue-500'
+            };
+            
+            statusMessage.innerHTML = `
+                <div class="${colors[type]} border rounded-xl p-4 max-w-2xl mx-auto">
+                    <div class="flex items-center justify-center">
+                        <i class="fas ${icons[type]} mr-3"></i>
+                        <span class="font-medium">${message}</span>
+                    </div>
+                </div>
+            `;
+            statusMessage.classList.remove('hidden');
+            
+            setTimeout(() => {
+                statusMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        function showLoading(message) {
+            const statusMessage = document.getElementById('statusMessage');
+            
+            statusMessage.innerHTML = `
+                <div class="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-4 max-w-2xl mx-auto">
+                    <div class="flex items-center justify-center">
+                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+                        <span class="font-medium">${message}</span>
+                    </div>
+                </div>
+            `;
+            statusMessage.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

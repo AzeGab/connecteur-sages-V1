@@ -1,0 +1,11 @@
+SELECT        TOP (200) SysSaisie.Code, SysSaisie.Nom, SysSaisie.Formule, SysSaisie.Ordre
+FROM            CorresPaye INNER JOIN
+                         SysSaisie ON CorresPaye.Ordre = SysSaisie.Ordre CROSS JOIN
+                         PaiementDirect CROSS JOIN
+                         HeureSup CROSS JOIN
+                         DefStePaye CROSS JOIN
+                         SuiviConso INNER JOIN
+                         SuiviHeureSup ON SuiviConso.CodeChantier = SuiviHeureSup.CodeChantier INNER JOIN
+                         RubPayeChant ON SuiviConso.CodeChantier = RubPayeChant.CodeChantier CROSS JOIN
+                         RubriquePaye CROSS JOIN
+                         RubPayeSal
