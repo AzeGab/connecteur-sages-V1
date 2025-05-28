@@ -47,7 +47,7 @@ async def form_page(request: Request):
         TemplateResponse: Page HTML du formulaire
     """
     sql_connected, pg_connected = check_connection_status()
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("index.html", {
         "request": request,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected
@@ -94,7 +94,7 @@ async def connect_sqlserver(
         message = "❌ Connexion SQL Server échouée."
     
     sql_connected, pg_connected = check_connection_status()
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("configuration.html", {
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
@@ -141,7 +141,7 @@ async def connect_postgres(
         message = "❌ Connexion PostgreSQL échouée."
     
     sql_connected, pg_connected = check_connection_status()
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("configuration.html", {
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
@@ -172,7 +172,7 @@ async def transfer_data(request: Request):
         success, message = transfer_chantiers()
     
     sql_connected, pg_connected = check_connection_status()
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("index.html", {
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
@@ -201,7 +201,7 @@ async def transfer_batisimply(request: Request):
         message = f"❌ Erreur lors de la création du chantier : {str(e)}"
 
     sql_connected, pg_connected = check_connection_status()
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("index.html", {
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
@@ -231,7 +231,7 @@ async def recup_heures_batisimply(request: Request):
         message = f"❌ Erreur lors du transfert des heures : {str(e)}"
 
     sql_connected, pg_connected = check_connection_status()
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("index.html", {
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
@@ -260,7 +260,7 @@ async def update_code_projet(request: Request):
         message = f"❌ Erreur lors de la mise à jour des codes projet : {str(e)}"
 
     sql_connected, pg_connected = check_connection_status()
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("index.html", {
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
@@ -289,7 +289,7 @@ async def transfer_heure_batigest(request: Request):
         message = f"❌ Erreur lors du transfert des heures vers Batigest : {str(e)}"
 
     sql_connected, pg_connected = check_connection_status()
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("index.html", {
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
@@ -314,7 +314,7 @@ async def sync_batigest_to_batisimply_route(request: Request):
         message = f"❌ Erreur lors de la synchronisation : {e}"
     
     sql_connected, pg_connected = check_connection_status()
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("index.html", {
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
@@ -339,7 +339,7 @@ async def sync_batisimply_to_batigest_route(request: Request):
         message = f"❌ Erreur lors de la synchronisation : {e}"
     
     sql_connected, pg_connected = check_connection_status()
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("index.html", {
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
@@ -367,9 +367,18 @@ async def init_table_route(request: Request):
         message = f"❌ Erreur lors de l'initialisation : {e}"
     
     sql_connected, pg_connected = check_connection_status()
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("configuration.html", {
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected
     })
+
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+@router.get("/configuration", response_class=HTMLResponse)
+async def configuration_page(request: Request):
+    return templates.TemplateResponse("configuration.html", {"request": request})
