@@ -65,48 +65,27 @@
             </p>
         </div>
 
-        <!-- Statut des connexions -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
-            {% if message %}
-            <div class="alert alert-success" role="alert">
-                {{ message }}
-            </div>
-            {% endif %}
-            <div class="flex items-center space-x-2 mb-6">
-                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                <h3 class="text-lg font-semibold text-gray-900">Statut des connexions</h3>
-            </div>
-            
-            <div class="space-y-4">
-                <!-- SQL Server -->
-                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">SQL</span>
-                        </div>
-                        <span class="font-medium text-gray-900">SQL Server</span>
-                    </div>
-                    <div id="sqlStatus" class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm font-medium flex items-center space-x-1">
-                        <i class="fas fa-times-circle text-xs"></i>
-                        <span>Déconnecté</span>
-                    </div>
-                </div>
+        <!-- Zone de notification message -->
+{% if message %}
+<div id="notification"
+     class="flex items-start gap-4 p-5 rounded-2xl border shadow-sm bg-green-50 border-green-200 mb-8 animate-fade-in"
+     role="alert">
+    <div>
+        <i class="fas fa-check-circle text-2xl text-green-500 mt-1"></i>
+    </div>
+    <div class="flex-1">
+        <div class="font-semibold text-green-800 mb-1">Succès</div>
+        <div class="text-green-700 text-sm">{{ message }}</div>
+    </div>
+    <button type="button"
+            aria-label="Fermer"
+            onclick="closeNotification()"
+            class="ml-2 text-green-400 hover:text-green-600 transition-colors text-lg focus:outline-none">
+        <i class="fas fa-times"></i>
+    </button>
+</div>
+{% endif %}
 
-                <!-- PostgreSQL -->
-                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-evidence-purple rounded-lg flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">PG</span>
-                        </div>
-                        <span class="font-medium text-gray-900">PostgreSQL</span>
-                    </div>
-                    <div id="pgStatus" class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm font-medium flex items-center space-x-1">
-                        <i class="fas fa-times-circle text-xs"></i>
-                        <span>Déconnecté</span>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Section Synchronisation -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
@@ -122,35 +101,38 @@
 
             <!-- Boutons de synchronisation -->
             <div class="grid md:grid-cols-2 gap-6">
-                <!-- Batigest vers Batisimply -->
-                <form action="/sync-batigest-to-batisimply" method="post">
-                    <button type="submit"
-                        class="group relative overflow-hidden bg-gradient-to-br from-sync-blue to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white p-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                        <div class="relative z-10">
-                            <div class="flex items-center justify-center mb-4">
-                                <i class="fas fa-arrow-right text-2xl"></i>
+                <div class="flex justify-center">
+                    <form action="/sync-batigest-to-batisimply" method="post">
+                        <button type="submit"
+                            class="group relative overflow-hidden bg-gradient-to-br from-sync-blue to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white p-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                            <div class="relative z-10">
+                                <div class="flex items-center justify-center mb-4">
+                                    <i class="fas fa-arrow-right text-2xl"></i>
+                                </div>
+                                <h4 class="text-xl font-bold mb-2">Batigest → Batisimply</h4>
+                                <p class="text-blue-100 text-sm">Synchroniser vers Batisimply</p>
                             </div>
-                            <h4 class="text-xl font-bold mb-2">Batigest → Batisimply</h4>
-                            <p class="text-blue-100 text-sm">Synchroniser vers Batisimply</p>
-                        </div>
-                        <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                    </button>
-                </form>
-                
-
-                <!-- Batisimply vers Batigest -->
-                <button onclick="syncBatisimplyToBatigest()" 
-                        class="group relative overflow-hidden bg-gradient-to-br from-sync-purple to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white p-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-center mb-4">
-                            <i class="fas fa-arrow-left text-2xl"></i>
-                        </div>
-                        <h4 class="text-xl font-bold mb-2">Batisimply → Batigest</h4>
-                        <p class="text-purple-100 text-sm">Synchroniser vers Batigest</p>
-                    </div>
-                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                </button>
+                            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                        </button>
+                    </form>
+                </div>
+                <div class="flex justify-center">
+                    <form action="/sync-batisimply-to-batigest" method="post">
+                        <button type="submit"
+                            class="group relative overflow-hidden bg-gradient-to-br from-sync-purple to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white p-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                            <div class="relative z-10">
+                                <div class="flex items-center justify-center mb-4">
+                                    <i class="fas fa-arrow-left text-2xl"></i>
+                                </div>
+                                <h4 class="text-xl font-bold mb-2">Batisimply → Batigest</h4>
+                                <p class="text-purple-100 text-sm">Synchroniser vers Batigest</p>
+                            </div>
+                            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                        </button>
+                    </form>
+                </div>
             </div>
+            
         </div>
 
         <!-- Message de statut -->
