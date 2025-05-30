@@ -34,4 +34,28 @@ ENV/
 app/services/credentials.json
 
 # Logs
-*.log 
+*.log
+
+### Fichiers d'installation spécifiques ###
+install_assets/postgresql-*-windows-x64.exe  # Exclut tous les installateurs PostgreSQL
+install_assets/python-embed/                 # Python embarqué (peut être regénéré)
+install_assets/start_app.bat                 # Script généré automatiquement
+
+# Fichiers générés par l'installateur
+ConnecteurInstaller.spec                     # Fichier de configuration PyInstaller
+output/                                      # Dossier de sortie alternatif
+*.nsi                                       # Fichiers NSIS (si vous utilisez Inno Setup)
+*.iss                                       # Fichiers Inno Setup
+
+# Fichiers temporaires d'installation
+tmp/
+temp_setup/
+*.tmp
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Fichiers de déploiement (optionnel)
+deploy/
+packages/
