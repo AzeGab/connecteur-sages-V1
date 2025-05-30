@@ -552,15 +552,6 @@ def sync_batigest_to_batisimply():
             return False, f"❌ Échec du transfert SQL Server → PostgreSQL : {message}"
         print(f"✅ {message}")
 
-        # 3. Transfert des heures Batigest → PostgreSQL
-        #print("\n🔄 Transfert des heures Batigest vers PostgreSQL...")
-        #heures_success = transfer_heures_to_postgres()
-        #if heures_success:
-        #    print("✅ Heures transférées avec succès.")
-        #else:
-        #    print("❌ Échec du transfert des heures (voir logs).")
-
-        # 4. Transfert des chantiers PostgreSQL → Batisimply
         print("\n🔄 Transfert des chantiers PostgreSQL → Batisimply...")
         if mode == "devis":
             success = transfer_devis_vers_batisimply()
