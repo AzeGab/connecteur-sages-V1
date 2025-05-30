@@ -9,6 +9,7 @@ import requests
 import json
 from datetime import date
 from app.services.heures import transfer_heures_to_postgres
+from app.services.devis import transfer_devis, transfer_devis_vers_batisimply
 
 # ============================================================================
 # TRANSFERT VERS POSTGRESQL
@@ -521,160 +522,62 @@ def update_code_projet_chantiers():
 
 def sync_batigest_to_batisimply():
     """
-    Synchronise les chantiers de Batigest vers Batisimply via PostgreSQL.
-    Prend aussi les heures de Batigest et les insère dans PostgreSQL.
-    
-    Flux : Batigest (SQL Server) → PostgreSQL → Batisimply
+    Synchronise les données de Batigest vers Batisimply via PostgreSQL.
+    - Étape 1 : Récupère les données depuis Batigest (SQL Server) vers PostgreSQL.
+    - Étape 2 : Transfère les heures de Batigest vers PostgreSQL.
+    - Étape 3 : Transfère les chantiers depuis PostgreSQL vers BatiSimply.
     
     Returns:
         tuple: (bool, str)
-            - bool: True si la synchronisation a réussi, False sinon
-            - str: Message décrivant le résultat de l'opération
     """
     try:
         print("\n=== DÉBUT DE LA SYNCHRONISATION BATIGEST → BATISIMPLY ===")
-        
-        # Récupération du token Batisimply
-        token = recup_batisimply_token()
-        if not token:
-            return False, "❌ Impossible de continuer sans token Batisimply"
 
-        # Configuration de l'API BatiSimply
-        API_URL = "https://api.staging.batisimply.fr/api/project"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        # 1. Synchronisation Batigest → PostgreSQL (chantiers)
-        print("\n🔄 Synchronisation Batigest → PostgreSQL")
-        success, message = transfer_chantiers()
-        if not success:
-            return False, message
-
-        # 1bis. Synchronisation Batigest → PostgreSQL (heures)
-        print("\n🔄 Synchronisation des heures Batigest → PostgreSQL")
-        heures_success = transfer_heures_to_postgres()
-        if heures_success:
-            print("✅ Heures transférées de Batigest vers PostgreSQL")
-        else:
-            print("❌ Erreur lors du transfert des heures de Batigest vers PostgreSQL")
-
-        # 2. Synchronisation PostgreSQL → Batisimply
-        print("\n🔄 Synchronisation PostgreSQL → Batisimply")
-        
-        # Connexion à PostgreSQL pour la suite
+        # 1. Récupération des credentials et du mode
         creds = load_credentials()
-        pg = creds["postgres"]
-        postgres_conn = connect_to_postgres(
-            pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
-        )
-        if not postgres_conn:
-            return False, "❌ Connexion à PostgreSQL échouée"
+        if not creds:
+            return False, "❌ Impossible de charger les credentials."
 
-        # Récupération des chantiers non synchronisés
-        postgres_cursor = postgres_conn.cursor()
-        postgres_cursor.execute("""
-            SELECT code, date_debut, date_fin, nom_client, description, adr_chantier, 
-                   cp_chantier, ville_chantier, total_mo
-            FROM batigest_chantiers
-            WHERE sync = false
-        """)
-        
-        # Récupération des chantiers existants dans Batisimply
-        response = requests.get(API_URL, headers=headers)
-        if response.status_code != 200:
-            return False, f"❌ Erreur lors de la récupération des chantiers Batisimply : {response.status_code}"
+        mode = creds.get("mode", "chantier")
+        print(f"\n🔁 Mode de synchronisation : {mode}")
 
-        batisimply_projects = {}
-        for project in response.json().get("elements", []):
-            code = project.get('projectCode')
-            if code:
-                batisimply_projects[code] = project
+        # 2. Transfert des données Batigest → PostgreSQL
+        print("\n🔄 Transfert des données Batigest vers PostgreSQL...")
+        if mode == "devis":
+            success, message = transfer_devis()
+        else:
+            success, message = transfer_chantiers()
 
-        # Synchronisation des chantiers vers Batisimply
-        updated_to_batisimply = 0
-        for row in postgres_cursor.fetchall():
-            try:
-                code, date_debut, date_fin, nom_client, description, adr, cp, ville, total_mo = row
-                
-                # Préparation des données pour l'API
-                data = {
-                    "address": {
-                        "city": ville,
-                        "countryCode": "FR",
-                        "geoPoint": {
-                            "xLon": 3.8777,
-                            "yLat": 43.6119
-                        },
-                        "googleFormattedAddress": f"{adr}, {cp} {ville}, France",
-                        "postalCode": cp,
-                        "street": adr
-                    },
-                    "budget": {
-                        "amount": 500000.0,
-                        "currency": "EUR"
-                    },
-                    "endEstimated": date_fin.strftime("%Y-%m-%d") if date_fin else None,
-                    "headQuarter": {
-                        "id": 33
-                    },
-                    "hoursSold": total_mo if total_mo is not None else 0,
-                    "projectCode": code,
-                    "comment": description,
-                    "projectName": nom_client,
-                    "customerName": nom_client,
-                    "projectManager": "DEFINIR",
-                    "startEstimated": date_debut.strftime("%Y-%m-%d") if date_debut else None,
-                    "isArchived": False,
-                    "isFinished": False,
-                    "projectColor": "#9b1ff1"
-                }
+        if not success:
+            return False, f"❌ Échec du transfert SQL Server → PostgreSQL : {message}"
+        print(f"✅ {message}")
 
-                # Détermination de la méthode HTTP
-                if code in batisimply_projects:
-                    method = "PUT"
-                    url = API_URL
-                    # Inclure l'id dans le payload pour la mise à jour
-                    data["id"] = batisimply_projects[code].get("id")
-                    print(f"→ Mise à jour du projet existant {code} (ID: {data['id']})")
-                else:
-                    method = "POST"
-                    url = API_URL
-                    print(f"→ Création d'un nouveau projet {code}")
+        # 3. Transfert des heures Batigest → PostgreSQL
+        #print("\n🔄 Transfert des heures Batigest vers PostgreSQL...")
+        #heures_success = transfer_heures_to_postgres()
+        #if heures_success:
+        #    print("✅ Heures transférées avec succès.")
+        #else:
+        #    print("❌ Échec du transfert des heures (voir logs).")
 
-                # Envoi à l'API
-                response = requests.request(method, url, headers=headers, data=json.dumps(data))
-                if response.status_code in [200, 201]:
-                    updated_to_batisimply += 1
-                    # Mise à jour du timestamp dans PostgreSQL
-                    postgres_cursor.execute("""
-                        UPDATE batigest_chantiers 
-                        SET sync = true, sync_date = NOW()
-                        WHERE code = %s
-                    """, (code,))
-                    print(f"✅ Chantier {code} synchronisé vers Batisimply")
-                else:
-                    print(f"❌ Erreur API pour le chantier {code} : {response.status_code} → {response.text}")
-            except Exception as e:
-                print(f"❌ Erreur lors de la synchronisation du chantier {code} vers Batisimply : {e}")
+        # 4. Transfert des chantiers PostgreSQL → Batisimply
+        print("\n🔄 Transfert des chantiers PostgreSQL → Batisimply...")
+        if mode == "devis":
+            success = transfer_devis_vers_batisimply()
+        else:
+            success = transfer_chantiers_vers_batisimply()
 
-        # Validation des modifications
-        postgres_conn.commit()
-        postgres_cursor.close()
-        postgres_conn.close()
+        if not success:
+            return False, f"❌ Échec du transfert SQL Server → PostgreSQL : {message}"
+        print(f"✅ {message}")
 
-        print("\n=== FIN DE LA SYNCHRONISATION BATIGEST → BATISIMPLY ===")
-
-        # Préparation du message final
-        message = "✅ Synchronisation Batigest → Batisimply terminée :\n"
-        message += f"- {updated_to_batisimply} chantiers synchronisés de PostgreSQL vers Batisimply"
-
-        return True, message
+        print("\n=== SYNCHRONISATION TERMINÉE AVEC SUCCÈS ===")
+        return True, "✅ Synchronisation complète Batigest → Batisimply réussie."
 
     except Exception as e:
-        print(f"\n❌ Erreur lors de la synchronisation : {e}")
+        print(f"\n❌ Erreur inattendue : {e}")
         return False, f"❌ Erreur lors de la synchronisation : {e}"
+
 
 # ============================================================================
 # SYNCHRONISATION DE BATISIMPLY VERS BATIGEST
@@ -899,4 +802,8 @@ def init_postgres_table():
         return False
 
 # ============================================================================
+
+
+
+
     

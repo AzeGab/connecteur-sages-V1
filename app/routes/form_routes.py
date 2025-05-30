@@ -4,23 +4,40 @@
 # Ce fichier contient toutes les routes pour gérer les connexions aux bases de données
 # et le transfert des données entre SQL Server et PostgreSQL
 
+from datetime import datetime
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from datetime import datetime
 
-from app.services.connex import connect_to_sqlserver, connect_to_postgres, save_credentials, load_credentials, check_connection_status
-from app.services.chantier import transfer_chantiers
-from app.services.chantier import transfer_chantiers_vers_batisimply
-from app.services.heures import transfer_heures_to_postgres, transfer_heures_to_sqlserver
-from app.services.chantier import update_code_projet_chantiers
+# Services - Connexion
+from app.services.connex import (
+    connect_to_sqlserver,
+    connect_to_postgres,
+    save_credentials,
+    load_credentials,
+    check_connection_status
+)
+
+# Services - Chantiers
 from app.services.chantier import (
+    transfer_chantiers,
+    transfer_chantiers_vers_batisimply,
+    update_code_projet_chantiers,
     recup_chantiers_batisimply,
     recup_code_projet_chantiers,
     sync_batigest_to_batisimply,
     sync_batisimply_to_batigest,
     init_postgres_table
 )
+
+# Services - Heures
+from app.services.heures import (
+    transfer_heures_to_postgres,
+    transfer_heures_to_sqlserver
+)
+
+# Services - Devis
+from app.services.devis import transfer_devis
 
 # ============================================================================
 # CONFIGURATION
