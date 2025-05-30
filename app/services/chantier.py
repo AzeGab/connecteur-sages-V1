@@ -8,7 +8,7 @@ from app.services.connex import connect_to_sqlserver, connect_to_postgres, load_
 import requests
 import json
 from datetime import date
-from app.services.heures import transfer_heures_to_postgres
+from app.services.heures import transfer_heures_to_postgres, transfer_heures_to_sqlserver
 from app.services.devis import transfer_devis, transfer_devis_vers_batisimply
 
 # ============================================================================
@@ -576,7 +576,7 @@ def sync_batigest_to_batisimply():
 
 def sync_batisimply_to_batigest():
     """
-    Synchronise les chantiers de Batisimply vers Batigest via PostgreSQL.
+    Synchronise les heures de Batisimply vers Batigest via PostgreSQL.
     
     Flux : Batisimply → PostgreSQL → Batigest (SQL Server)
     
@@ -600,136 +600,26 @@ def sync_batisimply_to_batigest():
             "Content-Type": "application/json"
         }
 
-        # Connexion aux bases de données
-        creds = load_credentials()
-        if not creds or "postgres" not in creds or "sqlserver" not in creds:
-            return False, "❌ Informations de connexion manquantes"
-
-        pg = creds["postgres"]
-        sql = creds["sqlserver"]
-
-        postgres_conn = connect_to_postgres(
-            pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
-        )
-        sqlserver_conn = connect_to_sqlserver(
-            sql["server"], sql["user"], sql["password"], sql["database"]
-        )
-
-        if not postgres_conn or not sqlserver_conn:
-            return False, "❌ Connexion aux bases de données échouée"
+        postgres_conn, sqlserver_conn = connexion()
 
         print("✅ Connexions aux bases de données établies")
 
         # 1. Synchronisation Batisimply → PostgreSQL
         print("\n🔄 Synchronisation Batisimply → PostgreSQL")
         
-        # Récupération des chantiers depuis Batisimply
-        response = requests.get(API_URL, headers=headers)
-        if response.status_code != 200:
-            return False, f"❌ Erreur lors de la récupération des chantiers Batisimply : {response.status_code}"
-
-        batisimply_projects = response.json().get("elements", [])
-        print(f"📊 {len(batisimply_projects)} chantiers récupérés depuis Batisimply")
-
-        # Mise à jour de PostgreSQL avec les données de Batisimply
-        postgres_cursor = postgres_conn.cursor()
-        updated_batisimply = 0
-        for project in batisimply_projects:
-            try:
-                code = project.get('projectCode')
-                if not code:
-                    continue
-
-                # Préparation des données
-                data = {
-                    'code': code,
-                    'date_debut': project.get('startEstimated'),
-                    'date_fin': project.get('endEstimated'),
-                    'nom_client': project.get('customerName'),
-                    'description': project.get('comment'),
-                    'adr_chantier': project.get('address', {}).get('street'),
-                    'cp_chantier': project.get('address', {}).get('postalCode'),
-                    'ville_chantier': project.get('address', {}).get('city'),
-                    'total_mo': project.get('hoursSold', 0)
-                }
-
-                # Mise à jour dans PostgreSQL
-                postgres_cursor.execute("""
-                    INSERT INTO batigest_chantiers 
-                    (code, date_debut, date_fin, nom_client, description, adr_chantier, 
-                     cp_chantier, ville_chantier, total_mo, sync)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, false)
-                    ON CONFLICT (code) DO UPDATE SET 
-                    date_debut = EXCLUDED.date_debut,
-                    date_fin = EXCLUDED.date_fin,
-                    nom_client = EXCLUDED.nom_client,
-                    description = EXCLUDED.description,
-                    adr_chantier = EXCLUDED.adr_chantier,
-                    cp_chantier = EXCLUDED.cp_chantier,
-                    ville_chantier = EXCLUDED.ville_chantier,
-                    total_mo = EXCLUDED.total_mo
-                """, (
-                    data['code'], data['date_debut'], data['date_fin'],
-                    data['nom_client'], data['description'], data['adr_chantier'],
-                    data['cp_chantier'], data['ville_chantier'], data['total_mo']
-                ))
-                updated_batisimply += 1
-                print(f"✅ Chantier {code} mis à jour dans PostgreSQL")
-            except Exception as e:
-                print(f"❌ Erreur lors de la mise à jour du chantier {code} dans PostgreSQL : {e}")
-
+        # Récupération des heures depuis Batisimply et envoi vers PostgreSQL
+    
+        transfer_heures_to_postgres()
+        update_code_projet_chantiers()
         # 2. Synchronisation PostgreSQL → Batigest
-        print("\n🔄 Synchronisation PostgreSQL → Batigest")
-        
-        # Récupération des chantiers modifiés dans Batisimply
-        postgres_cursor.execute("""
-            SELECT code, date_debut, date_fin, nom_client, description, adr_chantier, 
-                   cp_chantier, ville_chantier
-            FROM batigest_chantiers
-            WHERE sync = false
-        """)
-        
-        # Mise à jour dans Batigest
-        sqlserver_cursor = sqlserver_conn.cursor()
-        updated_to_batigest = 0
-        for row in postgres_cursor.fetchall():
-            try:
-                code, date_debut, date_fin, nom_client, description, adr, cp, ville = row
-                
-                # Mise à jour dans Batigest
-                sqlserver_cursor.execute("""
-                    UPDATE dbo.ChantierDef
-                    SET DateDebut = ?,
-                        DateFin = ?,
-                        NomClient = ?,
-                        Libelle = ?,
-                        AdrChantier = ?,
-                        CPChantier = ?,
-                        VilleChantier = ?
-                    WHERE Code = ?
-                """, (date_debut, date_fin, nom_client, description, adr, cp, ville, code))
-                
-                updated_to_batigest += 1
-                print(f"✅ Chantier {code} mis à jour dans Batigest")
-            except Exception as e:
-                print(f"❌ Erreur lors de la mise à jour du chantier {code} dans Batigest : {e}")
+        transfer_heures_to_sqlserver()
 
-        # Validation des modifications
-        postgres_conn.commit()
-        sqlserver_conn.commit()
-        postgres_cursor.close()
+        # Fermeture des connexions
         postgres_conn.close()
-        sqlserver_cursor.close()
         sqlserver_conn.close()
 
         print("\n=== FIN DE LA SYNCHRONISATION BATISIMPLY → BATIGEST ===")
-
-        # Préparation du message final
-        message = "✅ Synchronisation Batisimply → Batigest terminée :\n"
-        message += f"- {updated_batisimply} chantiers mis à jour depuis Batisimply vers PostgreSQL\n"
-        message += f"- {updated_to_batigest} chantiers synchronisés de PostgreSQL vers Batigest"
-
-        return True, message
+        return True, "✅ Synchronisation complète Batisimply → Batigest réussie."
 
     except Exception as e:
         print(f"\n❌ Erreur lors de la synchronisation : {e}")
