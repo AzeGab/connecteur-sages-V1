@@ -5,9 +5,10 @@
 # et le transfert des données entre SQL Server et PostgreSQL
 
 from datetime import datetime
-from fastapi import APIRouter, Request, Form
+from fastapi import APIRouter, Request, Form, HTTPException, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 
 # Services - Connexion
 from app.services.connex import (
@@ -398,9 +399,23 @@ async def login_page(request: Request):
 
 @router.get("/configuration", response_class=HTMLResponse)
 async def configuration_page(request: Request):
+    # Vérifier si l'utilisateur est connecté
+    if not request.session.get("authenticated"):
+        return RedirectResponse(url="/login", status_code=303)
+    
     creds = load_credentials()
     return templates.TemplateResponse("configuration.html", {"request": request, "mode": creds.get("mode", "chantier")})
 
+@router.post("/login", response_class=HTMLResponse)
+async def login(request: Request, password: str = Form(...)):
+    if password == "gumgum":  # Le mot de passe est défini dans login.html
+        request.session["authenticated"] = True
+        return RedirectResponse(url="/configuration", status_code=303)
+    else:
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": "Mot de passe incorrect"
+        })
 
 @router.post("/update-mode")
 def update_mode(request: Request, type: str = Form("chantier")):

@@ -21,3 +21,4 @@ apscheduler>=3.10.4  # Planification des tâches
 python-multipart>=0.0.7  # Gestion des formulaires
 jinja2>=3.1.2  # Moteur de templates 
 requests>=2.31.0 # Requetes
+itsdangerous>=2.2.0  # Gestion des sessions sécurisées

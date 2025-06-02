@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.routes import form_routes
 
@@ -18,6 +19,13 @@ app = FastAPI(
     title="Connecteur SAGES",
     description="Application de connexion et de synchronisation avec les bases de données SAGES",
     version="1.0.0"
+)
+
+# Ajout du middleware de session
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="votre_cle_secrete_ici",  # À changer en production
+    session_cookie="connecteur_session"
 )
 
 # ============================================================================

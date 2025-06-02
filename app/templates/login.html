@@ -42,7 +42,7 @@
 
             <!-- Formulaire -->
             <div class="p-8">
-                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-6">
+                <form action="/login" method="post" class="space-y-6">
                     <div>
                         <label for="password" class="block text-sm font-semibold text-gray-700 mb-3">
                             Mot de passe d'accès
@@ -58,15 +58,15 @@
                         </div>
                     </div>
 
+                    {% if error %}
                     <!-- Message d'erreur -->
-                    <div id="errorMessage" class="hidden">
-                        <div class="bg-red-50 border border-red-200 rounded-xl p-4">
-                            <div class="flex items-center">
-                                <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
-                                <span class="text-red-700 font-medium">Mot de passe incorrect</span>
-                            </div>
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                            <span class="text-red-700 font-medium">{{ error }}</span>
                         </div>
                     </div>
+                    {% endif %}
 
                     <button type="submit" 
                             class="w-full bg-gradient-to-r from-evidence-blue to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-200 shadow-lg">
