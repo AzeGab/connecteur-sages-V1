@@ -59,6 +59,17 @@
         <!-- Messages de statut -->
         <div id="statusMessage" class="hidden mb-8"></div>
 
+        <!-- Bouton d'initialisation -->
+        <div class="flex justify-center mb-8">
+            <form action="/init-table" method="post">
+                <button type="submit" 
+                        class="bg-green-600 hover:bg-green-600 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 flex items-center space-x-2">
+                    <i class="fas fa-database"></i>
+                    <span>Initialiser la base PostgreSQL</span>
+                </button>
+            </form>
+        </div>
+
         <!-- Configuration des bases de données -->
         <div class="grid lg:grid-cols-2 gap-8">
             <!-- SQL Server Configuration -->
