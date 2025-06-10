@@ -10,6 +10,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
+# Import du moteur de templates depuis main.py pour garantir le bon chemin
+from app.utils.templates_engine import templates
+
 # Services - Connexion
 from app.services.connex import (
     connect_to_sqlserver,
@@ -46,8 +49,6 @@ from app.services.devis import transfer_devis
 
 # Création du routeur FastAPI
 router = APIRouter()
-# Configuration du moteur de templates
-templates = Jinja2Templates(directory="app/templates")
 
 # ============================================================================
 # ROUTES PRINCIPALES

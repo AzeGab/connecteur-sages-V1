@@ -7,6 +7,8 @@ import psycopg2
 import json
 import os
 import requests
+import pypyodbc
+
 
 # Chemin du fichier stockant les identifiants de connexion
 CREDENTIALS_FILE = "app/services/credentials.json"
@@ -74,6 +76,38 @@ def connect_to_postgres(host, user, password, database, port="5432"):
         return conn
     except Exception as e:
         print("❌ Erreur PostgreSQL :", e)
+        return None
+    
+# ============================================================================
+# CONNEXION HFSQL
+# ============================================================================
+
+def connect_to_hfsql(host, user="admin", password="", database="HFSQL", port="4900"):
+    """
+    Établit une connexion à une base de données HFSQL.
+    
+    Args:
+        host (str): Nom d'hôte ou adresse IP du serveur
+        user (str): Nom d'utilisateur (par défaut: admin)
+        password (str): Mot de passe    (par défaut: )
+        database (str): Nom de la base de données
+        port (str): Port de connexion (par défaut: 4900)
+        
+    Returns:
+        pypyodbc.Connection: Objet de connexion si réussi, None si échec
+    """ 
+    try:
+        conn = pypyodbc.connect(
+            host=host,
+            user=user,
+            password=password,
+            database=database,  
+            port=port
+        )
+        print("✅ Connexion HFSQL réussie")
+        return conn
+    except Exception as e:
+        print("❌ Erreur HFSQL :", e)
         return None
 
 # ============================================================================
