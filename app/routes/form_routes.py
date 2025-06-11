@@ -11,7 +11,8 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 # Import du moteur de templates depuis main.py pour garantir le bon chemin
-from app.utils.templates_engine import templates
+from app.utils.paths import templates_path
+templates = Jinja2Templates(directory=templates_path)
 
 # Services - Connexion
 from app.services.connex import (
@@ -405,7 +406,8 @@ async def configuration_page(request: Request):
         return RedirectResponse(url="/login", status_code=303)
     
     creds = load_credentials()
-    return templates.TemplateResponse("configuration.html", {"request": request, "mode": creds.get("mode", "chantier")})
+    mode = creds.get("mode", "chantier") if creds else "chantier"
+    return templates.TemplateResponse("configuration.html", {"request": request, "mode": mode})
 
 @router.post("/login", response_class=HTMLResponse)
 async def login(request: Request, password: str = Form(...)):
