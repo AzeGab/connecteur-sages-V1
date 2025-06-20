@@ -65,17 +65,23 @@ def connect_to_postgres(host, user, password, database, port="5432"):
         psycopg2.connection: Objet de connexion si réussi, None si échec
     """
     try:
+        # Paramètres de connexion avec encodage explicite
         conn = psycopg2.connect(
             host=host,
             dbname=database,
             user=user,
             password=password,
-            port=port
+            port=port,
+            client_encoding='utf8',
+            options='-c client_encoding=utf8'
         )
         print("✅ Connexion PostgreSQL réussie")
         return conn
+    except psycopg2.OperationalError as e:
+        print(f"❌ Erreur de connexion PostgreSQL : {e}")
+        return None
     except Exception as e:
-        print("❌ Erreur PostgreSQL :", e)
+        print(f"❌ Erreur PostgreSQL : {e}")
         return None
     
 # ============================================================================
