@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Licences - Connecteur Sages</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .license-card {
+            transition: transform 0.2s;
+            border-left: 4px solid #007bff;
+        }
+        .license-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .license-card.expired {
+            border-left-color: #dc3545;
+        }
+        .license-card.inactive {
+            border-left-color: #6c757d;
+        }
+        .license-card.limit-reached {
+            border-left-color: #ffc107;
+        }
+        .license-key {
+            font-family: 'Courier New', monospace;
+            background-color: #f8f9fa;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+        .status-badge {
+            font-size: 0.75rem;
+        }
+        .navbar-brand img {
+            height: 40px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <img src="{{ url_for('static', filename='levidence_logo.webp') }}" alt="Logo">
+                Connecteur Sages
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home"></i> Accueil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/licenses/"><i class="fas fa-key"></i> Licences</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenu principal -->
+    <div class="container mt-4">
+        <!-- En-tête -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1><i class="fas fa-key"></i> Gestion des Licences</h1>
+                <p class="text-muted">Gérez les licences de vos clients et suivez leur utilisation</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="/licenses/create" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Nouvelle Licence
+                </a>
+            </div>
+        </div>
+
+        <!-- Messages flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Statistiques -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="card-title">{{ licenses|length }}</h4>
+                                <p class="card-text">Total Licences</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-key fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="card-title">{{ licenses|selectattr('is_active', 'equalto', true)|list|length }}</h4>
+                                <p class="card-text">Licences Actives</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="card-title">{{ licenses|selectattr('days_until_expiration', 'lt', 30)|list|length }}</h4>
+                                <p class="card-text">Expirent bientôt</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-clock fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="card-title">{{ licenses|selectattr('days_until_expiration', 'lt', 0)|list|length }}</h4>
+                                <p class="card-text">Licences Expirées</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-times-circle fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des licences -->
+        <div class="row">
+            {% if licenses %}
+                {% for license in licenses %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card license-card h-100 {% if license.days_until_expiration < 0 %}expired{% elif not license.is_active %}inactive{% elif license.max_usage > 0 and license.usage_count >= license.max_usage %}limit-reached{% endif %}">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">{{ license.client_name }}</h6>
+                                <span class="badge status-badge 
+                                    {% if license.status_text == 'Active' %}bg-success
+                                    {% elif license.status_text == 'Expirée' %}bg-danger
+                                    {% elif license.status_text == 'Désactivée' %}bg-secondary
+                                    {% else %}bg-warning{% endif %}">
+                                    {{ license.status_text }}
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <small class="text-muted">Client:</small><br>
+                                    <strong>{{ license.client_name }}</strong>
+                                    {% if license.company_name %}
+                                        <br><small class="text-muted">{{ license.company_name }}</small>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <small class="text-muted">Email:</small><br>
+                                    <small>{{ license.client_email }}</small>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <small class="text-muted">Clé de licence:</small><br>
+                                    <code class="license-key">{{ license.formatted_key }}</code>
+                                </div>
+                                
+                                <div class="row mb-2">
+                                    <div class="col-6">
+                                        <small class="text-muted">Utilisations:</small><br>
+                                        <strong>{{ license.usage_count }}</strong>
+                                        {% if license.max_usage > 0 %}
+                                            / {{ license.max_usage }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Expire dans:</small><br>
+                                        <strong class="{% if license.days_until_expiration < 0 %}text-danger{% elif license.days_until_expiration < 30 %}text-warning{% else %}text-success{% endif %}">
+                                            {% if license.days_until_expiration < 0 %}
+                                                {{ license.days_until_expiration|abs }} jours
+                                            {% else %}
+                                                {{ license.days_until_expiration }} jours
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                </div>
+                                
+                                {% if license.last_used %}
+                                    <div class="mb-2">
+                                        <small class="text-muted">Dernière utilisation:</small><br>
+                                        <small>{{ license.last_used.strftime('%d/%m/%Y %H:%M') }}</small>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if license.notes %}
+                                    <div class="mb-2">
+                                        <small class="text-muted">Notes:</small><br>
+                                        <small>{{ license.notes[:50] }}{% if license.notes|length > 50 %}...{% endif %}</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer">
+                                <div class="btn-group w-100" role="group">
+                                    <a href="/licenses/{{ license.license_key }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-eye"></i> Détails
+                                    </a>
+                                    {% if license.is_active %}
+                                        <button class="btn btn-outline-danger btn-sm" onclick="deactivateLicense('{{ license.license_key }}')">
+                                            <i class="fas fa-ban"></i> Désactiver
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-key fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">Aucune licence trouvée</h4>
+                        <p class="text-muted">Commencez par créer votre première licence</p>
+                        <a href="/licenses/create" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Créer une licence
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function deactivateLicense(licenseKey) {
+            if (confirm('Êtes-vous sûr de vouloir désactiver cette licence ?')) {
+                fetch(`/licenses/api/deactivate/${licenseKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Erreur: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('Erreur lors de la désactivation');
+                });
+            }
+        }
+    </script>
+</body>
+</html> 

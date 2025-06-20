@@ -13,7 +13,7 @@ import pypyodbc  # pour PyInstaller
 import os
 import sys
 
-from app.routes import form_routes
+from app.routes import form_routes, license_routes
 from app.utils.paths import templates_path, static_path
 from app.utils.templates_engine import templates
 
@@ -60,6 +60,9 @@ def open_browser():
 
 # Inclusion des routes définies dans form_routes
 app.include_router(form_routes.router)
+
+# Inclusion des routes de licences
+app.include_router(license_routes.router)
 
 if __name__ == "__main__":
     threading.Timer(1.0, open_browser).start()  # Lance le navigateur après 1 seconde
