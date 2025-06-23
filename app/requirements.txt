@@ -18,6 +18,10 @@ psycopg2>=2.9.0
 # Connecteurs pour HFSQL
 pypyodbc>=1.3.6
 
+# Supabase - Base de données cloud
+supabase>=2.3.0
+python-dotenv>=1.0.0
+
 # Bibliothèques utilitaires
 aiohttp>=3.9.0  # Client HTTP asynchrone
 apscheduler>=3.10.4  # Planification des tâches

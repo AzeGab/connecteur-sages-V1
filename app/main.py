@@ -17,6 +17,9 @@ from app.routes import form_routes, license_routes
 from app.utils.paths import templates_path, static_path
 from app.utils.templates_engine import templates
 
+# Import du middleware de licences
+from app.middleware.license_middleware import add_license_middleware
+
 # ============================================================================
 # CONFIGURATION DE L'APPLICATION
 # ============================================================================
@@ -45,6 +48,11 @@ app.add_middleware(
     session_cookie="connecteur_session"
 )
 
+# Ajout du middleware de validation des licences
+# Commenté par défaut pour permettre l'accès à l'interface de gestion
+# Décommentez pour activer la validation des licences
+# add_license_middleware(app)
+
 # Enregistrement des fichiers statiques
 app.mount("/static", StaticFiles(directory=static_path), name="static")
 
@@ -53,6 +61,21 @@ app.mount("/static", StaticFiles(directory=static_path), name="static")
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+# Route de santé pour vérifier que l'application fonctionne
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "message": "Connecteur SAGES opérationnel"}
+
+# Route d'API de santé
+@app.get("/api/health")
+def api_health_check():
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "database": "supabase",
+        "features": ["licenses", "forms", "middleware"]
+    }
 
 # Fonction pour lancer le navigateur
 def open_browser():
