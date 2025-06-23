@@ -1,5 +1,13 @@
-# Module de gestion des licences
-# Ce fichier contient les fonctions nécessaires pour gérer les licences
+# -*- coding: utf-8 -*-
+# !! MODULE OBSOLÈTE !!
+# ============================================================================
+# Ce module gérait le système de licences avec une base de données PostgreSQL.
+# Il a été ENTIÈREMENT REMPLACÉ par 'app/services/supabase_licences.py'.
+#
+# Ce fichier est conservé à des fins d'archivage ou pour d'éventuelles
+# consultations sur l'ancienne logique. NE PAS L'UTILISER pour du nouveau
+# développement.
+# ============================================================================
 
 import hashlib
 import datetime
@@ -10,30 +18,31 @@ from typing import Optional, Dict, List, Tuple
 from app.services.connex import connect_to_postgres
 
 # ============================================================================
-# CONFIGURATION
+# CONFIGURATION (Ancienne)
 # ============================================================================
 
-# Clé secrète pour la génération des licences (à changer en production)
+# Clé secrète pour la génération des licences.
 SECRET_KEY = "connecteur-sages-v1-secret-key-2024"
 
-# Durée de validité par défaut des licences (en jours)
+# Durée de validité par défaut (en jours).
 DEFAULT_LICENSE_DURATION = 365
 
 # ============================================================================
-# GÉNÉRATION ET VALIDATION DES LICENCES
+# GÉNÉRATION ET VALIDATION (Logique conservée)
 # ============================================================================
 
 def generate_license_key(client_name: str, client_email: str, duration_days: int = DEFAULT_LICENSE_DURATION) -> str:
     """
     Génère une clé de licence unique pour un client.
+    (Cette fonction est conceptuellement similaire à celle de Supabase).
     
     Args:
-        client_name (str): Nom du client
-        client_email (str): Email du client
-        duration_days (int): Durée de validité en jours
+        client_name (str): Nom du client.
+        client_email (str): Email du client.
+        duration_days (int): Durée de validité en jours.
         
     Returns:
-        str: Clé de licence générée
+        str: Clé de licence générée.
     """
     # Créer une chaîne unique basée sur les informations du client
     unique_string = f"{client_name}:{client_email}:{duration_days}:{SECRET_KEY}"
@@ -50,12 +59,13 @@ def generate_license_key(client_name: str, client_email: str, duration_days: int
 def validate_license_key(license_key: str) -> bool:
     """
     Valide le format d'une clé de licence.
+    (Logique identique à celle utilisée pour Supabase).
     
     Args:
-        license_key (str): Clé de licence à valider
+        license_key (str): Clé de licence à valider.
         
     Returns:
-        bool: True si le format est valide, False sinon
+        bool: True si le format est valide, False sinon.
     """
     if not license_key:
         return False
@@ -73,18 +83,18 @@ def validate_license_key(license_key: str) -> bool:
         return False
 
 # ============================================================================
-# GESTION DE LA BASE DE DONNÉES POSTGRESQL
+# GESTION POSTGRESQL (OBSOLÈTE)
 # ============================================================================
 
 def create_licenses_table(conn) -> bool:
     """
-    Crée la table licenses si elle n'existe pas.
+    (Obsolète) Crée la table 'licenses' dans la base de données PostgreSQL.
     
     Args:
-        conn: Connexion PostgreSQL
+        conn: Objet de connexion PostgreSQL (psycopg2).
         
     Returns:
-        bool: True si la table a été créée avec succès
+        bool: True si la table a été créée avec succès.
     """
     try:
         cursor = conn.cursor()
@@ -119,19 +129,19 @@ def create_licenses_table(conn) -> bool:
 def add_license(conn, client_name: str, client_email: str, company_name: str = None, 
                 duration_days: int = DEFAULT_LICENSE_DURATION, max_usage: int = -1, notes: str = None) -> Optional[str]:
     """
-    Ajoute une nouvelle licence dans la base de données.
+    (Obsolète) Ajoute une nouvelle licence dans la table PostgreSQL.
     
     Args:
-        conn: Connexion PostgreSQL
-        client_name (str): Nom du client
-        client_email (str): Email du client
-        company_name (str): Nom de l'entreprise (optionnel)
-        duration_days (int): Durée de validité en jours
-        max_usage (int): Nombre maximum d'utilisations (-1 pour illimité)
-        notes (str): Notes additionnelles
+        conn: Connexion PostgreSQL.
+        client_name (str): Nom du client.
+        client_email (str): Email du client.
+        company_name (str): Nom de l'entreprise (optionnel).
+        duration_days (int): Durée de validité.
+        max_usage (int): Nombre max d'utilisations.
+        notes (str): Notes additionnelles.
         
     Returns:
-        str: Clé de licence générée ou None en cas d'erreur
+        str: Clé de licence générée ou None en cas d'erreur.
     """
     try:
         # Générer la clé de licence
@@ -165,14 +175,14 @@ def add_license(conn, client_name: str, client_email: str, company_name: str = N
 
 def get_license_info(conn, license_key: str) -> Optional[Dict]:
     """
-    Récupère les informations d'une licence.
+    (Obsolète) Récupère les informations d'une licence depuis PostgreSQL.
     
     Args:
-        conn: Connexion PostgreSQL
-        license_key (str): Clé de licence
+        conn: Connexion PostgreSQL.
+        license_key (str): Clé de licence.
         
     Returns:
-        dict: Informations de la licence ou None si non trouvée
+        dict: Informations de la licence ou None si non trouvée.
     """
     try:
         cursor = conn.cursor()
@@ -211,14 +221,14 @@ def get_license_info(conn, license_key: str) -> Optional[Dict]:
 
 def validate_license(conn, license_key: str) -> Tuple[bool, str]:
     """
-    Valide une licence (vérifie l'existence, l'expiration, l'activation, etc.).
+    (Obsolète) Valide une licence en interrogeant la base PostgreSQL.
     
     Args:
-        conn: Connexion PostgreSQL
-        license_key (str): Clé de licence à valider
+        conn: Connexion PostgreSQL.
+        license_key (str): Clé de licence à valider.
         
     Returns:
-        tuple: (is_valid, message) - Validité et message d'erreur si applicable
+        tuple: (is_valid, message)
     """
     # Vérifier le format de la clé
     if not validate_license_key(license_key):
@@ -245,14 +255,14 @@ def validate_license(conn, license_key: str) -> Tuple[bool, str]:
 
 def update_license_usage(conn, license_key: str) -> bool:
     """
-    Met à jour les statistiques d'utilisation d'une licence.
+    (Obsolète) Met à jour le compteur d'utilisation dans PostgreSQL.
     
     Args:
-        conn: Connexion PostgreSQL
-        license_key (str): Clé de licence
+        conn: Connexion PostgreSQL.
+        license_key (str): Clé de licence.
         
     Returns:
-        bool: True si la mise à jour a réussi
+        bool: True si la mise à jour a réussi.
     """
     try:
         cursor = conn.cursor()
@@ -275,14 +285,14 @@ def update_license_usage(conn, license_key: str) -> bool:
 
 def deactivate_license(conn, license_key: str) -> bool:
     """
-    Désactive une licence.
+    (Obsolète) Désactive une licence dans PostgreSQL.
     
     Args:
-        conn: Connexion PostgreSQL
-        license_key (str): Clé de licence à désactiver
+        conn: Connexion PostgreSQL.
+        license_key (str): Clé de licence à désactiver.
         
     Returns:
-        bool: True si la désactivation a réussi
+        bool: True si la désactivation a réussi.
     """
     try:
         cursor = conn.cursor()
@@ -306,13 +316,13 @@ def deactivate_license(conn, license_key: str) -> bool:
 
 def get_all_licenses(conn) -> List[Dict]:
     """
-    Récupère toutes les licences.
+    (Obsolète) Récupère toutes les licences depuis PostgreSQL.
     
     Args:
-        conn: Connexion PostgreSQL
+        conn: Connexion PostgreSQL.
         
     Returns:
-        list: Liste des licences
+        list: Liste des licences.
     """
     try:
         cursor = conn.cursor()
@@ -352,18 +362,12 @@ def get_all_licenses(conn) -> List[Dict]:
         return []
 
 # ============================================================================
-# FONCTIONS UTILITAIRES
+# FONCTIONS UTILITAIRES (Logique conservée)
 # ============================================================================
 
 def format_license_key(license_key: str) -> str:
     """
     Formate une clé de licence pour l'affichage.
-    
-    Args:
-        license_key (str): Clé de licence brute
-        
-    Returns:
-        str: Clé formatée
     """
     clean_key = license_key.replace('-', '').replace(' ', '')
     return '-'.join([clean_key[i:i+4] for i in range(0, 32, 4)]).upper()
@@ -371,12 +375,14 @@ def format_license_key(license_key: str) -> str:
 def get_license_status_text(license_info: Dict) -> str:
     """
     Retourne le statut textuel d'une licence.
+    Note: Utilise des objets datetime "naïfs" (sans fuseau horaire),
+    contrairement à la nouvelle version qui gère les fuseaux (aware).
     
     Args:
-        license_info (dict): Informations de la licence
+        license_info (dict): Informations de la licence.
         
     Returns:
-        str: Statut textuel
+        str: Statut textuel.
     """
     if not license_info['is_active']:
         return "Désactivée"
@@ -392,12 +398,13 @@ def get_license_status_text(license_info: Dict) -> str:
 def days_until_expiration(license_info: Dict) -> int:
     """
     Calcule le nombre de jours avant expiration.
+    Note: Utilise des objets datetime "naïfs".
     
     Args:
-        license_info (dict): Informations de la licence
+        license_info (dict): Informations de la licence.
         
     Returns:
-        int: Nombre de jours avant expiration (négatif si expirée)
+        int: Nombre de jours avant expiration (négatif si expirée).
     """
     delta = license_info['expires_at'] - datetime.datetime.now()
     return delta.days

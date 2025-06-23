@@ -1,6 +1,12 @@
-# Application principale du Connecteur SAGES
-# Ce fichier initialise l'application FastAPI et configure les routes,
-# les fichiers statiques et les templates.
+# -*- coding: utf-8 -*-
+# Point d'entrée principal de l'application FastAPI
+# --------------------------------------------------
+# Ce fichier est responsable de :
+# 1. Créer l'instance principale de l'application FastAPI.
+# 2. Monter le répertoire 'static' pour servir les fichiers CSS, JS et images.
+# 3. Inclure les routeurs des différentes sections de l'application (licences, formulaires).
+# 4. Définir une route racine pour la redirection initiale.
+
 import webbrowser
 import threading
 import uvicorn
@@ -87,6 +93,18 @@ app.include_router(form_routes.router)
 # Inclusion des routes de licences
 app.include_router(license_routes.router)
 
+# Définit la route racine de l'application.
+@app.get("/", include_in_schema=False)
+async def root(request: Request):
+    """
+    Route racine qui redirige automatiquement l'utilisateur vers
+    le tableau de bord des licences. C'est la page d'accueil par défaut.
+    """
+    # Utilise RedirectResponse pour effectuer une redirection HTTP 307.
+    return RedirectResponse(url="/licenses/dashboard")
+
+# Ce bloc permet d'exécuter l'application directement avec 'python app/main.py'.
+# Utile pour le développement local.
 if __name__ == "__main__":
     threading.Timer(1.0, open_browser).start()  # Lance le navigateur après 1 seconde
     uvicorn.run(app, host="127.0.0.1", port=8000, log_config=None)
