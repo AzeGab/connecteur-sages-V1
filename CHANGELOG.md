@@ -145,6 +145,7 @@
 ### 🔧 Configuration
 
 #### Variables d'environnement
+
 ```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_anon_key_here

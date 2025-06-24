@@ -85,6 +85,7 @@ CREATE TABLE licenses (
 ### 3. Interface utilisateur
 
 #### Page de configuration
+
 - **Section Licence** dans la sidebar
 - **Champ sécurisé** pour la clé de licence
 - **Indicateur de validité** en temps réel
@@ -92,6 +93,7 @@ CREATE TABLE licenses (
 - **Sauvegarde automatique** même pour les clés invalides
 
 #### Page de licence expirée
+
 - **Interface dédiée** avec informations détaillées
 - **Bouton de revérification** avec modal moderne
 - **Rafraîchissement automatique** toutes les 5 minutes
@@ -100,6 +102,7 @@ CREATE TABLE licenses (
 ### 4. Sécurité
 
 #### Middleware de protection
+
 ```python
 # Routes protégées
 protected_routes = [
@@ -118,6 +121,7 @@ excluded_routes = [
 ```
 
 #### Vérification automatique
+
 - **Au chargement des pages** : JavaScript vérifie le statut
 - **Sur les routes protégées** : Middleware bloque l'accès
 - **Redirection intelligente** : Configuration ou licence expirée
@@ -137,6 +141,7 @@ excluded_routes = [
 ### Réponses JSON
 
 #### `/check-license-status`
+
 ```json
 {
   "valid": true,
@@ -145,6 +150,7 @@ excluded_routes = [
 ```
 
 #### `/get-license-key`
+
 ```json
 {
   "license_key": "XXXX-XXXX-XXXX-XXXX",
@@ -153,6 +159,7 @@ excluded_routes = [
 ```
 
 #### `/refresh-license`
+
 ```json
 {
   "success": true,
@@ -184,11 +191,13 @@ excluded_routes = [
 ### Gestion quotidienne
 
 #### Actualisation manuelle
+
 - Utiliser le bouton "Actualiser" dans la configuration
 - Modal de chargement de 1 seconde
 - Notification du résultat
 
 #### Vérification automatique
+
 - **Middleware** : À chaque requête sur les routes protégées
 - **JavaScript** : Au chargement des pages principales
 - **Page expirée** : Rafraîchissement toutes les 5 minutes
@@ -196,11 +205,13 @@ excluded_routes = [
 ### Dépannage
 
 #### Licence invalide
+
 1. **Vérifier la clé** dans la configuration
 2. **Utiliser "Actualiser"** pour revérifier
 3. **Contacter le support** si le problème persiste
 
 #### Erreurs de connexion
+
 1. **Vérifier l'accès Internet**
 2. **Vérifier les variables d'environnement Supabase**
 3. **Consulter les logs** pour plus de détails
@@ -238,16 +249,19 @@ python test_supabase_connection.py
 ## Sécurité et bonnes pratiques
 
 ### Stockage sécurisé
+
 - Les clés sont stockées localement dans `credentials.json`
 - Aucune transmission de clés en clair
 - Validation via API sécurisée uniquement
 
 ### Validation robuste
+
 - Vérification de tous les critères de validité
 - Gestion des cas d'erreur et timeouts
 - Logs détaillés pour le diagnostic
 
 ### Interface utilisateur
+
 - Feedback visuel en temps réel
 - Messages d'erreur explicites
 - Expérience utilisateur fluide
@@ -260,4 +274,4 @@ Pour toute question concernant les licences :
 
 ---
 
-*Dernière mise à jour : 24/06/2025* 
+*Dernière mise à jour : 24/06/2025*
