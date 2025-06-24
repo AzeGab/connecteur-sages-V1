@@ -76,15 +76,15 @@ Ce script va :
 
 ### Test Manuel avec curl
 ```bash
-# Récupérer toutes les licences
-curl "https://rxqveiaawggfyeukpvyz.supabase.co/rest/v1/licenses" \
-  -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4cXZlaWFhd2dnZnlldWtwdnl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2NjQzMjAsImV4cCI6MjA2NjI0MDMyMH0.vYrxDe41M_a8XDcbHwmaiVfy8rKMsyNroiHvNHq5FAM" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4cXZlaWFhd2dnZnlldWtwdnl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2NjQzMjAsImV4cCI6MjA2NjI0MDMyMH0.vYrxDe41M_a8XDcbHwmaiVfy8rKMsyNroiHvNHq5FAM"
+# Test de connexion
+curl "https://your-project.supabase.co/rest/v1/licenses" \
+  -H "apikey: your_anon_key_here" \
+  -H "Authorization: Bearer your_anon_key_here"
 
-# Tester une clé spécifique
-curl "https://rxqveiaawggfyeukpvyz.supabase.co/rest/v1/licenses?license_key=eq.EVIDENCE-2024-XXXX-YYYY" \
-  -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4cXZlaWFhd2dnZnlldWtwdnl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2NjQzMjAsImV4cCI6MjA2NjI0MDMyMH0.vYrxDe41M_a8XDcbHwmaiVfy8rKMsyNroiHvNHq5FAM" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4cXZlaWFhd2dnZnlldWtwdnl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2NjQzMjAsImV4cCI6MjA2NjI0MDMyMH0.vYrxDe41M_a8XDcbHwmaiVfy8rKMsyNroiHvNHq5FAM"
+# Test de validation d'une licence
+curl "https://your-project.supabase.co/rest/v1/licenses?license_key=eq.EVIDENCE-2024-XXXX-YYYY" \
+  -H "apikey: your_anon_key_here" \
+  -H "Authorization: Bearer your_anon_key_here"
 ```
 
 ## 5. Variables d'Environnement
@@ -92,8 +92,8 @@ curl "https://rxqveiaawggfyeukpvyz.supabase.co/rest/v1/licenses?license_key=eq.E
 Assurez-vous que votre fichier `.env` contient :
 
 ```env
-SUPABASE_URL=https://rxqveiaawggfyeukpvyz.supabase.co
-SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4cXZlaWFhd2dnZnlldWtwdnl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2NjQzMjAsImV4cCI6MjA2NjI0MDMyMH0.vYrxDe41M_a8XDcbHwmaiVfy8rKMsyNroiHvNHq5FAM
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_anon_key_here
 ```
 
 ## 6. Sécurité
@@ -138,13 +138,13 @@ SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZi
 ```python
 import requests
 
-url = "https://rxqveiaawggfyeukpvyz.supabase.co/rest/v1/licenses"
+# Configuration
+url = "https://your-project.supabase.co/rest/v1/licenses"
 headers = {
-    "apikey": "votre_clé_anon",
-    "Authorization": "Bearer votre_clé_anon"
+    "apikey": "your_anon_key_here",
+    "Authorization": "Bearer your_anon_key_here"
 }
 
 response = requests.get(url, headers=headers)
 print(f"Status: {response.status_code}")
-print(f"Response: {response.json()}")
-``` 
+print(f"Response: {response.json()}") 

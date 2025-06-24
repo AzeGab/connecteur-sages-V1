@@ -28,8 +28,8 @@ Le Connecteur SAGES intègre un système de licences robuste basé sur Supabase 
 ### Variables d'environnement
 
 ```env
-SUPABASE_URL=https://rxqveiaawggfyeukpvyz.supabase.co
-SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_anon_key_here
 ```
 
 ### Structure de la table `licenses`
@@ -213,7 +213,7 @@ Le système génère des logs détaillés pour le diagnostic :
 
 ```
 🔍 Validation de la clé: 5F59-1AF...
-🌐 URL de requête: https://rxqveiaawggfyeukpvyz.supabase.co/rest/v1/licenses?license_key=eq.XXXX
+🌐 URL de requête: https://your-project.supabase.co/rest/v1/licenses?license_key=eq.XXXX
 📡 Statut de la réponse: 200
 📊 Données reçues: 1 licences trouvées
 📋 Licence trouvée: ID 5
