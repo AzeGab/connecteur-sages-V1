@@ -6,7 +6,7 @@
 
 from datetime import datetime
 from fastapi import APIRouter, Request, Form, HTTPException, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -43,6 +43,17 @@ from app.services.heures import (
 
 # Services - Devis
 from app.services.devis import transfer_devis
+
+# Services - Licence
+from app.services.license import (
+    validate_license_key,
+    save_license_info,
+    load_license_info,
+    is_license_valid,
+    get_license_expiry_date,
+    get_client_name,
+    refresh_license_validation
+)
 
 # ============================================================================
 # CONFIGURATION
@@ -402,12 +413,60 @@ async def login_page(request: Request):
 @router.get("/configuration", response_class=HTMLResponse)
 async def configuration_page(request: Request):
     # Vérifier si l'utilisateur est connecté
-    if not request.session.get("authenticated"):
-        return RedirectResponse(url="/login", status_code=303)
+    # if not request.session.get("authenticated"):
+    #     return RedirectResponse(url="/login", status_code=303)
     
     creds = load_credentials()
-    mode = creds.get("mode", "chantier") if creds else "chantier"
-    return templates.TemplateResponse("configuration.html", {"request": request, "mode": mode})
+    sql_connected, pg_connected = check_connection_status()
+    
+    # Récupérer les informations de licence
+    license_info = load_license_info()
+    license_key = None
+    license_valid = is_license_valid()
+    license_expiry_date = get_license_expiry_date()
+    
+    # Toujours afficher la clé sauvegardée, même si elle est invalide
+    if license_info:
+        license_key = license_info.get("key")
+    
+    return templates.TemplateResponse("configuration.html", {
+        "request": request,
+        "mode": creds.get("mode", "chantier") if creds else "chantier",
+        "license_key": license_key,
+        "license_valid": license_valid,
+        "license_expiry_date": license_expiry_date,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
+
+@router.get("/license-expired", response_class=HTMLResponse)
+async def license_expired_page(request: Request):
+    """
+    Route pour afficher la page de licence expirée.
+    
+    Args:
+        request (Request): Requête FastAPI
+        
+    Returns:
+        TemplateResponse: Page HTML de licence expirée
+    """
+    # Récupérer les informations de licence pour l'affichage
+    license_info = load_license_info()
+    license_key = None
+    license_expiry_date = None
+    client_name = None
+    
+    if license_info:
+        license_key = license_info.get("key")
+        license_expiry_date = license_info.get("expiry_date")
+        client_name = license_info.get("client_name")
+    
+    return templates.TemplateResponse("license_expired.html", {
+        "request": request,
+        "license_key": license_key,
+        "license_expiry_date": license_expiry_date,
+        "client_name": client_name
+    })
 
 @router.post("/login", response_class=HTMLResponse)
 async def login(request: Request, password: str = Form(...)):
@@ -422,9 +481,214 @@ async def login(request: Request, password: str = Form(...)):
 
 @router.post("/update-mode")
 def update_mode(request: Request, type: str = Form("chantier")):
-    creds = load_credentials()
-    if creds:
-        creds["mode"] = type  # type sera "chantier" ou "devis"
-        save_credentials(creds)
-        print(f"Mode mis à jour en: {type}")
-    return RedirectResponse(url="/configuration", status_code=303) #templates.TemplateResponse("configuration.html", {"request": request})
+    """
+    Route pour mettre à jour le mode de données (chantier/devis).
+    
+    Args:
+        request (Request): Requête FastAPI
+        type (str): Type de données (chantier ou devis)
+        
+    Returns:
+        TemplateResponse: Page HTML de configuration
+    """
+    creds = load_credentials() or {}
+    creds["mode"] = type
+    save_credentials(creds)
+    
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("configuration.html", {
+        "request": request,
+        "message": f"Mode mis à jour : {type}",
+        "mode": type,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
+
+@router.post("/update-license")
+def update_license(request: Request, license_key: str = Form(...)):
+    """
+    Route pour mettre à jour la clé de licence.
+    
+    Args:
+        request (Request): Requête FastAPI
+        license_key (str): Clé de licence à sauvegarder
+        
+    Returns:
+        TemplateResponse: Page HTML de configuration
+    """
+    try:
+        print(f"🔍 Tentative de mise à jour de la licence: {license_key[:8]}...")
+        
+        # Valider la clé de licence avec rafraîchissement
+        is_valid, license_info = refresh_license_validation(license_key)
+        
+        print(f"📊 Résultat de validation: {is_valid}")
+        if license_info:
+            print(f"📋 Données de licence: {license_info}")
+        
+        if is_valid and license_info:
+            # La licence est déjà sauvegardée par refresh_license_validation
+            message = "✅ Clé de licence validée et enregistrée avec succès !"
+            license_valid = True
+            license_expiry_date = license_info.get("expires_at")
+            print("✅ Licence sauvegardée avec succès")
+        else:
+            # Sauvegarder quand même la clé saisie (même invalide) pour que l'utilisateur puisse la voir
+            if license_info:
+                # Si on a des infos de licence (même invalide), les sauvegarder
+                save_license_info(license_key, license_info)
+            else:
+                # Si pas d'infos, créer une entrée basique avec la clé invalide
+                invalid_license_info = {
+                    "key": license_key,
+                    "is_active": False,
+                    "expires_at": None,
+                    "client_id": "invalide"
+                }
+                save_license_info(license_key, invalid_license_info)
+            
+            message = "❌ Clé de licence invalide ou expirée. Veuillez vérifier votre clé."
+            license_valid = False
+            license_expiry_date = None
+            print("❌ Licence invalide mais sauvegardée")
+        
+        sql_connected, pg_connected = check_connection_status()
+        return templates.TemplateResponse("configuration.html", {
+            "request": request,
+            "message": message,
+            "license_key": license_key,
+            "license_valid": license_valid,
+            "license_expiry_date": license_expiry_date,
+            "sql_connected": sql_connected,
+            "pg_connected": pg_connected
+        })
+        
+    except Exception as e:
+        print(f"💥 Erreur lors de la mise à jour: {str(e)}")
+        message = f"❌ Erreur lors de la validation : {str(e)}"
+        license_valid = False
+        license_expiry_date = None
+        
+        sql_connected, pg_connected = check_connection_status()
+        return templates.TemplateResponse("configuration.html", {
+            "request": request,
+            "message": message,
+            "license_key": license_key,
+            "license_valid": license_valid,
+            "license_expiry_date": license_expiry_date,
+            "sql_connected": sql_connected,
+            "pg_connected": pg_connected
+        })
+
+@router.post("/refresh-license")
+async def refresh_license(request: Request, license_key: str = Form(...)):
+    """
+    Route pour rafraîchir la validation d'une licence.
+    
+    Args:
+        request (Request): Requête FastAPI
+        license_key (str): Clé de licence à valider
+        
+    Returns:
+        JSONResponse: Résultat de la validation
+    """
+    try:
+        print(f"🔍 Tentative de rafraîchissement de la licence: {license_key[:8]}...")
+        
+        # Valider la clé de licence
+        is_valid, license_data = refresh_license_validation(license_key)
+        
+        print(f"📊 Résultat de validation: {is_valid}")
+        if license_data:
+            print(f"📋 Données de licence: {license_data}")
+        
+        if is_valid:
+            # Sauvegarder les informations de licence mises à jour
+            save_license_info(license_key, license_data)
+            print("✅ Licence sauvegardée avec succès")
+            
+            return JSONResponse({
+                "success": True,
+                "message": "Licence validée avec succès",
+                "expires_at": license_data.get("expires_at"),
+                "client_name": license_data.get("client_name")
+            })
+        else:
+            print("❌ Licence invalide ou expirée")
+            return JSONResponse({
+                "success": False,
+                "message": "Licence invalide ou expirée",
+                "details": license_data if isinstance(license_data, str) else "Validation échouée"
+            }, status_code=400)
+            
+    except Exception as e:
+        print(f"💥 Erreur lors du rafraîchissement: {str(e)}")
+        return JSONResponse({
+            "success": False,
+            "message": f"Erreur lors de la validation : {str(e)}"
+        }, status_code=500)
+
+# ============================================================================
+# ROUTES DE LICENCE
+# ============================================================================
+
+@router.get("/check-license-status")
+async def check_license_status():
+    """
+    Route pour vérifier le statut de la licence.
+    Utilisée par le JavaScript pour vérifier automatiquement la licence.
+    
+    Returns:
+        JSONResponse: Statut de la licence et redirection si nécessaire
+    """
+    # Vérifier d'abord la licence locale
+    if is_license_valid():
+        return JSONResponse({
+            "valid": True,
+            "message": "Licence valide"
+        })
+    
+    # Si la licence locale n'est pas valide, essayer de la rafraîchir
+    license_info = load_license_info()
+    if license_info and license_info.get("key"):
+        # Tenter de rafraîchir la validation avec la clé locale
+        is_valid, _ = refresh_license_validation(license_info.get("key"))
+        if is_valid:
+            return JSONResponse({
+                "valid": True,
+                "message": "Licence rafraîchie avec succès"
+            })
+        else:
+            return JSONResponse({
+                "valid": False,
+                "redirect_to": "license-expired",
+                "message": "Licence expirée ou invalide"
+            })
+    else:
+        return JSONResponse({
+            "valid": False,
+            "redirect_to": "configuration",
+            "message": "Aucune licence configurée"
+        })
+
+@router.get("/get-license-key")
+async def get_license_key():
+    """
+    Route pour récupérer la clé de licence depuis les credentials.
+    Utilisée par la page license_expired.html pour revérifier la licence.
+    
+    Returns:
+        JSONResponse: Clé de licence stockée localement
+    """
+    license_info = load_license_info()
+    if license_info and license_info.get("key"):
+        return JSONResponse({
+            "license_key": license_info.get("key"),
+            "found": True
+        })
+    else:
+        return JSONResponse({
+            "license_key": None,
+            "found": False,
+            "message": "Aucune clé de licence trouvée dans les credentials"
+        })

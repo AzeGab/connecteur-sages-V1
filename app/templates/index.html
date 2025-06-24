@@ -148,5 +148,35 @@
     </footer>
 
     <script src="/static/app.js"></script>
+    <script>
+        // Vérification automatique de la licence au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLicenseStatus();
+        });
+
+        function checkLicenseStatus() {
+            // Appel à l'API pour vérifier le statut de la licence
+            fetch('/check-license-status', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.valid) {
+                    // Si la licence n'est pas valide, rediriger vers la page appropriée
+                    if (data.redirect_to === 'configuration') {
+                        window.location.href = '/configuration';
+                    } else if (data.redirect_to === 'license-expired') {
+                        window.location.href = '/license-expired';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors de la vérification de la licence:', error);
+            });
+        }
+    </script>
 </body>
 </html>

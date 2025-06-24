@@ -8,10 +8,13 @@ Le Connecteur SAGES est une application de synchronisation entre Batigest et Bat
 
 - Synchronisation des chantiers de Batigest vers Batisimply
 - Synchronisation des heures de Batisimply vers Batigest
-- Interface web intuitive
+- Interface web intuitive avec sidebar de configuration
 - Synchronisation en temps réel
 - Gestion des conflits automatique
 - Logs détaillés des opérations
+- **Système de licences intégré avec validation Supabase**
+- **Vérification automatique de la validité des licences**
+- **Interface de gestion des licences moderne**
 
 ## Prérequis Système
 
@@ -19,8 +22,9 @@ Le Connecteur SAGES est une application de synchronisation entre Batigest et Bat
 - Python 3.11
 - SQL Server (ODBC Driver 17)
 - PostgreSQL 14+
-- Accès Internet pour la connexion à Batisimply
+- Accès Internet pour la connexion à Batisimply et validation des licences
 - Accès aux bases de données Batigest et PostgreSQL
+- **Licence valide du Groupe SAGES**
 
 ## Installation
 
@@ -61,7 +65,22 @@ Le Connecteur SAGES est une application de synchronisation entre Batigest et Bat
 
 ## Configuration
 
-### 1. Configuration des Bases de Données
+### 1. Configuration des Licences
+
+**IMPORTANT** : Une licence valide est requise pour utiliser l'application.
+
+1. **Configuration de la licence**
+   - Accéder à la page de configuration
+   - Section "Licence" dans la sidebar
+   - Saisir la clé de licence fournie par le Groupe SAGES
+   - Cliquer sur "Enregistrer la licence"
+
+2. **Validation automatique**
+   - La licence est validée en temps réel auprès de Supabase
+   - Vérification de l'expiration, du statut actif, et des limites d'usage
+   - Actualisation automatique possible via le bouton "Actualiser"
+
+### 2. Configuration des Bases de Données
 
 1. **SQL Server (Batigest)**
    - Adresse du serveur
@@ -79,7 +98,7 @@ Le Connecteur SAGES est une application de synchronisation entre Batigest et Bat
 3. **Batisimply**
    - Identifiants API fournis par le Groupe SAGES
 
-### 2. Configuration via l'Interface
+### 3. Configuration via l'Interface
 
 1. Lancer l'application :
    ```bash
@@ -92,8 +111,9 @@ Le Connecteur SAGES est une application de synchronisation entre Batigest et Bat
    ```
 
 3. Cliquer sur "Configuration" en haut à droite
-4. Remplir les informations de connexion
-5. Sauvegarder la configuration
+4. **Configurer d'abord la licence** dans la section "Licence"
+5. Remplir les informations de connexion aux bases de données
+6. Sauvegarder la configuration
 
 ## Utilisation
 
@@ -102,15 +122,35 @@ Le Connecteur SAGES est une application de synchronisation entre Batigest et Bat
 1. **Page d'accueil**
    - Vue d'ensemble de l'état de synchronisation
    - Boutons de synchronisation rapide
+   - **Vérification automatique de la licence au chargement**
 
 2. **Synchronisation**
    - Batigest → Batisimply : Synchronise les chantiers vers Batisimply
    - Batisimply → Batigest : Synchronise les heures vers Batigest
 
-3. **Configuration**
-   - Gestion des connexions
-   - Paramètres de synchronisation
-   - Logs et historique
+3. **Configuration (Nouvelle interface avec sidebar)**
+   - **Section Licence** : Gestion des clés de licence
+   - **Section Bases de données** : Gestion des connexions SQL
+   - **Section Mode de données** : Choix entre chantier/devis
+   - **Section Système** : Outils de maintenance
+
+### Gestion des Licences
+
+1. **Validation en temps réel**
+   - Vérification automatique de la validité
+   - Actualisation manuelle possible
+   - Messages d'erreur détaillés
+
+2. **Page de licence expirée**
+   - Interface dédiée en cas de licence invalide
+   - Bouton de revérification avec modal moderne
+   - Rafraîchissement automatique toutes les 5 minutes
+   - Informations détaillées sur la licence
+
+3. **Sécurité**
+   - Middleware de vérification sur toutes les routes protégées
+   - Redirection automatique vers la page appropriée
+   - Stockage sécurisé des clés dans les credentials
 
 ### Flux de Synchronisation
 
@@ -132,17 +172,23 @@ Le connecteur peut être configuré pour synchroniser automatiquement les donné
 
 ### Problèmes Courants
 
-1. **Erreur de connexion SQL Server**
+1. **Erreur de licence**
+   - Vérifier que la clé de licence est correcte
+   - Vérifier que la licence n'a pas expiré
+   - Utiliser le bouton "Actualiser" pour revérifier
+   - Contacter le support si le problème persiste
+
+2. **Erreur de connexion SQL Server**
    - Vérifier que le serveur est accessible
    - Vérifier les identifiants
    - Vérifier que l'ODBC Driver 17 est installé
 
-2. **Erreur de connexion PostgreSQL**
+3. **Erreur de connexion PostgreSQL**
    - Vérifier que le serveur est accessible
    - Vérifier les identifiants
    - Vérifier que le port est correct
 
-3. **Erreur de synchronisation**
+4. **Erreur de synchronisation**
    - Vérifier les logs dans l'interface
    - Vérifier la connexion Internet
    - Vérifier les droits d'accès aux bases
@@ -154,6 +200,7 @@ Les logs sont accessibles via l'interface web dans la section "Configuration". I
 - Suivre les opérations de synchronisation
 - Identifier les erreurs
 - Vérifier l'état des connexions
+- **Diagnostiquer les problèmes de licence**
 
 ## Support
 
@@ -161,6 +208,7 @@ Pour toute assistance :
 
 - Support technique : [dev2@groupe-sages.fr](mailto:dev2@groupe-sages.fr)
 - Support développement : [dev3@groupe-sages.fr](mailto:dev3@groupe-sages.fr)
+- **Support licences : [support@groupe-sages.fr](mailto:support@groupe-sages.fr)**
 
 ## Mises à Jour
 
@@ -172,18 +220,32 @@ Les mises à jour sont gérées automatiquement via l'interface web. Une notific
 - Les connexions aux bases de données sont chiffrées
 - Les accès API sont protégés par token
 - Aucune donnée sensible n'est stockée en clair
+- **Validation des licences via API sécurisée Supabase**
+- **Vérification automatique de la validité des licences**
 
 ## Licence
 
 Propriété du Groupe SAGES. Tous droits réservés.
 
+**Système de licences :**
+- Validation en temps réel via Supabase
+- Vérification automatique de l'expiration
+- Gestion des limites d'usage
+- Interface de gestion intégrée
+
 ---
 
-### Dernière mise à jour : {date du jour}
+### Dernière mise à jour : 24/06/2025
 
 ## Routes principales
 
 - **GET /** : Page principale (formulaire de connexion, boutons d'action)
+- **GET /configuration** : Page de configuration avec sidebar
+- **GET /license-expired** : Page de licence expirée
+- **POST /update-license** : Mise à jour de la clé de licence
+- **POST /refresh-license** : Rafraîchissement de la validation de licence
+- **GET /check-license-status** : Vérification du statut de la licence
+- **GET /get-license-key** : Récupération de la clé de licence locale
 - **POST /connect-sqlserver** : Connexion à SQL Server
 - **POST /connect-postgres** : Connexion à PostgreSQL
 - **POST /transfer** : Transfert des chantiers SQL Server → PostgreSQL
@@ -238,4 +300,97 @@ Pour toute question ou bug, contactez :
 - dev2@groupe-sages.fr
 - dev3@groupe-sages.fr
 
- 
+# Licence Manager - Système de Gestion des Licences
+
+## Description
+Service web dédié à la gestion des licences pour le connecteur Sages (Batigest ↔ Batisimply).
+Ce service centralisé permet de créer, valider et gérer les licences pour tous les clients.
+
+## Architecture
+- **Backend** : FastAPI avec Supabase
+- **Frontend** : Templates HTML avec Tailwind CSS
+- **Base de données** : Supabase (PostgreSQL)
+
+## Fonctionnalités
+- ✅ Création de licences
+- ✅ Validation de licences (API)
+- ✅ Tableau de bord de gestion
+- ✅ Désactivation/Réactivation
+- ✅ Prolongation de licences
+- ✅ Interface web complète
+
+## Installation
+
+### 1. Prérequis
+- Python 3.8+
+- Compte Supabase
+- Variables d'environnement configurées
+
+### 2. Configuration
+```bash
+# Cloner le projet
+git clone <repository>
+cd licence-manager
+
+# Installer les dépendances
+pip install -r requirements.txt
+
+# Configurer les variables d'environnement
+cp .env.example .env
+# Éditer .env avec vos clés Supabase
+```
+
+### 3. Base de données
+Exécuter le script SQL dans Supabase :
+```sql
+-- Voir la fonction create_licenses_table() dans le code
+```
+
+### 4. Lancement
+```bash
+python main.py
+# Ou
+uvicorn app.main:app --reload
+```
+
+## API Endpoints
+
+### Validation de Licence (pour les clients)
+```
+POST /api/validate
+Content-Type: application/json
+
+{
+    "license_key": "XXXX-XXXX-XXXX-XXXX"
+}
+```
+
+### Gestion Web (pour l'administrateur)
+- `GET /` - Tableau de bord
+- `GET /licenses/create` - Créer une licence
+- `GET /licenses/details/{key}` - Détails d'une licence
+
+## Structure du Projet
+```
+licence-manager/
+├── app/
+│   ├── services/
+│   │   └── supabase_licences.py    # Logique métier
+│   ├── routes/
+│   │   └── license_routes.py       # Routes web et API
+│   ├── templates/                  # Interface web
+│   └── main.py                     # Point d'entrée
+├── requirements.txt
+├── .env.example
+└── README.md
+```
+
+## Sécurité
+- Clés Supabase sécurisées
+- Validation côté serveur
+- Gestion des fuseaux horaires
+- Logs d'utilisation
+
+## Déploiement
+Ce service doit être déployé sur vos serveurs pour rester sous votre contrôle.
+Les clients utiliseront uniquement l'endpoint de validation. 
