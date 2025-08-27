@@ -8,10 +8,15 @@ import json
 import os
 import requests
 import pypyodbc
+from dotenv import load_dotenv
 
 
 # Chemin du fichier stockant les identifiants de connexion
+# Chemin du fichier stockant les identifiants de connexion
 CREDENTIALS_FILE = "app/services/credentials.json"
+
+# Charger les variables d'environnement depuis .env si présent
+load_dotenv()
 
 # ============================================================================
 # CONNEXION SQL SERVER
@@ -153,21 +158,34 @@ def recup_batisimply_token():
     Returns:
         str: Token d'accès si réussi, None si échec
     """
-    url = "https://sso.staging.batisimply.fr/auth/realms/jhipster/protocol/openid-connect/token"
+    url = os.getenv(
+        "BATISIMPLY_SSO_URL",
+        "https://sso.staging.batisimply.fr/auth/realms/jhipster/protocol/openid-connect/token"
+    )
+
+    client_id = os.getenv("BATISIMPLY_CLIENT_ID")
+    client_secret = os.getenv("BATISIMPLY_CLIENT_SECRET")
+    username = os.getenv("BATISIMPLY_USERNAME")
+    password = os.getenv("BATISIMPLY_PASSWORD")
+    grant_type = os.getenv("BATISIMPLY_GRANT_TYPE", "password")
+
+    if not all([client_id, client_secret, username, password]):
+        print("❌ Variables d'environnement BatiSimply manquantes. Vérifiez .env")
+        return None
 
     payload = {
-        "client_id": "bridge-data", 
-        "grant_type": "password",
-        "username": "enzo@apication.fr",
-        "client_secret": "e46938bc-e853-4240-be78-48dbeccdcceb",
-        "password": "TestBS123"  
+        "client_id": client_id,
+        "grant_type": grant_type,
+        "username": username,
+        "client_secret": client_secret,
+        "password": password
     }
 
     headers = {
         "Content-Type": "application/x-www-form-urlencoded"
     }
 
-    response = requests.post(url, data=payload, headers=headers)
+    response = requests.post(url, data=payload, headers=headers, timeout=10)
 
     if response.status_code == 200:
         token_data = response.json()

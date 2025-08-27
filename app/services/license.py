@@ -15,9 +15,9 @@ load_dotenv()
 # Chemin du fichier stockant les identifiants de connexion
 CREDENTIALS_FILE = "app/services/credentials.json"
 
-# Configuration Supabase
-SUPABASE_URL = "https://rxqveiaawggfyeukpvyz.supabase.co"
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4cXZlaWFhd2dnZnlldWtwdnl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2NjQzMjAsImV4cCI6MjA2NjI0MDMyMH0.vYrxDe41M_a8XDcbHwmaiVfy8rKMsyNroiHvNHq5FAM")
+# Configuration Supabase (via variables d'environnement)
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://rxqveiaawggfyeukpvyz.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
     """
@@ -36,6 +36,9 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
     print(f"🔍 Validation de la clé: {license_key[:8]}...")
     
     try:
+        if not SUPABASE_KEY:
+            print("❌ SUPABASE_KEY manquant. Définissez-le dans votre .env")
+            return False, None
         # Appel à l'API Supabase
         headers = {
             "apikey": SUPABASE_KEY,

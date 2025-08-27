@@ -22,21 +22,13 @@ from dotenv import load_dotenv
 
 from app.routes import form_routes
 from app.utils.paths import templates_path, static_path
-from app.utils.templates_engine import templates
 from app.middleware.license_middleware import LicenseMiddleware
 
 # ============================================================================
 # CONFIGURATION DE L'APPLICATION
 # ============================================================================
-# Détection du mode d'exécution (PyInstaller ou dev)
-if getattr(sys, 'frozen', False):
-    BASE_DIR = sys._MEIPASS
-    templates_path = os.path.join(BASE_DIR, "templates")
-    static_path = os.path.join(BASE_DIR, "static")
-else:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    templates_path = os.path.join(BASE_DIR, "templates")
-    static_path = os.path.join(BASE_DIR, "static")
+# Charger les variables d'environnement
+load_dotenv()
 
 # Création de l'instance FastAPI
 app = FastAPI(
@@ -48,7 +40,7 @@ app = FastAPI(
 # Ajout du middleware de session
 app.add_middleware(
     SessionMiddleware,
-    secret_key="votre_cle_secrete_ici",  # À changer en production
+    secret_key=os.getenv("SESSION_SECRET", "change-me"),  # À définir en production
     session_cookie="connecteur_session"
 )
 
@@ -56,11 +48,11 @@ app.add_middleware(
 app.add_middleware(LicenseMiddleware)
 
 # Enregistrement des fichiers statiques
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 # Configuration du moteur de templates Jinja2
-# (Les templates sont dans app/templates)
-templates = Jinja2Templates(directory="app/templates")
+# (Chemin compatible PyInstaller via utils.paths)
+templates = Jinja2Templates(directory=templates_path)
 
 # Route de santé pour vérifier que l'application fonctionne
 @app.get("/health")
@@ -84,10 +76,7 @@ def open_browser():
 # Inclusion des routes définies dans form_routes
 app.include_router(form_routes.router)
 
-# Redirection de la racine vers le formulaire de configuration
-@app.get("/", include_in_schema=False)
-async def root(request: Request):
-    return RedirectResponse(url="/form")
+# La route racine est définie dans les routeurs inclus (voir form_routes)
 
 # Ce bloc permet d'exécuter l'application directement avec 'python app/main.py'.
 # Utile pour le développement local.
