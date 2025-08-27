@@ -93,6 +93,19 @@
                         </button>
                     </li>
                     <li>
+                        <button onclick="showSection('software')" 
+                                id="nav-software"
+                                class="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl transition-all duration-200 nav-item">
+                            <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-desktop text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-900">Logiciel</span>
+                                <p class="text-xs text-gray-500">Codial/Batigest</p>
+                            </div>
+                        </button>
+                    </li>
+                    <li>
                         <button onclick="showSection('system')" 
                                 id="nav-system"
                                 class="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl transition-all duration-200 nav-item">
@@ -120,7 +133,7 @@
             <div class="max-w-4xl mx-auto">
                 <div class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-2">Gestion de la licence</h2>
-                    <p class="text-gray-600">Configurez votre clé de licence pour activer toutes les fonctionnalités de l'application</p>
+                    <p class="text-gray-600">Configurez la clé de licence du client pour activer toutes les fonctionnalités de l'application</p>
                 </div>
 
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
@@ -143,7 +156,7 @@
                             </div>
                             <p class="text-sm text-gray-500 mt-2">
                                 <i class="fas fa-info-circle mr-1"></i>
-                                Votre clé de licence est nécessaire pour activer toutes les fonctionnalités de l'application
+                                La clé de licence est nécessaire pour activer toutes les fonctionnalités de l'application
                             </p>
                         </div>
                         
@@ -326,31 +339,199 @@
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                     <form action="/update-mode" method="post">
                         <div class="flex flex-col items-center">
-                            <div class="flex items-center justify-center mb-6">
-                                <img src="/static/logo_codial.png" alt="Codial" class="h-12 mr-6">
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="sr-only peer" name="type" id="type"
-                                           value="devis" {{ 'checked' if mode == 'devis' else '' }}>
-                                    <div class="w-16 h-8 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:bg-blue-600 transition-all duration-300"></div>
-                                    <div class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full shadow-md transition-all duration-300 peer-checked:translate-x-8"></div>
-                                </label>
-                                <img src="/static/logo_batigest.png" alt="Batigest" class="h-12 ml-6">
+                            <!-- Mode Cards -->
+                            <div class="grid md:grid-cols-2 gap-6 mb-8 w-full max-w-2xl">
+                                <!-- Mode Chantier -->
+                                <div class="relative">
+                                    <input type="radio" name="type" value="chantier" id="mode-chantier" 
+                                           class="sr-only peer" {{ 'checked' if mode != 'devis' else '' }}>
+                                    <label for="mode-chantier" 
+                                           class="block p-6 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-2xl cursor-pointer transition-all duration-300 peer-checked:border-blue-500 peer-checked:shadow-lg hover:scale-105 hover:-translate-y-1 hover:shadow-xl">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                                                <i class="fas fa-hard-hat text-white text-xl"></i>
+                                            </div>
+                                            <div class="w-6 h-6 border-2 border-blue-300 rounded-full flex items-center justify-center peer-checked:bg-white peer-checked:border-white">
+                                                <div class="w-3 h-3 bg-blue-500 rounded-full peer-checked:bg-blue-600 transition-all duration-300"></div>
+                                            </div>
+                                        </div>
+                                        <h3 class="text-lg font-semibold text-blue-900 mb-2">Mode Chantier</h3>
+                                        <p class="text-blue-700 text-sm leading-relaxed">
+                                            Synchronisation des chantiers entre Batigest et Batisimply. 
+                                            Gestion complète des projets de construction.
+                                        </p>
+                                        <div class="mt-4 flex items-center text-blue-600 text-sm">
+                                            <i class="fas fa-check-circle mr-2"></i>
+                                            <span>Recommandé pour la gestion de chantiers</span>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- Mode Devis -->
+                                <div class="relative">
+                                    <input type="radio" name="type" value="devis" id="mode-devis" 
+                                           class="sr-only peer" {{ 'checked' if mode == 'devis' else '' }}>
+                                    <label for="mode-devis" 
+                                           class="block p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-2xl cursor-pointer transition-all duration-300 peer-checked:border-purple-500 peer-checked:shadow-lg hover:scale-105 hover:-translate-y-1 hover:shadow-xl">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <div class="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
+                                                <i class="fas fa-file-invoice-dollar text-white text-xl"></i>
+                                            </div>
+                                            <div class="w-6 h-6 border-2 border-purple-300 rounded-full flex items-center justify-center peer-checked:bg-white peer-checked:border-white">
+                                                <div class="w-3 h-3 bg-purple-500 rounded-full peer-checked:bg-purple-600 transition-all duration-300"></div>
+                                            </div>
+                                        </div>
+                                        <h3 class="text-lg font-semibold text-purple-900 mb-2">Mode Devis</h3>
+                                        <p class="text-purple-700 text-sm leading-relaxed">
+                                            Synchronisation des devis entre Batigest et Batisimply. 
+                                            Pour ceux qui n'ont pas le module de gestion de chantier.
+                                        </p>
+                                        <div class="mt-4 flex items-center text-purple-600 text-sm">
+                                            <i class="fas fa-check-circle mr-2"></i>
+                                            <span>Idéal pour la gestion des devis</span>
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
-                            
-                            <div class="text-center mb-6">
-                                <p class="text-lg font-medium text-gray-900">
-                                    Mode actuel : <span class="text-evidence-blue">{{ 'Devis' if mode == 'devis' else 'Chantier' }}</span>
-                                </p>
-                                <p class="text-sm text-gray-500 mt-1">
-                                    {{ 'Traitement des devis entre les systèmes' if mode == 'devis' else 'Traitement des chantiers entre les systèmes' }}
-                                </p>
+
+                            <!-- Mode Actuel Display -->
+                            <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 mb-6 w-full max-w-md">
+                                <div class="text-center">
+                                    <div class="flex items-center justify-center mb-3">
+                                        <div class="w-8 h-8 {{ 'bg-blue-500' if mode != 'devis' else 'bg-purple-500' }} rounded-lg flex items-center justify-center mr-3">
+                                            <i class="fas {{ 'fa-hard-hat' if mode != 'devis' else 'fa-file-invoice-dollar' }} text-white text-sm"></i>
+                                        </div>
+                                        <h4 class="text-lg font-semibold text-gray-900">Mode Actuel</h4>
+                                    </div>
+                                    <p class="text-2xl font-bold {{ 'text-blue-600' if mode != 'devis' else 'text-purple-600' }} mb-2">
+                                        {{ 'Chantier' if mode != 'devis' else 'Devis' }}
+                                    </p>
+                                    <p class="text-sm text-gray-600">
+                                        {{ 'Synchronisation des chantiers entre les systèmes' if mode != 'devis' else 'Synchronisation des devis entre les systèmes' }}
+                                    </p>
+                                </div>
                             </div>
-                            
+
+                            <!-- Bouton de sauvegarde -->
                             <button type="submit" 
-                                    class="bg-evidence-blue hover:bg-blue-600 text-white px-8 py-3 rounded-xl transition-all duration-300 flex items-center space-x-2">
-                                <i class="fas fa-save"></i>
-                                <span>Enregistrer le mode</span>
+                                    class="group relative overflow-hidden bg-gradient-to-r from-evidence-blue to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-3">
+                                <div class="relative z-10 flex items-center space-x-3">
+                                    <i class="fas fa-save text-lg"></i>
+                                    <span class="font-semibold">Enregistrer le mode</span>
+                                </div>
+                                <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                             </button>
+
+                            <!-- Informations supplémentaires -->
+                            <div class="mt-6 text-center">
+                                <p class="text-sm text-gray-500 max-w-md">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    Le changement de mode affecte toutes les opérations de synchronisation. 
+                                    Assurez-vous que vos bases de données sont compatibles.
+                                </p>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Logiciel -->
+        <section id="section-software" class="section-content p-8 hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Choix du Logiciel</h2>
+                    <p class="text-gray-600">Sélectionnez le logiciel principal utilisé par le client</p>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                    <form action="/update-software" method="post">
+                        <div class="flex flex-col items-center">
+                            <!-- Logiciel Cards -->
+                            <div class="grid md:grid-cols-2 gap-8 mb-8 w-full max-w-3xl">
+                                <!-- Logiciel Codial -->
+                                <div class="relative">
+                                    <input type="radio" name="software" value="codial" id="software-codial" 
+                                           class="sr-only peer" {{ 'checked' if software == 'codial' else '' }}>
+                                    <label for="software-codial" 
+                                           class="block p-8 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-2xl cursor-pointer transition-all duration-300 peer-checked:border-blue-500 peer-checked:shadow-lg hover:scale-105 hover:-translate-y-1 hover:shadow-xl">
+                                        <div class="flex items-center justify-between mb-6">
+                                            <div class="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
+                                                <img src="/static/logo_codial.png" alt="Codial" class="w-10 h-10 object-contain">
+                                            </div>
+                                            <div class="w-6 h-6 border-2 border-blue-300 rounded-full flex items-center justify-center peer-checked:bg-white peer-checked:border-white">
+                                                <div class="w-3 h-3 bg-blue-500 rounded-full peer-checked:bg-blue-600 transition-all duration-300"></div>
+                                            </div>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-blue-900 mb-3">Codial</h3>
+                                        <p class="text-blue-700 text-sm leading-relaxed mb-4">
+                                            Logiciel de gestion commerciale et comptable spécialisé dans la construction. 
+                                            Gestion complète des devis, factures et suivi client.
+                                        </p>
+                                    </label>
+                                </div>
+
+                                <!-- Logiciel Batigest -->
+                                <div class="relative">
+                                    <input type="radio" name="software" value="batigest" id="software-batigest" 
+                                           class="sr-only peer" {{ 'checked' if software != 'codial' else '' }}>
+                                    <label for="software-batigest" 
+                                           class="block p-8 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-2xl cursor-pointer transition-all duration-300 peer-checked:border-green-500 peer-checked:shadow-lg hover:scale-105 hover:-translate-y-1 hover:shadow-xl">
+                                        <div class="flex items-center justify-between mb-6">
+                                            <div class="w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center shadow-lg">
+                                                <img src="/static/logo_batigest.png" alt="Batigest" class="w-10 h-10 object-contain">
+                                            </div>
+                                            <div class="w-6 h-6 border-2 border-green-300 rounded-full flex items-center justify-center peer-checked:bg-white peer-checked:border-white">
+                                                <div class="w-3 h-3 bg-green-500 rounded-full peer-checked:bg-green-600 transition-all duration-300"></div>
+                                            </div>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-green-900 mb-3">Batigest</h3>
+                                        <p class="text-green-700 text-sm leading-relaxed mb-4">
+                                            Logiciel de gestion de chantiers et de suivi de production. 
+                                            Gestion complète des projets de construction et des ressources.
+                                        </p>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Logiciel Actuel Display -->
+                            <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 mb-6 w-full max-w-md">
+                                <div class="text-center">
+                                    <div class="flex items-center justify-center mb-3">
+                                        <div class="w-10 h-10 {{ 'bg-blue-500' if software == 'codial' else 'bg-green-500' }} rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                                            <img src="{{ '/static/logo_codial.png' if software == 'codial' else '/static/logo_batigest.png' }}" 
+                                                 alt="{{ 'Codial' if software == 'codial' else 'Batigest' }}" 
+                                                 class="w-6 h-6 object-contain">
+                                        </div>
+                                        <h4 class="text-lg font-semibold text-gray-900">Logiciel Principal</h4>
+                                    </div>
+                                    <p class="text-2xl font-bold {{ 'text-blue-600' if software == 'codial' else 'text-green-600' }} mb-2">
+                                        {{ 'Codial' if software == 'codial' else 'Batigest' }}
+                                    </p>
+                                    <p class="text-sm text-gray-600">
+                                        {{ 'Gestion commerciale et comptable' if software == 'codial' else 'Gestion de chantiers et production' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Bouton de sauvegarde -->
+                            <button type="submit" 
+                                    class="group relative overflow-hidden bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8 py-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-3">
+                                <div class="relative z-10 flex items-center space-x-3">
+                                    <i class="fas fa-save text-lg"></i>
+                                    <span class="font-semibold">Enregistrer le logiciel</span>
+                                </div>
+                                <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                            </button>
+
+                            <!-- Informations supplémentaires -->
+                            <div class="mt-6 text-center">
+                                <p class="text-sm text-gray-500 max-w-md">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    Ce choix détermine le logiciel principal pour la synchronisation. 
+                                    Les paramètres de connexion seront adaptés en conséquence.
+                                </p>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -500,7 +681,9 @@
 
         // Initialiser la page avec la section licence active
         document.addEventListener('DOMContentLoaded', function() {
-            showSection('license');
+            // Utiliser la section actuelle si définie, sinon licence par défaut
+            const currentSection = '{{ current_section or "license" }}';
+            showSection(currentSection);
             checkLicenseStatus();
         });
 

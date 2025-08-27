@@ -129,7 +129,8 @@ async def connect_sqlserver(
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
-        "pg_connected": pg_connected
+        "pg_connected": pg_connected,
+        "current_section": "databases"
     })
 
 @router.post("/connect-postgres", response_class=HTMLResponse)
@@ -176,7 +177,8 @@ async def connect_postgres(
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
-        "pg_connected": pg_connected
+        "pg_connected": pg_connected,
+        "current_section": "databases"
     })
 
 # ============================================================================
@@ -402,7 +404,8 @@ async def init_table_route(request: Request):
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
-        "pg_connected": pg_connected
+        "pg_connected": pg_connected,
+        "current_section": "system"
     })
 
 @router.get("/login", response_class=HTMLResponse)
@@ -432,9 +435,11 @@ async def configuration_page(request: Request):
     return templates.TemplateResponse("configuration.html", {
         "request": request,
         "mode": creds.get("mode", "chantier") if creds else "chantier",
+        "software": creds.get("software", "batigest") if creds else "batigest",
         "license_key": license_key,
         "license_valid": license_valid,
         "license_expiry_date": license_expiry_date,
+        "current_section": "license",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected
     })
@@ -500,6 +505,35 @@ def update_mode(request: Request, type: str = Form("chantier")):
         "request": request,
         "message": f"Mode mis à jour : {type}",
         "mode": type,
+        "software": creds.get("software", "batigest"),
+        "current_section": "mode",
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
+
+@router.post("/update-software")
+def update_software(request: Request, software: str = Form("batigest")):
+    """
+    Route pour mettre à jour le logiciel principal (codial/batigest).
+    
+    Args:
+        request (Request): Requête FastAPI
+        software (str): Logiciel principal (codial ou batigest)
+        
+    Returns:
+        TemplateResponse: Page HTML de configuration
+    """
+    creds = load_credentials() or {}
+    creds["software"] = software
+    save_credentials(creds)
+    
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("configuration.html", {
+        "request": request,
+        "message": f"Logiciel mis à jour : {software}",
+        "software": software,
+        "mode": creds.get("mode", "chantier"),
+        "current_section": "software",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected
     })
@@ -553,12 +587,16 @@ def update_license(request: Request, license_key: str = Form(...)):
             print("❌ Licence invalide mais sauvegardée")
         
         sql_connected, pg_connected = check_connection_status()
+        creds = load_credentials()
         return templates.TemplateResponse("configuration.html", {
             "request": request,
             "message": message,
             "license_key": license_key,
             "license_valid": license_valid,
             "license_expiry_date": license_expiry_date,
+            "mode": creds.get("mode", "chantier") if creds else "chantier",
+            "software": creds.get("software", "batigest") if creds else "batigest",
+            "current_section": "license",
             "sql_connected": sql_connected,
             "pg_connected": pg_connected
         })
@@ -570,12 +608,16 @@ def update_license(request: Request, license_key: str = Form(...)):
         license_expiry_date = None
         
         sql_connected, pg_connected = check_connection_status()
+        creds = load_credentials()
         return templates.TemplateResponse("configuration.html", {
             "request": request,
             "message": message,
             "license_key": license_key,
             "license_valid": license_valid,
             "license_expiry_date": license_expiry_date,
+            "mode": creds.get("mode", "chantier") if creds else "chantier",
+            "software": creds.get("software", "batigest") if creds else "batigest",
+            "current_section": "license",
             "sql_connected": sql_connected,
             "pg_connected": pg_connected
         })
