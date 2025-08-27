@@ -5,6 +5,8 @@
 import json
 import os
 import requests
+import uuid
+import platform
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 from dotenv import load_dotenv
@@ -18,6 +20,94 @@ CREDENTIALS_FILE = "app/services/credentials.json"
 # Configuration Supabase (via variables d'environnement)
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://rxqveiaawggfyeukpvyz.supabase.co")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+# Configuration Licence Manager API (service centralisé)
+LICENSE_API_BASE_URL = os.getenv("LICENSE_API_BASE_URL")  # ex: http://127.0.0.1:3000
+LICENSE_API_KEY = os.getenv("LICENSE_API_KEY")
+LICENSE_HEARTBEAT_ENABLED = os.getenv("LICENSE_HEARTBEAT_ENABLED", "false").lower() == "true"
+LICENSE_HEARTBEAT_INTERVAL_SECONDS = int(os.getenv("LICENSE_HEARTBEAT_INTERVAL_SECONDS", "300"))
+LICENSE_CLIENT_ID = os.getenv("LICENSE_CLIENT_ID", "connecteur-sages-client")
+LICENSE_CLIENT_VERSION = os.getenv("LICENSE_CLIENT_VERSION", "1.0.0")
+LICENSE_MACHINE_ID = os.getenv("LICENSE_MACHINE_ID")
+
+def _get_machine_id() -> str:
+    if LICENSE_MACHINE_ID:
+        return LICENSE_MACHINE_ID
+    try:
+        # Combine hostname and MAC for a stable identifier
+        mac = uuid.getnode()
+        host = platform.node() or "unknown-host"
+        return f"{host}-{mac}"
+    except Exception:
+        return "unknown-machine"
+
+
+def _license_api_headers() -> Dict[str, str]:
+    return {
+        "Authorization": f"Bearer {LICENSE_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+
+def _validate_via_license_service(license_key: str) -> Tuple[bool, Optional[Dict]]:
+    """
+    Valide la licence via le service central (licence-manager) si configuré.
+    """
+    if not LICENSE_API_BASE_URL or not LICENSE_API_KEY:
+        return False, None
+
+    try:
+        url = f"{LICENSE_API_BASE_URL.rstrip('/')}/api/v1/validate"
+        payload = {
+            "license_key": license_key,
+            "client_id": LICENSE_CLIENT_ID,
+            "client_version": LICENSE_CLIENT_VERSION,
+            "machine_id": _get_machine_id()
+        }
+        resp = requests.post(url, headers=_license_api_headers(), json=payload, timeout=10)
+        if resp.status_code != 200:
+            return False, None
+
+        data = resp.json()
+        # data structure expected from API_DOCUMENTATION.md
+        if data.get("valid"):
+            license_info = data.get("license_info", {}) or {}
+            # Normaliser le format pour stockage local
+            normalized = {
+                "key": license_key,
+                "client_name": license_info.get("client_name"),
+                "client_email": license_info.get("client_email"),
+                "company_name": license_info.get("company_name"),
+                "expiry_date": license_info.get("expires_at"),
+                "features": ["chantier", "devis", "heures"],
+                "updated_at": datetime.now().isoformat(),
+                "valid": True,
+                "usage_count": data.get("usage_count", 0),
+                "max_usage": data.get("max_usage"),
+                "is_active": license_info.get("is_active", False)
+            }
+            # Sauvegarder localement
+            save_license_info(license_key, normalized)
+            return True, normalized
+        else:
+            return False, None
+    except Exception:
+        return False, None
+
+
+def send_license_heartbeat(license_key: str) -> bool:
+    """
+    Envoie un heartbeat au service central si activé et configuré.
+    """
+    if not LICENSE_HEARTBEAT_ENABLED or not LICENSE_API_BASE_URL or not LICENSE_API_KEY:
+        return False
+    try:
+        url = f"{LICENSE_API_BASE_URL.rstrip('/')}/api/v1/heartbeat/{license_key}"
+        resp = requests.post(url, headers=_license_api_headers(), timeout=8)
+        return resp.status_code == 200
+    except Exception:
+        return False
+
 
 def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
     """
@@ -36,6 +126,16 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
     print(f"🔍 Validation de la clé: {license_key[:8]}...")
     
     try:
+        # 1) Tenter via service central si configuré
+        if LICENSE_API_BASE_URL and LICENSE_API_KEY:
+            valid, info = _validate_via_license_service(license_key)
+            if valid and info:
+                # Heartbeat optionnel
+                send_license_heartbeat(license_key)
+                print("✅ Licence valide via service central")
+                return True, info
+
+        # 2) Fallback Supabase (ancien comportement)
         if not SUPABASE_KEY:
             print("❌ SUPABASE_KEY manquant. Définissez-le dans votre .env")
             return False, None
@@ -119,6 +219,18 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
                     return False, license_info  # Licence archivée
                 
                 print("✅ Licence valide")
+                # Sauvegarder au format local attendu
+                save_license_info(license_key, {
+                    "key": license_key,
+                    "client_name": f"Client {license_info.get('client_id', 'Inconnu')}",
+                    "expiry_date": license_info.get("expires_at"),
+                    "features": ["chantier", "devis", "heures"],
+                    "updated_at": datetime.now().isoformat(),
+                    "valid": True,
+                    "usage_count": license_info.get("usage_count", 0),
+                    "max_usage": license_info.get("max_usage"),
+                    "is_active": license_info.get("is_active", False)
+                })
                 return True, license_info
             else:
                 # Aucune licence trouvée
