@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Groupe Sages - Connecteur Batigest - Batisimply</title>
+    <title>Groupe Sages - Connecteur {{ 'Codial' if software == 'codial' else 'Batigest' }} - Batisimply</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -56,7 +56,7 @@
             <h2 class="text-4xl font-bold text-evidence-blue mb-4">Connecteur d'ERP</h2>
             <p class="text-lg text-gray-600">
                 Interface de synchronisation intelligente entre 
-                <span class="text-evidence-blue font-semibold">Batigest</span> et 
+                <span class="text-evidence-blue font-semibold">{{ 'Codial' if software == 'codial' else 'Batigest' }}</span> et 
                 <span class="text-evidence-purple font-semibold">Batisimply</span>
             </p>
         </div>
@@ -105,7 +105,7 @@
                                 <div class="flex items-center justify-center mb-4">
                                     <i class="fas fa-arrow-right text-2xl"></i>
                                 </div>
-                                <h4 class="text-xl font-bold mb-2">Batigest → Batisimply</h4>
+                                <h4 class="text-xl font-bold mb-2">{{ 'Codial' if software == 'codial' else 'Batigest' }} → Batisimply</h4>
                                 <p class="text-blue-100 text-sm">Synchroniser vers Batisimply</p>
                             </div>
                             <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
@@ -120,8 +120,8 @@
                                 <div class="flex items-center justify-center mb-4">
                                     <i class="fas fa-arrow-left text-2xl"></i>
                                 </div>
-                                <h4 class="text-xl font-bold mb-2">Batisimply → Batigest</h4>
-                                <p class="text-purple-100 text-sm">Synchroniser vers Batigest</p>
+                                <h4 class="text-xl font-bold mb-2">Batisimply → {{ 'Codial' if software == 'codial' else 'Batigest' }}</h4>
+                                <p class="text-purple-100 text-sm">Synchroniser vers {{ 'Codial' if software == 'codial' else 'Batigest' }}</p>
                             </div>
                             <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                         </button>
@@ -139,7 +139,7 @@
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between text-gray-500 text-sm">
             <div class="flex items-center space-x-2 mb-2 md:mb-0">
                 <span class="font-semibold text-evidence-blue">Connecteur Sages</span>
-                <span>— Connecteur Batigest - Batisimply by Groupe Sages</span>
+                <span>— Connecteur {{ 'Codial' if software == 'codial' else 'Batigest' }} - Batisimply by Groupe Sages</span>
             </div>
             <div>
                 © 2025 Groupe Sages. Tous droits réservés.

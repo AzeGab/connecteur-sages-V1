@@ -132,8 +132,8 @@ def save_credentials(data):
     Args:
         data (dict): Dictionnaire contenant les identifiants à sauvegarder
     """
-    with open(CREDENTIALS_FILE, "w") as f:
-        json.dump(data, f)
+    with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False, sort_keys=True)
 
 def load_credentials():
     """
@@ -144,7 +144,7 @@ def load_credentials():
     """
     if not os.path.exists(CREDENTIALS_FILE):
         return None
-    with open(CREDENTIALS_FILE, "r") as f:
+    with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 # ============================================================================
