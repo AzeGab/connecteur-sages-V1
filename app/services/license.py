@@ -262,8 +262,20 @@ def save_license_info(license_key: str, license_info: Dict) -> None:
     if not os.path.exists(CREDENTIALS_FILE):
         creds = {}
     else:
-        with open(CREDENTIALS_FILE, "r") as f:
-            creds = json.load(f)
+        # Lecture tolérante au BOM et aux fichiers vides
+        try:
+            if os.path.getsize(CREDENTIALS_FILE) == 0:
+                creds = {}
+            else:
+                with open(CREDENTIALS_FILE, "r", encoding="utf-8-sig") as f:
+                    creds = json.load(f)
+        except json.JSONDecodeError:
+            try:
+                with open(CREDENTIALS_FILE, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read().lstrip("\ufeff").strip()
+                    creds = json.loads(content) if content else {}
+            except Exception:
+                creds = {}
     
     # Adapter les noms de colonnes pour correspondre à la structure locale
     creds["license"] = {
@@ -278,8 +290,8 @@ def save_license_info(license_key: str, license_info: Dict) -> None:
         "is_active": license_info.get("is_active", False)
     }
     
-    with open(CREDENTIALS_FILE, "w") as f:
-        json.dump(creds, f, indent=2)
+    with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
+        json.dump(creds, f, indent=2, ensure_ascii=False, sort_keys=True)
 
 def load_license_info() -> Optional[Dict]:
     """
@@ -290,9 +302,20 @@ def load_license_info() -> Optional[Dict]:
     """
     if not os.path.exists(CREDENTIALS_FILE):
         return None
-    
-    with open(CREDENTIALS_FILE, "r") as f:
-        creds = json.load(f)
+    try:
+        if os.path.getsize(CREDENTIALS_FILE) == 0:
+            return None
+        with open(CREDENTIALS_FILE, "r", encoding="utf-8-sig") as f:
+            creds = json.load(f)
+    except json.JSONDecodeError:
+        try:
+            with open(CREDENTIALS_FILE, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read().lstrip("\ufeff").strip()
+                if not content:
+                    return None
+                creds = json.loads(content)
+        except Exception:
+            return None
     
     return creds.get("license")
 

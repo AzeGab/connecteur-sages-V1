@@ -138,14 +138,32 @@ def save_credentials(data):
 def load_credentials():
     """
     Charge les identifiants de connexion depuis le fichier JSON.
+    Tolère les fichiers vides et l'encodage UTF-8 avec BOM.
     
     Returns:
-        dict: Dictionnaire contenant les identifiants, None si le fichier n'existe pas
+        dict | None: Identifiants ou None si indisponible/illisible
     """
-    if not os.path.exists(CREDENTIALS_FILE):
+    try:
+        if not os.path.exists(CREDENTIALS_FILE):
+            return None
+        # Fichier vide
+        if os.path.getsize(CREDENTIALS_FILE) == 0:
+            return None
+        # Lecture tolérante au BOM
+        with open(CREDENTIALS_FILE, "r", encoding="utf-8-sig") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        try:
+            # Lecture brute avec nettoyage du BOM et des espaces
+            with open(CREDENTIALS_FILE, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read().lstrip("\ufeff").strip()
+                if not content:
+                    return None
+                return json.loads(content)
+        except Exception:
+            return None
+    except Exception:
         return None
-    with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
 
 # ============================================================================
 # AUTHENTIFICATION BATISIMPLY
