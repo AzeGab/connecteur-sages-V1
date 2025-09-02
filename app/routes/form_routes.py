@@ -21,6 +21,7 @@ templates = Jinja2Templates(directory=templates_path)
 from app.services.connex import (
     connect_to_sqlserver,
     connect_to_postgres,
+    connect_to_hfsql,
     save_credentials,
     load_credentials,
     check_connection_status
@@ -153,6 +154,49 @@ async def connect_sqlserver(
         "message": message,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
+        "software": (load_credentials() or {}).get("software", "batigest"),
+        "current_section": "databases"
+    })
+
+@router.post("/connect-hfsql", response_class=HTMLResponse)
+async def connect_hfsql(
+    request: Request,
+    server: str = Form(...),
+    user: str = Form("admin"),
+    password: str = Form(""),
+    database: str = Form("HFSQL"),
+    port: str = Form("4900")
+):
+    """
+    Teste et sauvegarde la connexion HFSQL (Codial) si le logiciel sélectionné est Codial.
+    """
+    # Si software != codial, on refuse silencieusement et on affiche l’onglet
+    creds = load_credentials() or {}
+    if creds.get("software", "batigest") != "codial":
+        message = "ℹ️ Logiciel non configuré sur Codial. Basculez d’abord le logiciel."
+    else:
+        conn = connect_to_hfsql(server, user, password, database, port)
+        if conn:
+            creds["hfsql"] = {
+                "host": server,
+                "user": user,
+                "password": password,
+                "database": database,
+                "port": port
+            }
+            save_credentials(creds)
+            message = "✅ Connexion HFSQL réussie !"
+            conn.close()
+        else:
+            message = "❌ Connexion HFSQL échouée."
+
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("configuration.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected,
+        "software": (load_credentials() or {}).get("software", "batigest"),
         "current_section": "databases"
     })
 
@@ -201,6 +245,7 @@ async def connect_postgres(
         "message": message,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
+        "software": (load_credentials() or {}).get("software", "batigest"),
         "current_section": "databases"
     })
 
@@ -530,6 +575,7 @@ async def configuration_page(request: Request):
         "mode": creds.get("mode", "chantier") if creds else "chantier",
         "software": creds.get("software", "batigest") if creds else "batigest",
         "debug": creds.get("debug", False) if creds else False,
+        "batisimply": creds.get("batisimply", {}) if creds else {},
         "license_key": license_key,
         "license_valid": license_valid,
         "license_expiry_date": license_expiry_date,
@@ -600,6 +646,8 @@ def update_mode(request: Request, type: str = Form("chantier")):
         "message": f"Mode mis à jour : {type}",
         "mode": type,
         "software": creds.get("software", "batigest"),
+        "debug": creds.get("debug", False),
+        "batisimply": creds.get("batisimply", {}),
         "current_section": "mode",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected
@@ -627,6 +675,8 @@ def update_software(request: Request, software: str = Form("batigest")):
         "message": f"Logiciel mis à jour : {software}",
         "software": software,
         "mode": creds.get("mode", "chantier"),
+        "debug": creds.get("debug", False),
+        "batisimply": creds.get("batisimply", {}),
         "current_section": "software",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected
@@ -647,7 +697,43 @@ def update_debug(request: Request, debug: str = Form("false")):
         "message": f"Mode debug: {'activé' if creds['debug'] else 'désactivé'}",
         "mode": creds.get("mode", "chantier"),
         "software": creds.get("software", "batigest"),
+        "debug": creds.get("debug", False),
+        "batisimply": creds.get("batisimply", {}),
         "current_section": "system",
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
+
+@router.post("/update-batisimply")
+def update_batisimply(
+    request: Request,
+    sso_url: str = Form("https://sso.staging.batisimply.fr/auth/realms/jhipster/protocol/openid-connect/token"),
+    client_id: str = Form(...),
+    client_secret: str = Form(...),
+    username: str = Form(...),
+    password: str = Form(...),
+    grant_type: str = Form("password"),
+):
+    creds = load_credentials() or {}
+    creds["batisimply"] = {
+        "sso_url": sso_url,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "username": username,
+        "password": password,
+        "grant_type": grant_type,
+    }
+    save_credentials(creds)
+
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("configuration.html", {
+        "request": request,
+        "message": "Configuration BatiSimply enregistrée",
+        "mode": creds.get("mode", "chantier"),
+        "software": creds.get("software", "batigest"),
+        "debug": creds.get("debug", False),
+        "batisimply": creds.get("batisimply", {}),
+        "current_section": "databases",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected
     })

@@ -93,30 +93,47 @@ def connect_to_postgres(host, user, password, database, port="5432"):
 # CONNEXION HFSQL
 # ============================================================================
 
-def connect_to_hfsql(host, user="admin", password="", database="HFSQL", port="4900"):
+def connect_to_hfsql(host: str, user: str = "admin", password: str = "", database: str = "HFSQL", port: str = "4900"):
     """
-    Établit une connexion à une base de données HFSQL.
-    
-    Args:
-        host (str): Nom d'hôte ou adresse IP du serveur
-        user (str): Nom d'utilisateur (par défaut: admin)
-        password (str): Mot de passe    (par défaut: )
-        database (str): Nom de la base de données
-        port (str): Port de connexion (par défaut: 4900)
-        
-    Returns:
-        pypyodbc.Connection: Objet de connexion si réussi, None si échec
-    """ 
+    Établit une connexion ODBC à HFSQL (Client/Serveur).
+
+    - Requiert l'installation du pilote ODBC PC SOFT (HFSQL Client/Serveur)
+    - Connexion "DSN-less" avec Driver explicite
+    - Supporte un host de type "DSN=NomDeDSN" si vous utilisez un DSN Windows
+    """
     try:
-        conn = pypyodbc.connect(
-            host=host,
-            user=user,
-            password=password,
-            database=database,  
-            port=port
-        )
-        print("✅ Connexion HFSQL réussie")
-        return conn
+        # Si un DSN Windows est fourni (ex: "DSN=MON_DSN"), utiliser tel quel
+        if host.upper().startswith("DSN="):
+            conn_str = f"{host};UID={user};PWD={password}"
+            conn = pypyodbc.connect(conn_str)
+            print("✅ Connexion HFSQL via DSN réussie")
+            return conn
+
+        # Essayer plusieurs noms de driver possibles
+        driver_candidates = [
+            "HFSQL Client/Server (Unicode)",
+            "HFSQL Client/Server",
+            "HFSQL (Unicode)",
+            "HFSQL",
+        ]
+
+        last_error = None
+        for drv in driver_candidates:
+            try:
+                conn_str = (
+                    f"Driver={{{{}}}};SERVER={host};PORT={port};DATABASE={database};"
+                    f"UID={user};PWD={password}".format(drv)
+                )
+                conn = pypyodbc.connect(conn_str)
+                print(f"✅ Connexion HFSQL réussie avec le driver '{drv}'")
+                return conn
+            except Exception as e:  # garder la dernière erreur pour diagnostic
+                last_error = e
+                continue
+
+        print("❌ Erreur HFSQL (pilote/DSN):", last_error)
+        print("ℹ️ Vérifiez que le pilote ODBC HFSQL Client/Serveur est installé et que le nom du driver est correct.")
+        return None
     except Exception as e:
         print("❌ Erreur HFSQL :", e)
         return None
@@ -176,16 +193,23 @@ def recup_batisimply_token():
     Returns:
         str: Token d'accès si réussi, None si échec
     """
-    url = os.getenv(
-        "BATISIMPLY_SSO_URL",
-        "https://sso.staging.batisimply.fr/auth/realms/jhipster/protocol/openid-connect/token"
+    # 1) Priorité aux credentials persistés
+    creds = load_credentials() or {}
+    bcfg = creds.get("batisimply", {}) if isinstance(creds, dict) else {}
+
+    url = bcfg.get(
+        "sso_url",
+        os.getenv(
+            "BATISIMPLY_SSO_URL",
+            "https://sso.staging.batisimply.fr/auth/realms/jhipster/protocol/openid-connect/token",
+        ),
     )
 
-    client_id = os.getenv("BATISIMPLY_CLIENT_ID")
-    client_secret = os.getenv("BATISIMPLY_CLIENT_SECRET")
-    username = os.getenv("BATISIMPLY_USERNAME")
-    password = os.getenv("BATISIMPLY_PASSWORD")
-    grant_type = os.getenv("BATISIMPLY_GRANT_TYPE", "password")
+    client_id = bcfg.get("client_id") or os.getenv("BATISIMPLY_CLIENT_ID")
+    client_secret = bcfg.get("client_secret") or os.getenv("BATISIMPLY_CLIENT_SECRET")
+    username = bcfg.get("username") or os.getenv("BATISIMPLY_USERNAME")
+    password = bcfg.get("password") or os.getenv("BATISIMPLY_PASSWORD")
+    grant_type = bcfg.get("grant_type") or os.getenv("BATISIMPLY_GRANT_TYPE", "password")
 
     if not all([client_id, client_secret, username, password]):
         print("❌ Variables d'environnement BatiSimply manquantes. Vérifiez .env")
@@ -228,18 +252,33 @@ def check_connection_status():
     pg_connected = False
     
     if creds:
-        # Vérifier SQL Server
-        if "sqlserver" in creds:
-            sql_creds = creds["sqlserver"]
-            conn = connect_to_sqlserver(
-                sql_creds["server"],
-                sql_creds["user"],
-                sql_creds["password"],
-                sql_creds["database"]
-            )
-            sql_connected = conn is not None
-            if conn:
-                conn.close()
+        software = creds.get("software", "batigest")
+        # Vérifier SQL Server / HFSQL selon logiciel
+        if software == "codial":
+            if "hfsql" in creds:
+                hf = creds["hfsql"]
+                conn = connect_to_hfsql(
+                    hf.get("host", "localhost"),
+                    hf.get("user", "admin"),
+                    hf.get("password", ""),
+                    hf.get("database", "HFSQL"),
+                    hf.get("port", "4900"),
+                )
+                sql_connected = conn is not None
+                if conn:
+                    conn.close()
+        else:
+            if "sqlserver" in creds:
+                sql_creds = creds["sqlserver"]
+                conn = connect_to_sqlserver(
+                    sql_creds["server"],
+                    sql_creds["user"],
+                    sql_creds["password"],
+                    sql_creds["database"]
+                )
+                sql_connected = conn is not None
+                if conn:
+                    conn.close()
         
         # Vérifier PostgreSQL
         if "postgres" in creds:
@@ -269,20 +308,36 @@ def connexion():
         tuple: (postgres_conn, sqlserver_conn) - Objets de connexion pour PostgreSQL et SQL Server
     """
     creds = load_credentials()
-    if not creds or "sqlserver" not in creds or "postgres" not in creds:
+    if not creds or "postgres" not in creds:
         return None, None
 
-    sql = creds["sqlserver"]
+    software = creds.get("software", "batigest")
     pg = creds["postgres"]
 
     postgres_conn = connect_to_postgres(
         pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
     )
-    sqlserver_conn = connect_to_sqlserver(
-        sql["server"], sql["user"], sql["password"], sql["database"]
-    )
+    # deuxième connexion: SQL Server ou HFSQL selon logiciel
+    if software == "codial":
+        hf = creds.get("hfsql")
+        if not hf:
+            return postgres_conn, None
+        second_conn = connect_to_hfsql(
+            hf.get("host", "localhost"),
+            hf.get("user", "admin"),
+            hf.get("password", ""),
+            hf.get("database", "HFSQL"),
+            hf.get("port", "4900"),
+        )
+    else:
+        sql = creds.get("sqlserver")
+        if not sql:
+            return postgres_conn, None
+        second_conn = connect_to_sqlserver(
+            sql["server"], sql["user"], sql["password"], sql["database"]
+        )
 
-    return postgres_conn, sqlserver_conn
+    return postgres_conn, second_conn
 
 # ============================================================================
 # 

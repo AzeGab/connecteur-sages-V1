@@ -10,6 +10,7 @@
 import webbrowser
 import threading
 import uvicorn
+import logging
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -71,7 +72,10 @@ def api_health_check():
 
 # Fonction pour lancer le navigateur
 def open_browser():
-    webbrowser.open("http://127.0.0.1:8000")
+    try:
+        webbrowser.open("http://127.0.0.1:8000")
+    except Exception:
+        pass
 
 # Inclusion des routes définies dans form_routes
 app.include_router(form_routes.router)
@@ -81,5 +85,45 @@ app.include_router(form_routes.router)
 # Ce bloc permet d'exécuter l'application directement avec 'python app/main.py'.
 # Utile pour le développement local.
 if __name__ == "__main__":
-    threading.Timer(1.0, open_browser).start()  # Lance le navigateur après 1 seconde
-    uvicorn.run("app.main:app", host=os.getenv("HOST", "0.0.0.0"), port=int(os.getenv("PORT", 8000)), reload=True)
+    is_frozen = getattr(sys, "frozen", False)
+
+    # Configuration logging compatible exécutable (pas de TTY)
+    log_config = None
+    if is_frozen:
+        base_dir = os.path.dirname(sys.executable)
+        log_file = os.path.join(base_dir, "connecteur.log")
+        log_config = {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "default": {
+                    "format": "%(asctime)s %(levelname)s %(name)s: %(message)s"
+                }
+            },
+            "handlers": {
+                "file": {
+                    "class": "logging.FileHandler",
+                    "formatter": "default",
+                    "filename": log_file,
+                    "mode": "a",
+                    "encoding": "utf-8"
+                }
+            },
+            "loggers": {
+                "uvicorn": {"handlers": ["file"], "level": "INFO"},
+                "uvicorn.error": {"handlers": ["file"], "level": "INFO", "propagate": True},
+                "uvicorn.access": {"handlers": ["file"], "level": "INFO", "propagate": False},
+            },
+        }
+
+    # Ouvrir le navigateur seulement en dev
+    if not is_frozen:
+        threading.Timer(1.0, open_browser).start()
+
+    uvicorn.run(
+        "app.main:app",
+        host=os.getenv("HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", 8000)),
+        reload=not is_frozen,
+        log_config=log_config,
+    )
