@@ -82,6 +82,12 @@
 </div>
 {% endif %}
 
+{% if debug_mode and debug_output %}
+<div class="mt-4 p-4 bg-gray-900 text-gray-100 rounded-xl text-sm whitespace-pre-wrap">
+    {{ debug_output }}
+</div>
+{% endif %}
+
 
         <!-- Section Synchronisation -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">

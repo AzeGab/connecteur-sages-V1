@@ -9,6 +9,9 @@ from fastapi import APIRouter, Request, Form, HTTPException, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+import os
+import io
+from contextlib import redirect_stdout, redirect_stderr
 
 # Import du moteur de templates depuis main.py pour garantir le bon chemin
 from app.utils.paths import templates_path
@@ -62,6 +65,22 @@ from app.services.license import (
 # Création du routeur FastAPI
 router = APIRouter()
 
+# =============================================================
+# DEBUG MODE (activable via DEBUG_CONNECTEUR=true)
+# =============================================================
+def _is_debug_mode():
+    return os.getenv("DEBUG_CONNECTEUR", "false").lower() == "true"
+
+def _capture_output(func, *args, **kwargs):
+    buffer = io.StringIO()
+    with redirect_stdout(buffer), redirect_stderr(buffer):
+        result = func(*args, **kwargs)
+    return result, buffer.getvalue()
+
+def _effective_debug_mode():
+    creds = load_credentials() or {}
+    return _is_debug_mode() or bool(creds.get("debug", False))
+
 # ============================================================================
 # ROUTES PRINCIPALES
 # ============================================================================
@@ -83,7 +102,9 @@ async def form_page(request: Request):
         "request": request,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
-        "software": creds.get("software", "batigest")
+        "software": creds.get("software", "batigest"),
+        "debug_mode": _effective_debug_mode(),
+        "debug_output": None
     })
 
 # ============================================================================
@@ -201,10 +222,16 @@ async def transfer_data(request: Request):
     """
     creds = load_credentials()
 
+    debug_mode = _effective_debug_mode()
+    debug_output = None
     if not creds or "sqlserver" not in creds or "postgres" not in creds:
         message = "❌ Merci de renseigner les informations de connexion SQL Server et PostgreSQL avant de lancer le transfert."
     else:
-        success, message = transfer_chantiers()
+        if debug_mode:
+            (success, message), logs = _capture_output(transfer_chantiers)
+            debug_output = f"=== Debug: /transfer ===\n{logs}"
+        else:
+            success, message = transfer_chantiers()
     
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -213,7 +240,9 @@ async def transfer_data(request: Request):
         "message": message,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
-        "software": creds.get("software", "batigest")
+        "software": creds.get("software", "batigest"),
+        "debug_mode": debug_mode,
+        "debug_output": debug_output
     })
 
 @router.post("/transfer-batisimply", response_class=HTMLResponse)
@@ -227,8 +256,14 @@ async def transfer_batisimply(request: Request):
     Returns:
         TemplateResponse: Affiche le résultat dans le template HTML.
     """
+    debug_mode = _effective_debug_mode()
+    debug_output = None
     try:
-        success = transfer_chantiers_vers_batisimply()
+        if debug_mode:
+            success, logs = _capture_output(transfer_chantiers_vers_batisimply)
+            debug_output = f"=== Debug: /transfer-batisimply ===\n{logs}"
+        else:
+            success = transfer_chantiers_vers_batisimply()
         if success:
             message = "✅ Chantier créé avec succès dans BatiSimply."
         else:
@@ -244,7 +279,9 @@ async def transfer_batisimply(request: Request):
         "message": message,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
-        "software": creds.get("software", "batigest")
+        "software": creds.get("software", "batigest"),
+        "debug_mode": debug_mode,
+        "debug_output": debug_output
     })
 
 
@@ -259,8 +296,14 @@ async def recup_heures_batisimply(request: Request):
     Returns:
         TemplateResponse: Affiche le résultat dans le template HTML.
     """
+    debug_mode = _effective_debug_mode()
+    debug_output = None
     try:
-        success = transfer_heures_to_postgres()
+        if debug_mode:
+            success, logs = _capture_output(transfer_heures_to_postgres)
+            debug_output = f"=== Debug: /recup-heures ===\n{logs}"
+        else:
+            success = transfer_heures_to_postgres()
         if success:
             message = "✅ Heures récupérées et insérées dans PostgreSQL avec succès."
         else:
@@ -276,7 +319,9 @@ async def recup_heures_batisimply(request: Request):
         "message": message,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
-        "software": creds.get("software", "batigest")
+        "software": creds.get("software", "batigest"),
+        "debug_mode": debug_mode,
+        "debug_output": debug_output
     })
 
 @router.post("/update-code-projet", response_class=HTMLResponse)
@@ -290,8 +335,14 @@ async def update_code_projet(request: Request):
     Returns:
         TemplateResponse: Affiche le résultat dans le template HTML.
     """ 
+    debug_mode = _effective_debug_mode()
+    debug_output = None
     try:
-        success = update_code_projet_chantiers()
+        if debug_mode:
+            success, logs = _capture_output(update_code_projet_chantiers)
+            debug_output = f"=== Debug: /update-code-projet ===\n{logs}"
+        else:
+            success = update_code_projet_chantiers()
         if success:
             message = "✅ Codes projet mis à jour avec succès dans PostgreSQL."
         else:
@@ -307,7 +358,9 @@ async def update_code_projet(request: Request):
         "message": message,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
-        "software": creds.get("software", "batigest")
+        "software": creds.get("software", "batigest"),
+        "debug_mode": debug_mode,
+        "debug_output": debug_output
     })
 
 
@@ -322,8 +375,14 @@ async def transfer_heure_batigest(request: Request):
     Returns:
         TemplateResponse: Retourne la page principale avec message de confirmation ou d'erreur.
     """
+    debug_mode = _effective_debug_mode()
+    debug_output = None
     try:
-        transferred_count = transfer_heures_to_sqlserver()
+        if debug_mode:
+            transferred_count, logs = _capture_output(transfer_heures_to_sqlserver)
+            debug_output = f"=== Debug: /transfer-heure-batigest ===\n{logs}"
+        else:
+            transferred_count = transfer_heures_to_sqlserver()
         if transferred_count > 0:
             message = f"✅ {transferred_count} heure(s) envoyée(s) avec succès dans Batigest."
         else:
@@ -338,7 +397,9 @@ async def transfer_heure_batigest(request: Request):
         "message": message,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
-        "software": creds.get("software", "batigest")
+        "software": creds.get("software", "batigest"),
+        "debug_mode": debug_mode,
+        "debug_output": debug_output
     })
 
 @router.post("/sync-batigest-to-batisimply", response_class=HTMLResponse)
@@ -352,8 +413,14 @@ async def sync_batigest_to_batisimply_route(request: Request):
     Returns:
         TemplateResponse: Page HTML avec le message de résultat
     """
+    debug_mode = _effective_debug_mode()
+    debug_output = None
     try:
-        success, message = sync_batigest_to_batisimply()
+        if debug_mode:
+            (success, message), logs = _capture_output(sync_batigest_to_batisimply)
+            debug_output = f"=== Debug: /sync-batigest-to-batisimply ===\n{logs}"
+        else:
+            success, message = sync_batigest_to_batisimply()
     except Exception as e:
         success = False
         message = f"❌ Erreur lors de la synchronisation : {e}"
@@ -365,7 +432,9 @@ async def sync_batigest_to_batisimply_route(request: Request):
         "message": message,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
-        "software": creds.get("software", "batigest")
+        "software": creds.get("software", "batigest"),
+        "debug_mode": debug_mode,
+        "debug_output": debug_output
     })
 
 @router.post("/sync-batisimply-to-batigest", response_class=HTMLResponse)
@@ -379,8 +448,14 @@ async def sync_batisimply_to_batigest_route(request: Request):
     Returns:
         TemplateResponse: Page HTML avec le message de résultat
     """
+    debug_mode = _is_debug_mode()
+    debug_output = None
     try:
-        success, message = sync_batisimply_to_batigest()
+        if debug_mode:
+            (success, message), logs = _capture_output(sync_batisimply_to_batigest)
+            debug_output = f"=== Debug: /sync-batisimply-to-batigest ===\n{logs}"
+        else:
+            success, message = sync_batisimply_to_batigest()
     except Exception as e:
         success = False
         message = f"❌ Erreur lors de la synchronisation : {e}"
@@ -392,7 +467,9 @@ async def sync_batisimply_to_batigest_route(request: Request):
         "message": message,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
-        "software": creds.get("software", "batigest")
+        "software": creds.get("software", "batigest"),
+        "debug_mode": debug_mode,
+        "debug_output": debug_output
     })
 
 @router.post("/init-table", response_class=HTMLResponse)
@@ -452,6 +529,7 @@ async def configuration_page(request: Request):
         "request": request,
         "mode": creds.get("mode", "chantier") if creds else "chantier",
         "software": creds.get("software", "batigest") if creds else "batigest",
+        "debug": creds.get("debug", False) if creds else False,
         "license_key": license_key,
         "license_valid": license_valid,
         "license_expiry_date": license_expiry_date,
@@ -550,6 +628,26 @@ def update_software(request: Request, software: str = Form("batigest")):
         "software": software,
         "mode": creds.get("mode", "chantier"),
         "current_section": "software",
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected
+    })
+
+@router.post("/update-debug")
+def update_debug(request: Request, debug: str = Form("false")):
+    """
+    Active/Désactive le mode debug (persisté dans credentials.json).
+    """
+    creds = load_credentials() or {}
+    creds["debug"] = (debug.lower() == "true")
+    save_credentials(creds)
+
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("configuration.html", {
+        "request": request,
+        "message": f"Mode debug: {'activé' if creds['debug'] else 'désactivé'}",
+        "mode": creds.get("mode", "chantier"),
+        "software": creds.get("software", "batigest"),
+        "current_section": "system",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected
     })
