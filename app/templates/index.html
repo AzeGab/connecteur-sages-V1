@@ -63,30 +63,32 @@
 
         <!-- Zone de notification message -->
 {% if message %}
+{% set _type = message_type if message_type is defined and message_type else ('success' if '✅' in message else ('error' if '❌' in message else 'info')) %}
 <div id="notification"
-     class="flex items-start gap-4 p-5 rounded-2xl border shadow-sm bg-green-50 border-green-200 mb-8 animate-fade-in"
+     class="flex items-start gap-4 p-5 rounded-2xl border shadow-sm mb-8 animate-fade-in
+            {% if _type == 'success' %} bg-green-50 border-green-200 {% elif _type == 'error' %} bg-red-50 border-red-200 {% else %} bg-blue-50 border-blue-200 {% endif %}"
      role="alert">
     <div>
-        <i class="fas fa-check-circle text-2xl text-green-500 mt-1"></i>
+        <i class="fas {% if _type == 'success' %} fa-check-circle text-green-500 {% elif _type == 'error' %} fa-exclamation-triangle text-red-500 {% else %} fa-info-circle text-blue-500 {% endif %} text-2xl mt-1"></i>
     </div>
     <div class="flex-1">
-        <div class="font-semibold text-green-800 mb-1">Succès</div>
-        <div class="text-green-700 text-sm">{{ message }}</div>
+        <div class="font-semibold mb-1
+                    {% if _type == 'success' %} text-green-800 {% elif _type == 'error' %} text-red-800 {% else %} text-blue-800 {% endif %}">
+            {{ 'Succès' if _type == 'success' else ('Erreur' if _type == 'error' else 'Information') }}
+        </div>
+        <div class="text-sm {% if _type == 'success' %} text-green-700 {% elif _type == 'error' %} text-red-700 {% else %} text-blue-700 {% endif %}">{{ message }}</div>
     </div>
     <button type="button"
             aria-label="Fermer"
             onclick="closeNotification()"
-            class="ml-2 text-green-400 hover:text-green-600 transition-colors text-lg focus:outline-none">
+            class="ml-2 text-lg focus:outline-none
+                   {% if _type == 'success' %} text-green-400 hover:text-green-600 {% elif _type == 'error' %} text-red-400 hover:text-red-600 {% else %} text-blue-400 hover:text-blue-600 {% endif %}">
         <i class="fas fa-times"></i>
     </button>
 </div>
 {% endif %}
 
-{% if debug_mode and debug_output %}
-<div class="mt-4 p-4 bg-gray-900 text-gray-100 rounded-xl text-sm whitespace-pre-wrap">
-    {{ debug_output }}
-</div>
-{% endif %}
+
 
 
         <!-- Section Synchronisation -->

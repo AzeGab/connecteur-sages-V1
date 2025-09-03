@@ -133,7 +133,30 @@ async def connect_sqlserver(
     Returns:
         TemplateResponse: Page HTML avec le message de résultat
     """
-    conn = connect_to_sqlserver(server, user, password, database)
+    debug_mode = _effective_debug_mode()
+    debug_output = None
+    if debug_mode:
+        try:
+            import time, pyodbc, struct
+            start = time.perf_counter()
+            drivers = ", ".join(pyodbc.drivers())
+            arch = struct.calcsize('P') * 8
+        except Exception:
+            start = None
+            drivers = "(drivers indisponibles)"
+            arch = "?"
+        conn, logs = _capture_output(connect_to_sqlserver, server, user, password, database)
+        elapsed = (time.perf_counter() - start) * 1000 if start else None
+        header = (
+            "=== Debug: /connect-sqlserver ===\n"
+            f"Server={server} DB={database} User={user}\n"
+            f"Python bits={arch}\nODBC Drivers=[{drivers}]\n"
+        )
+        if elapsed is not None:
+            header += f"Elapsed={elapsed:.1f} ms\n"
+        debug_output = header + logs
+    else:
+        conn = connect_to_sqlserver(server, user, password, database)
     if conn:
         # Si la connexion réussit, on sauvegarde les identifiants
         creds = load_credentials() or {}
@@ -155,6 +178,8 @@ async def connect_sqlserver(
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
         "software": (load_credentials() or {}).get("software", "batigest"),
+        "debug_mode": debug_mode,
+        "debug_output": debug_output,
         "current_section": "databases"
     })
 
@@ -172,10 +197,29 @@ async def connect_hfsql(
     """
     # Si software != codial, on refuse silencieusement et on affiche l’onglet
     creds = load_credentials() or {}
+    debug_mode = _effective_debug_mode()
+    debug_output = None
     if creds.get("software", "batigest") != "codial":
         message = "ℹ️ Logiciel non configuré sur Codial. Basculez d’abord le logiciel."
     else:
-        conn = connect_to_hfsql(server, user, password, database, port)
+        if debug_mode:
+            # Collecte d'informations utiles
+            try:
+                import pyodbc, struct
+                drivers = ", ".join(pyodbc.drivers())
+                arch = struct.calcsize('P') * 8
+            except Exception as e:
+                drivers = f"Erreur drivers: {e}"
+                arch = "?"
+            header = (
+                "=== Debug: /connect-hfsql ===\n"
+                f"Host={server}\nUser={user}\nDB={database}\nPort={port}\n"
+                f"Python bits={arch}\nODBC Drivers=[{drivers}]\n"
+            )
+            conn, logs = _capture_output(connect_to_hfsql, server, user, password, database, port)
+            debug_output = header + logs
+        else:
+            conn = connect_to_hfsql(server, user, password, database, port)
         if conn:
             creds["hfsql"] = {
                 "host": server,
@@ -196,6 +240,8 @@ async def connect_hfsql(
         "message": message,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
+        "debug_mode": debug_mode,
+        "debug_output": debug_output,
         "software": (load_credentials() or {}).get("software", "batigest"),
         "current_section": "databases"
     })
@@ -223,7 +269,25 @@ async def connect_postgres(
     Returns:
         TemplateResponse: Page HTML avec le message de résultat
     """
-    conn = connect_to_postgres(host, user, password, database, port)
+    debug_mode = _effective_debug_mode()
+    debug_output = None
+    if debug_mode:
+        try:
+            import time
+            start = time.perf_counter()
+        except Exception:
+            start = None
+        conn, logs = _capture_output(connect_to_postgres, host, user, password, database, port)
+        elapsed = (time.perf_counter() - start) * 1000 if start else None
+        header = (
+            "=== Debug: /connect-postgres ===\n"
+            f"Host={host} DB={database} User={user} Port={port}\n"
+        )
+        if elapsed is not None:
+            header += f"Elapsed={elapsed:.1f} ms\n"
+        debug_output = header + logs
+    else:
+        conn = connect_to_postgres(host, user, password, database, port)
     if conn:
         # Si la connexion réussit, on sauvegarde les identifiants
         creds = load_credentials() or {}
@@ -246,6 +310,8 @@ async def connect_postgres(
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
         "software": (load_credentials() or {}).get("software", "batigest"),
+        "debug_mode": debug_mode,
+        "debug_output": debug_output,
         "current_section": "databases"
     })
 
@@ -283,6 +349,7 @@ async def transfer_data(request: Request):
     return templates.TemplateResponse("index.html", {
         "request": request,
         "message": message,
+        "message_type": "success" if success else "error",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
         "software": creds.get("software", "batigest"),
@@ -322,6 +389,7 @@ async def transfer_batisimply(request: Request):
     return templates.TemplateResponse("index.html", {
         "request": request,
         "message": message,
+        "message_type": "success" if success else "error",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
         "software": creds.get("software", "batigest"),
@@ -362,6 +430,7 @@ async def recup_heures_batisimply(request: Request):
     return templates.TemplateResponse("index.html", {
         "request": request,
         "message": message,
+        "message_type": "success" if success else "error",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
         "software": creds.get("software", "batigest"),
@@ -401,6 +470,7 @@ async def update_code_projet(request: Request):
     return templates.TemplateResponse("index.html", {
         "request": request,
         "message": message,
+        "message_type": "success" if success else "error",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
         "software": creds.get("software", "batigest"),
