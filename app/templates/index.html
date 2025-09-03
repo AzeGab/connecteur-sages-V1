@@ -78,7 +78,7 @@
                 {{ 'Succès' if _type == 'success' else ('Erreur' if _type == 'error' else 'Information') }}
             </div>
         </div>
-        <div class="text-sm {% if _type == 'success' %} text-green-700 {% elif _type == 'error' %} text-red-700 {% else %} text-blue-700 {% endif %}">{{ message }}</div>
+        <div class="text-sm leading-6 {% if _type == 'success' %} text-green-700 {% elif _type == 'error' %} text-red-700 {% else %} text-blue-700 {% endif %}">{{ message }}</div>
 
         {% if message_details %}
         <details class="mt-3">

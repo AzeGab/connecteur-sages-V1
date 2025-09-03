@@ -89,11 +89,26 @@ def _split_message_for_display(message: str):
     if not message:
         return None, None
     text = str(message)
-    # Normalisation robuste des sauts de ligne et tabulations (gère \r\n échappés et réels)
+    # 1) Si c'est une représentation d'un tuple d'exception type ("HY090", "[HY090] ..."),
+    #    extraire la partie message humaine (2ème élément)
     try:
         import re
-        text = re.sub(r"(\\r\\n|\\n|\\r|\r\n|\r|\n)+", "\n", text)
-        text = text.replace("\\t", "    ")
+        m = re.match(r"^\('.*?',\s*\"([\s\S]*)\"\)$", text)
+        if m:
+            text = m.group(1)
+    except Exception:
+        pass
+    # 2) Décoder les séquences échappées (\r\n, \t, etc.)
+    try:
+        import codecs
+        text = codecs.decode(text, 'unicode_escape')
+    except Exception:
+        pass
+    # 3) Normalisation robuste des sauts de ligne et tabulations (gère \r\n réels)
+    try:
+        import re
+        text = re.sub(r"(\r\n|\n|\r)+", "\n", text)
+        text = text.replace("\t", "    ")
     except Exception:
         pass
     stripped = text.strip()
@@ -103,6 +118,14 @@ def _split_message_for_display(message: str):
     else:
         first_line, rest = stripped, ""
     summary = first_line.strip()
+    # 4) Enrichir légèrement le résumé si on repère un code ODBC [HYxxx]
+    try:
+        import re
+        code_match = re.search(r"\[(H[Yy]\d{3})\]", stripped)
+        if code_match and code_match.group(1) not in summary:
+            summary = f"{summary} (ODBC {code_match.group(1)})"
+    except Exception:
+        pass
     if len(summary) > 160:
         summary = summary[:160] + "…"
     # Toujours fournir des détails si le message est long ou si du contenu suit
