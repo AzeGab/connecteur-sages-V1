@@ -89,15 +89,24 @@ def _split_message_for_display(message: str):
     if not message:
         return None, None
     text = str(message)
-    # Convertit les séquences échappées en retours à la ligne réels
-    text = (
-        text.replace("\\r\\n", "\n")
-            .replace("\\n", "\n")
-            .replace("\\t", "    ")
-    )
-    first_line = text.strip().split("\n", 1)[0]
-    summary = (first_line[:200] + "…") if len(first_line) > 200 else first_line
-    details = text if text != first_line else None
+    # Normalisation robuste des sauts de ligne et tabulations (gère \r\n échappés et réels)
+    try:
+        import re
+        text = re.sub(r"(\\r\\n|\\n|\\r|\r\n|\r|\n)+", "\n", text)
+        text = text.replace("\\t", "    ")
+    except Exception:
+        pass
+    stripped = text.strip()
+    # Construire un résumé court (1ère ligne ou 160 chars)
+    if "\n" in stripped:
+        first_line, rest = stripped.split("\n", 1)
+    else:
+        first_line, rest = stripped, ""
+    summary = first_line.strip()
+    if len(summary) > 160:
+        summary = summary[:160] + "…"
+    # Toujours fournir des détails si le message est long ou si du contenu suit
+    details = rest.strip() if rest.strip() else (stripped if len(stripped) > 160 else None)
     return summary, details
 
 # ============================================================================
