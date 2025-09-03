@@ -82,6 +82,24 @@ def _effective_debug_mode():
     creds = load_credentials() or {}
     return _is_debug_mode() or bool(creds.get("debug", False))
 
+# =============================================================
+# AIDE: Formatage des messages pour l'UI (résumé + détails)
+# =============================================================
+def _split_message_for_display(message: str):
+    if not message:
+        return None, None
+    text = str(message)
+    # Convertit les séquences échappées en retours à la ligne réels
+    text = (
+        text.replace("\\r\\n", "\n")
+            .replace("\\n", "\n")
+            .replace("\\t", "    ")
+    )
+    first_line = text.strip().split("\n", 1)[0]
+    summary = (first_line[:200] + "…") if len(first_line) > 200 else first_line
+    details = text if text != first_line else None
+    return summary, details
+
 # ============================================================================
 # ROUTES PRINCIPALES
 # ============================================================================
@@ -350,9 +368,11 @@ async def transfer_data(request: Request):
     
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
+    msg_summary, msg_details = _split_message_for_display(message)
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "message": message,
+        "message": msg_summary or message,
+        "message_details": msg_details,
         "message_type": "success" if success else "error",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
@@ -390,9 +410,11 @@ async def transfer_batisimply(request: Request):
 
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
+    msg_summary, msg_details = _split_message_for_display(message)
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "message": message,
+        "message": msg_summary or message,
+        "message_details": msg_details,
         "message_type": "success" if success else "error",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
@@ -431,9 +453,11 @@ async def recup_heures_batisimply(request: Request):
 
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
+    msg_summary, msg_details = _split_message_for_display(message)
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "message": message,
+        "message": msg_summary or message,
+        "message_details": msg_details,
         "message_type": "success" if success else "error",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
@@ -471,9 +495,11 @@ async def update_code_projet(request: Request):
 
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
+    msg_summary, msg_details = _split_message_for_display(message)
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "message": message,
+        "message": msg_summary or message,
+        "message_details": msg_details,
         "message_type": "success" if success else "error",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
