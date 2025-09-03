@@ -190,7 +190,8 @@ async def connect_hfsql(
     user: str = Form("admin"),
     password: str = Form(""),
     database: str = Form("HFSQL"),
-    port: str = Form("4900")
+    port: str = Form("4900"),
+    dsn: str = Form(None)
 ):
     """
     Teste et sauvegarde la connexion HFSQL (Codial) si le logiciel sélectionné est Codial.
@@ -213,16 +214,19 @@ async def connect_hfsql(
                 arch = "?"
             header = (
                 "=== Debug: /connect-hfsql ===\n"
-                f"Host={server}\nUser={user}\nDB={database}\nPort={port}\n"
+                f"DSN={dsn or ''}\nHost={server}\nUser={user}\nDB={database}\nPort={port}\n"
                 f"Python bits={arch}\nODBC Drivers=[{drivers}]\n"
             )
-            conn, logs = _capture_output(connect_to_hfsql, server, user, password, database, port)
+            host_value = f"DSN={dsn}" if dsn else server
+            conn, logs = _capture_output(connect_to_hfsql, host_value, user, password, database, port)
             debug_output = header + logs
         else:
-            conn = connect_to_hfsql(server, user, password, database, port)
+            host_value = f"DSN={dsn}" if dsn else server
+            conn = connect_to_hfsql(host_value, user, password, database, port)
         if conn:
             creds["hfsql"] = {
                 "host": server,
+                "dsn": dsn,
                 "user": user,
                 "password": password,
                 "database": database,

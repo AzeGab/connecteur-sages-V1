@@ -121,9 +121,13 @@ def connect_to_hfsql(host: str, user: str = "admin", password: str = "", databas
         for drv in driver_candidates:
             try:
                 conn_str = (
-                    f"Driver={{{{}}}};SERVER={host};PORT={port};DATABASE={database};"
-                    f"UID={user};PWD={password}".format(drv)
-                )
+                    "Driver={{{driver}}};"
+                    "Server Name={host};"
+                    "Server Port={port};"
+                    "Database={database};"
+                    "UID={user};"
+                    "PWD={password}"
+                ).format(driver=drv, host=host, port=port, database=database, user=user, password=password)
                 conn = pypyodbc.connect(conn_str)
                 print(f"✅ Connexion HFSQL réussie avec le driver '{drv}'")
                 return conn
@@ -257,8 +261,9 @@ def check_connection_status():
         if software == "codial":
             if "hfsql" in creds:
                 hf = creds["hfsql"]
+                host_value = f"DSN={hf['dsn']}" if hf.get("dsn") else hf.get("host", "localhost")
                 conn = connect_to_hfsql(
-                    hf.get("host", "localhost"),
+                    host_value,
                     hf.get("user", "admin"),
                     hf.get("password", ""),
                     hf.get("database", "HFSQL"),
