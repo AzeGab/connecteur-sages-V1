@@ -9,6 +9,8 @@ import os
 import requests
 import pypyodbc
 from dotenv import load_dotenv
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 
 
 # Chemin du fichier stockant les identifiants de connexion
@@ -192,53 +194,117 @@ def load_credentials():
 
 def recup_batisimply_token():
     """
-    Récupère le token d'authentification pour l'API BatiSimply.
-    
-    Returns:
-        str: Token d'accès si réussi, None si échec
+    Récupère un access_token Keycloak pour l'API BatiSimply.
+    - Supporte grant_type=password (ROPC) et client_credentials.
+    - Lit d'abord credentials.json (section "batisimply"), sinon variables d'environnement.
+    - Retourne une string (access_token) ou None si échec (avec logs explicites).
     """
-    # 1) Priorité aux credentials persistés
+    # 1) Lire les creds persistés puis fallback env
     creds = load_credentials() or {}
     bcfg = creds.get("batisimply", {}) if isinstance(creds, dict) else {}
 
-    url = bcfg.get(
-        "sso_url",
-        os.getenv(
-            "BATISIMPLY_SSO_URL",
-            "https://sso.staging.batisimply.fr/auth/realms/jhipster/protocol/openid-connect/token",
-        ),
-    )
-
+    url = bcfg.get("sso_url") or os.getenv("BATISIMPLY_SSO_URL")
     client_id = bcfg.get("client_id") or os.getenv("BATISIMPLY_CLIENT_ID")
     client_secret = bcfg.get("client_secret") or os.getenv("BATISIMPLY_CLIENT_SECRET")
     username = bcfg.get("username") or os.getenv("BATISIMPLY_USERNAME")
     password = bcfg.get("password") or os.getenv("BATISIMPLY_PASSWORD")
-    grant_type = bcfg.get("grant_type") or os.getenv("BATISIMPLY_GRANT_TYPE", "password")
+    grant_type = (bcfg.get("grant_type") or os.getenv("BATISIMPLY_GRANT_TYPE") or "password").strip()
+    scope = bcfg.get("scope") or os.getenv("BATISIMPLY_SCOPE")
 
-    if not all([client_id, client_secret, username, password]):
-        print("❌ Variables d'environnement BatiSimply manquantes. Vérifiez .env")
+    # 2) Validation ciblée selon le grant
+    missing = []
+    if not url:
+        missing.append("sso_url")
+    if not client_id:
+        missing.append("client_id")
+
+    if grant_type == "client_credentials":
+        if not client_secret:
+            missing.append("client_secret")
+    else:  # password (ROPC) par défaut
+        if not username:
+            missing.append("username")
+        if not password:
+            missing.append("password")
+        if not client_secret:
+            # la plupart des clients Keycloak sont "confidential" -> secret requis
+            missing.append("client_secret")
+
+    if missing:
+        print(f"❌ Paramètres BatiSimply manquants ({grant_type}) : {', '.join(missing)}")
+        print("ℹ️ Renseigne la section 'batisimply' dans credentials.json ou les variables d'environnement BATISIMPLY_*.")
         return None
 
+    # 3) Construire le payload selon le grant
     payload = {
         "client_id": client_id,
-        "grant_type": grant_type,
-        "username": username,
-        "client_secret": client_secret,
-        "password": password
+        "grant_type": grant_type
     }
-
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-
-    response = requests.post(url, data=payload, headers=headers, timeout=10)
-
-    if response.status_code == 200:
-        token_data = response.json()
-        return token_data["access_token"]
+    if grant_type == "client_credentials":
+        payload["client_secret"] = client_secret
     else:
-        print(f"❌ Erreur lors de la récupération du token : {response.status_code} → {response.text}")
+        payload.update({
+            "username": username,
+            "password": password,
+            "client_secret": client_secret
+        })
+    if scope:
+        payload["scope"] = scope
+
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+
+    # 4) Session + retries
+    session = requests.Session()
+    retries = Retry(
+        total=3,
+        backoff_factor=0.5,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset(["POST"])
+    )
+    session.mount("https://", HTTPAdapter(max_retries=retries))
+    session.mount("http://", HTTPAdapter(max_retries=retries))
+
+    try:
+        resp = session.post(url, data=payload, headers=headers, timeout=12)
+    except requests.RequestException as e:
+        print(f"❌ Erreur réseau lors de la récupération du token : {e}")
+        print(f"ℹ️ URL SSO utilisée: {url} | grant_type={grant_type} | client_id={client_id}")
         return None
+
+    content_type = resp.headers.get("Content-Type", "")
+    if resp.status_code != 200:
+        # Essayer d'extraire l'erreur Keycloak
+        err_msg = ""
+        if "application/json" in content_type:
+            try:
+                j = resp.json()
+                err_msg = f"{j.get('error')}: {j.get('error_description')}"
+            except Exception:
+                pass
+        if not err_msg:
+            err_msg = resp.text[:500].replace("\n", " ")
+        print(f"❌ Token SSO échec [{resp.status_code}] {err_msg}")
+        print(f"ℹ️ URL SSO utilisée: {url} | grant_type={grant_type} | client_id={client_id}")
+        return None
+
+    # 5) Extraire access_token
+    try:
+        data = resp.json()
+    except ValueError:
+        print(f"❌ Réponse SSO non JSON: {resp.text[:200]}")
+        return None
+
+    access_token = data.get("access_token")
+    if not access_token:
+        print(f"❌ 'access_token' absent dans la réponse SSO: {data}")
+        return None
+
+    if "expires_in" in data:
+        print(f"✅ Token récupéré (expire dans {data['expires_in']}s)")
+    else:
+        print("✅ Token récupéré")
+
+    return access_token
 
 # ============================================================================
 # VÉRIFICATION DES CONNEXIONS
