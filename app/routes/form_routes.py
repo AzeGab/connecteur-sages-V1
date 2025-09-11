@@ -845,6 +845,7 @@ def update_batisimply(
     username: str = Form(...),
     password: str = Form(...),
     grant_type: str = Form("password"),
+    scope: str = Form("openid email profile"),
 ):
     creds = load_credentials() or {}
     creds["batisimply"] = {
@@ -854,6 +855,7 @@ def update_batisimply(
         "username": username,
         "password": password,
         "grant_type": grant_type,
+        "scope": scope,
     }
     save_credentials(creds)
 
@@ -865,7 +867,7 @@ def update_batisimply(
         "software": creds.get("software", "batigest"),
         "debug": creds.get("debug", False),
         "batisimply": creds.get("batisimply", {}),
-        "current_section": "databases",
+        "current_section": "batisimply",
         "sql_connected": sql_connected,
         "pg_connected": pg_connected
     })
