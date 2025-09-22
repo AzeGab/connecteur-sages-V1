@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Licence Expirée - l'Évidence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'evidence-blue': '#4F46E5',
+                        'evidence-purple': '#A855F7'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-evidence-purple rounded-xl flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold text-gray-900">Licence Expirée</h1>
+                        <p class="text-sm text-gray-500">Accès temporairement suspendu</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-6 py-12">
+        <!-- Message principal -->
+        <div class="text-center mb-12">
+            <div class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-key text-red-500 text-3xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Licence Expirée</h2>
+            <p class="text-gray-600 text-lg mb-6">
+                Votre licence d'utilisation a expiré ou n'est plus active.<br>
+                Veuillez contacter votre administrateur pour renouveler votre accès.
+            </p>
+        </div>
+
+        <!-- Détails de l'erreur -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
+            <div class="flex items-start space-x-4">
+                <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-info-circle text-red-500 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Informations sur votre licence</h3>
+                    <div class="space-y-3 text-gray-600">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-calendar-times text-red-400 w-5"></i>
+                            <span>Date d'expiration : <strong>{{ license_expiry_date if license_expiry_date else "Non disponible" }}</strong></span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-user text-red-400 w-5"></i>
+                            <span>Client : <strong>{{ client_name if client_name else "Non disponible" }}</strong></span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-key text-red-400 w-5"></i>
+                            <span>Clé de licence : <code class="bg-gray-100 px-2 py-1 rounded text-sm">{{ license_key if license_key else "Non disponible" }}</code></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions recommandées -->
+        <div class="bg-blue-50 rounded-2xl border border-blue-200 p-8 mb-8">
+            <div class="flex items-start space-x-4">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-lightbulb text-blue-500 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Que faire maintenant ?</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">1</div>
+                            <div>
+                                <p class="font-medium text-gray-900">Contactez votre administrateur système</p>
+                                <p class="text-gray-600 text-sm">Demandez le renouvellement de votre licence d'utilisation</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">2</div>
+                            <div>
+                                <p class="font-medium text-gray-900">Vérifiez votre clé de licence</p>
+                                <p class="text-gray-600 text-sm">Assurez-vous que la clé affichée ci-dessus est correcte</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">3</div>
+                            <div>
+                                <p class="font-medium text-gray-900">Attendez la validation</p>
+                                <p class="text-gray-600 text-sm">Une fois la licence renouvelée, vous pourrez à nouveau accéder à l'application</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <button onclick="window.location.reload()" 
+                    class="bg-evidence-blue hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2">
+                <i class="fas fa-sync-alt"></i>
+                <span>Actualiser la page</span>
+            </button>
+            <button onclick="refreshLicenseExpired()"
+                    class="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-8 py-3 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2">
+                <i class="fas fa-redo"></i>
+                <span>Revérifier la licence</span>
+            </button>
+            <button onclick="window.location.href='mailto:support@levidence.fr?subject=Licence expirée - Demande de renouvellement'" 
+                    class="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2">
+                <i class="fas fa-envelope"></i>
+                <span>Contacter le support</span>
+            </button>
+        </div>
+
+        <!-- Informations de contact -->
+        <div class="mt-12 text-center">
+            <div class="bg-gray-50 rounded-xl p-6 inline-block">
+                <h4 class="font-semibold text-gray-900 mb-2">Besoin d'aide ?</h4>
+                <p class="text-gray-600 text-sm mb-3">
+                    Contactez notre équipe support pour toute question concernant votre licence
+                </p>
+                <div class="space-y-1 text-sm text-gray-500">
+                    <p><i class="fas fa-envelope mr-2"></i>support@groupe-sages.fr</p>
+                    <p><i class="fas fa-phone mr-2"></i>+33 04 67 34 01 01</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-100 mt-16">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-center space-x-4">
+                <img src="/static/logoSages.png" alt="Groupe Sages" class="h-8">
+                <span class="text-gray-500 text-sm">© 2025 Groupe Sages. Tous droits réservés.</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Auto-refresh de la page toutes les 5 minutes pour vérifier si la licence a été renouvelée
+        setTimeout(function() {
+            window.location.reload();
+        }, 300000); // 5 minutes = 300000 ms
+
+        // Fonction pour afficher une notification moderne
+        function showNotification(message, type = 'info') {
+            // Supprimer les notifications existantes
+            const existingNotifications = document.querySelectorAll('.notification-toast');
+            existingNotifications.forEach(notif => notif.remove());
+
+            const colors = {
+                success: 'bg-green-50 border-green-200 text-green-800',
+                error: 'bg-red-50 border-red-200 text-red-800',
+                info: 'bg-blue-50 border-blue-200 text-blue-800',
+                warning: 'bg-yellow-50 border-yellow-200 text-yellow-800'
+            };
+            
+            const icons = {
+                success: 'fas fa-check-circle text-green-500',
+                error: 'fas fa-exclamation-triangle text-red-500',
+                info: 'fas fa-info-circle text-blue-500',
+                warning: 'fas fa-exclamation-circle text-yellow-500'
+            };
+
+            const notification = document.createElement('div');
+            notification.className = `notification-toast fixed top-4 right-4 z-50 max-w-sm w-full ${colors[type]} border rounded-xl p-4 shadow-lg transform transition-all duration-300 translate-x-full`;
+            notification.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <i class="${icons[type]} text-xl mt-0.5"></i>
+                    <div class="flex-1">
+                        <p class="font-medium">${message}</p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Animation d'entrée
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 100);
+
+            // Auto-suppression après 5 secondes
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.classList.add('translate-x-full');
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 5000);
+        }
+
+        // Fonction pour afficher/masquer l'overlay de chargement
+        function toggleLoadingOverlay(show = true) {
+            let overlay = document.getElementById('loading-overlay');
+            
+            if (show) {
+                if (!overlay) {
+                    overlay = document.createElement('div');
+                    overlay.id = 'loading-overlay';
+                    overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                    overlay.innerHTML = `
+                        <div class="bg-white rounded-2xl p-8 shadow-xl max-w-sm w-full mx-4">
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-evidence-purple rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-spinner fa-spin text-white text-2xl"></i>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">Vérification de la licence</h3>
+                                <p class="text-gray-600">Veuillez patienter pendant que nous vérifions votre licence...</p>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(overlay);
+                }
+                overlay.style.display = 'flex';
+            } else {
+                if (overlay) {
+                    overlay.style.display = 'none';
+                }
+            }
+        }
+
+        function refreshLicenseExpired() {
+            // Désactiver le bouton
+            var btn = event.target.closest('button');
+            var original = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Vérification...';
+            btn.disabled = true;
+            
+            // Afficher l'overlay de chargement
+            toggleLoadingOverlay(true);
+            
+            // D'abord récupérer la clé depuis les credentials
+            fetch('/get-license-key', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.license_key) {
+                    showNotification('Aucune clé de licence trouvée dans les credentials.', 'error');
+                    return;
+                }
+                
+                // Maintenant vérifier la licence avec la clé récupérée
+                return fetch('/refresh-license', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'license_key=' + encodeURIComponent(data.license_key)
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Licence validée avec succès ! Redirection...', 'success');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000); // 1 seconde au lieu de 1.5 secondes
+                } else {
+                    showNotification(data.message || 'Licence toujours invalide.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de la vérification de la licence.', 'error');
+            })
+            .finally(() => {
+                // Masquer l'overlay de chargement après 1 seconde
+                setTimeout(() => {
+                    toggleLoadingOverlay(false);
+                }, 1000); // 1 seconde
+                
+                // Restaurer le bouton
+                btn.innerHTML = original;
+                btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html> 

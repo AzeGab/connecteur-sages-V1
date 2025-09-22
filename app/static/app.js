@@ -58,4 +58,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // sqlStatus.innerHTML = '<i class="fas fa-check-circle text-xs"></i><span>Connecté</span>';
         // sqlStatus.className = 'px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm font-medium flex items-center space-x-1';
     };
+
+    // Fermeture de la notification (bannière) sur la page d'accueil
+    window.closeNotification = function() {
+        const notif = document.getElementById('notification');
+        if (notif) {
+            // Retirer proprement la bannière
+            if (notif.parentNode) {
+                notif.parentNode.removeChild(notif);
+            } else {
+                notif.remove();
+            }
+        }
+    };
 });

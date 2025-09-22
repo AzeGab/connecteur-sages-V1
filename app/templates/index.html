@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>l'Évidence - Connecteur Batigest - Batisimply</title>
+    <title>Groupe Sages - Connecteur {{ 'Codial' if software == 'codial' else 'Batigest' }} - Batisimply</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -28,12 +28,9 @@
             <div class="relative flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <div>
-                        <h1 class="text-lg font-semibold text-gray-900">L'Évidence</h1>
+                        <h1 class="text-lg font-semibold text-gray-900">Connecteur Sages</h1>
                         <p class="text-sm text-gray-500">Connecteur d'ERP</p>
                     </div>
-                </div>
-                <div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <img src="/static/levidence_logo.webp" alt="Logo l'Évidence" class="w-36 h-36 object-contain" />
                 </div>
                 <button onclick="window.location.href='/login'" 
                         class="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors">
@@ -59,31 +56,50 @@
             <h2 class="text-4xl font-bold text-evidence-blue mb-4">Connecteur d'ERP</h2>
             <p class="text-lg text-gray-600">
                 Interface de synchronisation intelligente entre 
-                <span class="text-evidence-blue font-semibold">Batigest</span> et 
+                <span class="text-evidence-blue font-semibold">{{ 'Codial' if software == 'codial' else 'Batigest' }}</span> et 
                 <span class="text-evidence-purple font-semibold">Batisimply</span>
             </p>
         </div>
 
         <!-- Zone de notification message -->
 {% if message %}
+{% set _type = message_type if message_type is defined and message_type else ('success' if '✅' in message else ('error' if '❌' in message else 'info')) %}
 <div id="notification"
-     class="flex items-start gap-4 p-5 rounded-2xl border shadow-sm bg-green-50 border-green-200 mb-8 animate-fade-in"
+     class="flex items-start gap-4 p-5 rounded-2xl border shadow-sm mb-8 animate-fade-in
+            {% if _type == 'success' %} bg-green-50 border-green-200 {% elif _type == 'error' %} bg-red-50 border-red-200 {% else %} bg-blue-50 border-blue-200 {% endif %}"
      role="alert">
     <div>
-        <i class="fas fa-check-circle text-2xl text-green-500 mt-1"></i>
+        <i class="fas {% if _type == 'success' %} fa-check-circle text-green-500 {% elif _type == 'error' %} fa-exclamation-triangle text-red-500 {% else %} fa-info-circle text-blue-500 {% endif %} text-2xl mt-1"></i>
     </div>
     <div class="flex-1">
-        <div class="font-semibold text-green-800 mb-1">Succès</div>
-        <div class="text-green-700 text-sm">{{ message }}</div>
+        <div class="flex items-center justify-between">
+            <div class="font-semibold mb-1
+                        {% if _type == 'success' %} text-green-800 {% elif _type == 'error' %} text-red-800 {% else %} text-blue-800 {% endif %}">
+                {{ 'Succès' if _type == 'success' else ('Erreur' if _type == 'error' else 'Information') }}
+            </div>
+        </div>
+        <div class="text-sm leading-6 {% if _type == 'success' %} text-green-700 {% elif _type == 'error' %} text-red-700 {% else %} text-blue-700 {% endif %}">{{ message }}</div>
+
+        {% if message_details %}
+        <details class="mt-3">
+            <summary class="cursor-pointer text-xs {% if _type == 'error' %} text-red-600 {% else %} text-gray-600 {% endif %}">
+                Détails techniques
+            </summary>
+            <pre class="mt-2 text-xs bg-white/60 rounded-lg p-3 border {% if _type == 'error' %} border-red-200 text-red-700 {% else %} border-gray-200 text-gray-700 {% endif %} whitespace-pre-wrap">{{ message_details }}</pre>
+        </details>
+        {% endif %}
     </div>
     <button type="button"
             aria-label="Fermer"
-            onclick="closeNotification()"
-            class="ml-2 text-green-400 hover:text-green-600 transition-colors text-lg focus:outline-none">
+            onclick="closeNotification(event)"
+            class="ml-2 text-lg focus:outline-none
+                   {% if _type == 'success' %} text-green-400 hover:text-green-600 {% elif _type == 'error' %} text-red-400 hover:text-red-600 {% else %} text-blue-400 hover:text-blue-600 {% endif %}">
         <i class="fas fa-times"></i>
     </button>
 </div>
 {% endif %}
+
+
 
 
         <!-- Section Synchronisation -->
@@ -108,7 +124,7 @@
                                 <div class="flex items-center justify-center mb-4">
                                     <i class="fas fa-arrow-right text-2xl"></i>
                                 </div>
-                                <h4 class="text-xl font-bold mb-2">Batigest → Batisimply</h4>
+                                <h4 class="text-xl font-bold mb-2">{{ 'Codial' if software == 'codial' else 'Batigest' }} → Batisimply</h4>
                                 <p class="text-blue-100 text-sm">Synchroniser vers Batisimply</p>
                             </div>
                             <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
@@ -123,8 +139,8 @@
                                 <div class="flex items-center justify-center mb-4">
                                     <i class="fas fa-arrow-left text-2xl"></i>
                                 </div>
-                                <h4 class="text-xl font-bold mb-2">Batisimply → Batigest</h4>
-                                <p class="text-purple-100 text-sm">Synchroniser vers Batigest</p>
+                                <h4 class="text-xl font-bold mb-2">Batisimply → {{ 'Codial' if software == 'codial' else 'Batigest' }}</h4>
+                                <p class="text-purple-100 text-sm">Synchroniser vers {{ 'Codial' if software == 'codial' else 'Batigest' }}</p>
                             </div>
                             <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                         </button>
@@ -141,9 +157,8 @@
     <footer class="bg-white border-t border-gray-100 py-2 mt-auto">
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between text-gray-500 text-sm">
             <div class="flex items-center space-x-2 mb-2 md:mb-0">
-                <img src="/static/levidence_logo.webp" alt="Logo l'Évidence" class="w-16 h-16 object-contain" />
-                <span class="font-semibold text-evidence-blue">l'Évidence</span>
-                <span>— Connecteur Batigest - Batisimply by L'Évidence</span>
+                <span class="font-semibold text-evidence-blue">Connecteur Sages</span>
+                <span>— Connecteur {{ 'Codial' if software == 'codial' else 'Batigest' }} - Batisimply by Groupe Sages</span>
             </div>
             <div>
                 © 2025 Groupe Sages. Tous droits réservés.
@@ -152,5 +167,49 @@
     </footer>
 
     <script src="/static/app.js"></script>
+    <script>
+        // Vérification automatique de la licence au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLicenseStatus();
+        });
+
+        function checkLicenseStatus() {
+            // Appel à l'API pour vérifier le statut de la licence
+            fetch('/check-license-status', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.valid) {
+                    // Si la licence n'est pas valide, rediriger vers la page appropriée
+                    if (data.redirect_to === 'configuration') {
+                        window.location.href = '/configuration';
+                    } else if (data.redirect_to === 'license-expired') {
+                        window.location.href = '/license-expired';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors de la vérification de la licence:', error);
+            });
+        }
+
+        // Fallback: définit closeNotification si non présent (cache JS, etc.)
+        if (typeof window.closeNotification !== 'function') {
+            window.closeNotification = function(ev) {
+                try {
+                    if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+                } catch (e) {}
+                const notif = document.getElementById('notification');
+                if (notif) {
+                    if (notif.parentNode) { notif.parentNode.removeChild(notif); }
+                    else { notif.remove(); }
+                }
+            }
+        }
+    </script>
 </body>
 </html>

@@ -59,3 +59,6 @@ Thumbs.db
 # Fichiers de déploiement (optionnel)
 deploy/
 packages/
+
+# PDF générés
+docs/Documentation_Connecteur_SAGES.pdf

@@ -21,7 +21,7 @@
 </head>
 <body class="bg-gray-50 min-h-screen">
     <!-- Header -->
-    <header class="bg-white border-b border-gray-100">
+    <header class="bg-white border-b border-gray-100 fixed top-0 left-0 right-0 z-40">
         <div class="max-w-7xl mx-auto px-6 py-4">
             <div class="flex items-center justify-between">
                 <button onclick="window.location.href='/'" 
@@ -32,11 +32,11 @@
                 
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 bg-evidence-purple rounded-xl flex items-center justify-center">
-                        <i class="fas fa-database text-white text-lg"></i>
+                        <i class="fas fa-cog text-white text-lg"></i>
                     </div>
                     <div>
                         <h1 class="text-lg font-semibold text-gray-900">Configuration</h1>
-                        <p class="text-sm text-gray-500">Connexions aux bases de données</p>
+                        <p class="text-sm text-gray-500">Paramètres de l'application</p>
                     </div>
                 </div>
                 
@@ -47,236 +47,721 @@
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="max-w-6xl mx-auto px-6 py-12">
-        <!-- Titre principal -->
-        <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-evidence-blue mb-4">Configuration des connexions</h2>
-            <p class="text-gray-600 text-lg">
-                Configurez les connexions sécurisées aux bases de données SQL Server<br>
-                et PostgreSQL
-            </p>
-        </div>
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-16 h-full w-64 bg-white border-r border-gray-200 z-30">
+        <nav class="p-6">
+            <div class="mb-8">
+                <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Menu de configuration</h2>
+                <ul class="space-y-2">
+                    <li>
+                        <button onclick="showSection('license')" 
+                                id="nav-license"
+                                class="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl transition-all duration-200 nav-item active">
+                            <div class="w-8 h-8 bg-evidence-purple rounded-lg flex items-center justify-center">
+                                <i class="fas fa-key text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-900">Licence</span>
+                                <p class="text-xs text-gray-500">Gestion des licences</p>
+                            </div>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showSection('databases')" 
+                                id="nav-databases"
+                                class="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl transition-all duration-200 nav-item">
+                            <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-database text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-900">Bases de données</span>
+                                <p class="text-xs text-gray-500">Connexions SQL</p>
+                            </div>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showSection('mode')" 
+                                id="nav-mode"
+                                class="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl transition-all duration-200 nav-item">
+                            <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-toggle-on text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-900">Mode de données</span>
+                                <p class="text-xs text-gray-500">Chantier/Devis</p>
+                            </div>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showSection('software')" 
+                                id="nav-software"
+                                class="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl transition-all duration-200 nav-item">
+                            <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-desktop text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-900">Logiciel</span>
+                                <p class="text-xs text-gray-500">Codial/Batigest</p>
+                            </div>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showSection('system')" 
+                                id="nav-system"
+                                class="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl transition-all duration-200 nav-item">
+                            <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-tools text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-900">Système</span>
+                                <p class="text-xs text-gray-500">Outils système</p>
+                            </div>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showSection('batisimply')" 
+                                id="nav-batisimply"
+                                class="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl transition-all duration-200 nav-item">
+                            <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-plug text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-900">Batisimply</span>
+                                <p class="text-xs text-gray-500">Accès API (SSO)</p>
+                            </div>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </aside>
 
+    <!-- Main Content -->
+    <main class="ml-64 pt-16 min-h-screen">
         <!-- Messages de statut -->
         <div id="statusMessage" class="hidden mb-8"></div>
 
-        <!-- Switch Type de données -->
-        <div class="max-w-md mx-auto mb-12">
-            <form action="/update-mode" method="post">
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 relative flex flex-col items-center hover:shadow-md transition-all duration-300">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Type de données</h3>
-                    <div class="flex items-center justify-center mb-4">
-                        <img src="/static/logo_codial.png" alt="Codial" class="h-8 mr-3">
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" class="sr-only peer" name="type" id="type"
-                                   value="devis" {{ 'checked' if mode == 'devis' else '' }}>
-                            <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:bg-blue-600 transition-all duration-300"></div>
-                            <div class="absolute left-1 top-1 bg-white w-5 h-5 rounded-full shadow-md transition-all duration-300 peer-checked:translate-x-7"></div>
-                        </label>
-                        <img src="/static/logo_batigest.png" alt="Batigest" class="h-8 ml-3">
-                    </div>
-                    <button type="submit" 
-                            class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl transition-all duration-300 flex items-center space-x-2">
-                        <i class="fas fa-save"></i>
-                        <span>Enregistrer</span>
-                    </button>
+        <!-- Section Licence -->
+        <section id="section-license" class="section-content p-8">
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Gestion de la licence</h2>
+                    <p class="text-gray-600">Configurez la clé de licence du client pour activer toutes les fonctionnalités de l'application</p>
                 </div>
-            </form>
-        </div>
 
-        <!-- Bouton d'initialisation -->
-        <div class="flex justify-center mb-8">
-            <form action="/init-table" method="post">
-                <button type="submit" 
-                        class="bg-green-600 hover:bg-green-600 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 flex items-center space-x-2">
-                    <i class="fas fa-database"></i>
-                    <span>Initialiser la base PostgreSQL</span>
-                </button>
-            </form>
-        </div>
-
-        <!-- Configuration des bases de données -->
-        <div class="grid lg:grid-cols-2 gap-8">
-            <!-- SQL Server Configuration -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 relative">
-                <!-- Header de la carte -->
-                <div class="flex items-center justify-between mb-8">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-database text-white text-xl"></i>
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                    <div class="flex items-center justify-end gap-4 mb-6">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full {{ 'bg-green-500' if sql_connected else 'bg-red-500' }}"></span>
+                            <span class="text-sm text-gray-600">{{ 'Serveur HFSQL' if software == 'codial' else 'SQL Server' }}</span>
                         </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full {{ 'bg-green-500' if pg_connected else 'bg-red-500' }}"></span>
+                            <span class="text-sm text-gray-600">PostgreSQL</span>
+                        </div>
+                    </div>
+                    <form action="/update-license" method="post" class="space-y-6">
                         <div>
-                            <h3 class="text-xl font-bold text-gray-900">SQL Server</h3>
-                            <p class="text-gray-500 text-sm">Connexion à la base de données Sage Batigest</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Clé de licence</label>
+                            <div class="relative">
+                                <input type="password" 
+                                       name="license_key" 
+                                       id="license_key"
+                                       class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-lg focus:ring-2 focus:ring-evidence-purple focus:border-transparent transition-all duration-200 bg-white" 
+                                       placeholder="Entrez votre clé de licence"
+                                       value="{{ license_key if license_key else '' }}"
+                                       required>
+                                <button type="button" 
+                                        onclick="togglePasswordVisibility('license_key')"
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-eye" id="license_key_icon"></i>
+                                </button>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-2">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                La clé de licence est nécessaire pour activer toutes les fonctionnalités de l'application
+                            </p>
                         </div>
-                    </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-3 h-3 rounded-full {{ 'bg-green-500' if license_valid else 'bg-red-500' }}"></div>
+                                    <span class="text-sm font-medium {{ 'text-green-600' if license_valid else 'text-red-600' }}">
+                                        {{ 'Licence valide' if license_valid else 'Licence invalide ou expirée' }}
+                                    </span>
+                                </div>
+                                {% if license_expiry_date %}
+                                <div class="text-sm text-gray-500">
+                                    <i class="fas fa-calendar mr-1"></i>
+                                    Expire le : {{ license_expiry_date }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="flex items-center space-x-3">
+                                <button type="button" 
+                                        onclick="refreshLicenseValidation()"
+                                        class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 flex items-center space-x-2">
+                                    <i class="fas fa-sync-alt"></i>
+                                    <span>Actualiser</span>
+                                </button>
+                                <button type="submit" 
+                                        class="bg-evidence-purple hover:bg-purple-600 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 flex items-center space-x-2">
+                                    <i class="fas fa-save"></i>
+                                    <span>Enregistrer la licence</span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                
-                <form action="/connect-sqlserver"  method="post" class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Serveur</label>
-                        <input type="text" 
-                               name="server" 
-                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white" 
-                               placeholder="localhost\SAGEBAT"
-                               required>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Utilisateur</label>
-                        <input type="text" 
-                               name="user" 
-                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white" 
-                               placeholder="test"
-                               required>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Mot de passe</label>
-                        <input type="password" 
-                               name="password" 
-                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
-                               required>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Base de données</label>
-                        <input type="text" 
-                               name="database" 
-                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white mb-24" 
-                               placeholder="BTG_DOS_DEMO"
-                               required>
-                    </div>
-                    
-                    <button type="submit" 
-                            class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 mt-4">
-                        <i class="fas fa-database"></i>
-                        <span>Connexion SQL Server</span>
-                    </button>
-                </form>
             </div>
+        </section>
 
-            <!-- PostgreSQL Configuration -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 relative">
-                <!-- Header de la carte -->
-                <div class="flex items-center justify-between mb-8">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-12 h-12 bg-evidence-purple rounded-xl flex items-center justify-center">
-                            <i class="fas fa-database text-white text-xl"></i>
-                        </div>
+        <!-- Section Batisimply (API) -->
+        <section id="section-batisimply" class="section-content p-8 hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Configuration Batisimply (API)</h2>
+                    <p class="text-gray-600">Paramétrez l’accès SSO et les identifiants pour récupérer le token d’accès à l’API.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                    <form action="/update-batisimply" method="post" class="space-y-6">
                         <div>
-                            <h3 class="text-xl font-bold text-gray-900">PostgreSQL</h3>
-                            <p class="text-gray-500 text-sm">Connexion à la base de données tampon</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">URL SSO (token endpoint)</label>
+                            <input type="text" name="sso_url" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white"
+                                   value="{{ (batisimply.sso_url if batisimply else '') or 'https://sso.staging.batisimply.fr/auth/realms/jhipster/protocol/openid-connect/token' }}" />
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Client ID</label>
+                                <input type="text" name="client_id" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white"
+                                       value="{{ (batisimply.client_id if batisimply else '') or '' }}" required />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Client Secret</label>
+                                <div class="relative">
+                                    <input type="password" id="client_secret" name="client_secret" class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white"
+                                           value="{{ (batisimply.client_secret if batisimply else '') or '' }}" required />
+                                    <button type="button" onclick="togglePasswordVisibility('client_secret')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-eye" id="client_secret_icon"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nom d’utilisateur</label>
+                                <input type="text" name="username" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white"
+                                       value="{{ (batisimply.username if batisimply else '') or '' }}" required />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Mot de passe</label>
+                                <div class="relative">
+                                    <input type="password" id="batisimply_password" name="password" class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white"
+                                           value="{{ (batisimply.password if batisimply else '') or '' }}" required />
+                                    <button type="button" onclick="togglePasswordVisibility('batisimply_password')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-eye" id="batisimply_password_icon"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Grant Type</label>
+                                <input type="text" name="grant_type" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white" value="{{ (batisimply.grant_type if batisimply else '') or 'password' }}" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Scope</label>
+                                <input type="text" name="scope" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white" value="{{ (batisimply.scope if batisimply else '') or 'openid email profile' }}" />
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-end">
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 flex items-center space-x-2">
+                                <i class="fas fa-save"></i>
+                                <span>Enregistrer la configuration</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Bases de données -->
+        <section id="section-databases" class="section-content p-8 hidden">
+            <div class="max-w-6xl mx-auto">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Configuration des bases de données</h2>
+                    <p class="text-gray-600">Configurez les connexions sécurisées aux bases de données {{ 'HFSQL' if software == 'codial' else 'SQL Server' }} et PostgreSQL</p>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <!-- Bandeau statut connexions (pastilles) -->
+                    <div class="lg:col-span-2 mb-2">
+                        <div class="flex items-center gap-4 justify-end">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full {{ 'bg-green-500' if sql_connected else 'bg-red-500' }}"></span>
+                                <span class="text-sm text-gray-600">{{ 'Serveur HFSQL' if software == 'codial' else 'SQL Server' }}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full {{ 'bg-green-500' if pg_connected else 'bg-red-500' }}"></span>
+                                <span class="text-sm text-gray-600">PostgreSQL</span>
+                            </div>
                         </div>
                     </div>
-                    <!-- Badge de connexion -->
-                    
-               
+                    {% if debug_mode and debug_output %}
+                    <div class="lg:col-span-2">
+                        <div class="bg-gray-900 text-gray-100 rounded-xl p-4 border border-gray-800">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-semibold">Debug connexions bases</div>
+                            </div>
+                            <pre class="whitespace-pre-wrap text-sm">{{ debug_output }}</pre>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <!-- SQL Server Configuration -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                        <div class="flex items-center space-x-3 mb-6">
+                            <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-database text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900">{{ 'HFSQL' if software == 'codial' else 'SQL Server' }}</h3>
+                                <p class="text-gray-500 text-sm">
+                                    {{ 'Connexion à la base de données Codial (HFSQL)' if software == 'codial' else 'Connexion à la base de données Sage Batigest' }}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <form action="{{ '/connect-sqlserver' if software != 'codial' else '/connect-hfsql' }}" method="post" class="space-y-6">
+                            {% if software == 'codial' %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">DSN (optionnel, recommandé)</label>
+                                <input type="text" 
+                                       name="dsn" 
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white" 
+                                       placeholder="codial">
+                                <p class="text-xs text-gray-500 mt-1">Si un DSN est saisi, l'hôte/port ne sont pas nécessaires.</p>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ 'Hôte (si pas de DSN)' if software == 'codial' else 'Serveur' }}</label>
+                                <input type="text" 
+                                       name="server" 
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white" 
+                                       placeholder="{{ 'localhost' if software == 'codial' else 'localhost\\SAGEBAT' }}"
+                                       required>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Utilisateur</label>
+                                <input type="text" 
+                                       name="user" 
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white" 
+                                       placeholder="test"
+                                       required>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Mot de passe (optionnel)</label>
+                                <input type="password" 
+                                       name="password" 
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Base de données</label>
+                                <input type="text" 
+                                       name="database" 
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white" 
+                                       placeholder="BTG_DOS_DEMO"
+                                       required>
+                            </div>
+                            {% if software == 'codial' %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Port</label>
+                                <input type="text" 
+                                       name="port" 
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white" 
+                                       placeholder="4900" value="4900">
+                            </div>
+                            {% endif %}
+                            
+                            <button type="submit" 
+                                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2">
+                                <i class="fas fa-database"></i>
+                                <span>{{ 'Connexion HFSQL' if software == 'codial' else 'Connexion SQL Server' }}</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- PostgreSQL Configuration -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                        <div class="flex items-center space-x-3 mb-6">
+                            <div class="w-12 h-12 bg-evidence-purple rounded-xl flex items-center justify-center">
+                                <i class="fas fa-database text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900">PostgreSQL</h3>
+                                <p class="text-gray-500 text-sm">Connexion à la base de données tampon</p>
+                            </div>
+                        </div>
+                        
+                        <form action="/connect-postgres" method="post" class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Hôte</label>
+                                <input type="text" 
+                                       name="host" 
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white" 
+                                       placeholder="localhost"
+                                       required>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Utilisateur</label>
+                                <input type="text" 
+                                       name="user" 
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white" 
+                                       placeholder="postgres"
+                                       required>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Mot de passe</label>
+                                <input type="password" 
+                                       name="password" 
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white"
+                                       required>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Base de données</label>
+                                <input type="text" 
+                                       name="database" 
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white" 
+                                       placeholder="connecteur_buffer"
+                                       required>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Port</label>
+                                <input type="text" 
+                                       name="port" 
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white" 
+                                       placeholder="5432"
+                                       value="5432">
+                            </div>
+                            
+                            <button type="submit" 
+                                    class="w-full bg-evidence-purple hover:bg-purple-600 text-white font-medium py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2">
+                                <i class="fas fa-database"></i>
+                                <span>Connexion PostgreSQL</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
-                
-                <form action="/connect-postgres" method="post" class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Hôte</label>
-                        <input type="text" 
-                               name="host" 
-                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white" 
-                               placeholder="localhost"
-                               required>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Utilisateur</label>
-                        <input type="text" 
-                               name="user" 
-                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white" 
-                               placeholder="postgres"
-                               required>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Mot de passe</label>
-                        <input type="password" 
-                               name="password" 
-                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white"
-                               required>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Base de données</label>
-                        <input type="text" 
-                               name="database" 
-                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white" 
-                               placeholder="connecteur_buffer"
-                               required>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Port</label>
-                        <input type="text" 
-                               name="port" 
-                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white" 
-                               placeholder="5432"
-                               value="5432">
-                    </div>
-                    
-                    <button type="submit" 
-                            class="w-full bg-evidence-purple hover:bg-purple-600 text-white font-medium py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 mt-4">
-                        <i class="fas fa-database"></i>
-                        <span>Connexion PostgreSQL</span>
-                    </button>
-                </form>
             </div>
-        </div>
-        <!-- Switch Type de données -->
-        <form action="/update-mode" method="post">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mt-4 p-8 relative flex flex-col items-center">
-                <div class="flex items-center justify-center mb-4">
-                    <span class="mr-3 font-medium text-gray-700">Chantier</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" class="sr-only peer" name="type" id="type"
-                               value="devis" {{ 'checked' if mode == 'devis' else '' }}>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-all duration-200"></div>
-                        <div class="absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full shadow-md transition-all duration-200 peer-checked:translate-x-5"></div>
-                    </label>
-                    <span class="ml-3 font-medium text-gray-700">Devis</span>
+        </section>
+
+        <!-- Section Mode de données -->
+        <section id="section-mode" class="section-content p-8 hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Mode de données</h2>
+                    <p class="text-gray-600">Choisissez le type de données à traiter dans l'application</p>
                 </div>
-                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-xl">Enregistrer</button>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                    <form action="/update-mode" method="post">
+                        <div class="flex flex-col items-center">
+                            <!-- Mode Cards -->
+                            <div class="grid md:grid-cols-2 gap-6 mb-8 w-full max-w-2xl">
+                                <!-- Mode Chantier -->
+                                <div class="relative">
+                                    <input type="radio" name="type" value="chantier" id="mode-chantier" 
+                                           class="sr-only peer" {{ 'checked' if mode != 'devis' else '' }}>
+                                    <label for="mode-chantier" 
+                                           class="block p-6 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-2xl cursor-pointer transition-all duration-300 peer-checked:border-blue-500 peer-checked:shadow-lg hover:scale-105 hover:-translate-y-1 hover:shadow-xl">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                                                <i class="fas fa-hard-hat text-white text-xl"></i>
+                                            </div>
+                                            <div class="w-6 h-6 border-2 border-blue-300 rounded-full flex items-center justify-center peer-checked:bg-white peer-checked:border-white">
+                                                <div class="w-3 h-3 bg-blue-500 rounded-full peer-checked:bg-blue-600 transition-all duration-300"></div>
+                                            </div>
+                                        </div>
+                                        <h3 class="text-lg font-semibold text-blue-900 mb-2">Mode Chantier</h3>
+                                        <p class="text-blue-700 text-sm leading-relaxed">
+                                            Synchronisation des chantiers entre Batigest et Batisimply. 
+                                            Gestion complète des projets de construction.
+                                        </p>
+                                        <div class="mt-4 flex items-center text-blue-600 text-sm">
+                                            <i class="fas fa-check-circle mr-2"></i>
+                                            <span>Recommandé pour la gestion de chantiers</span>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- Mode Devis -->
+                                <div class="relative">
+                                    <input type="radio" name="type" value="devis" id="mode-devis" 
+                                           class="sr-only peer" {{ 'checked' if mode == 'devis' else '' }}>
+                                    <label for="mode-devis" 
+                                           class="block p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-2xl cursor-pointer transition-all duration-300 peer-checked:border-purple-500 peer-checked:shadow-lg hover:scale-105 hover:-translate-y-1 hover:shadow-xl">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <div class="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
+                                                <i class="fas fa-file-invoice-dollar text-white text-xl"></i>
+                                            </div>
+                                            <div class="w-6 h-6 border-2 border-purple-300 rounded-full flex items-center justify-center peer-checked:bg-white peer-checked:border-white">
+                                                <div class="w-3 h-3 bg-purple-500 rounded-full peer-checked:bg-purple-600 transition-all duration-300"></div>
+                                            </div>
+                                        </div>
+                                        <h3 class="text-lg font-semibold text-purple-900 mb-2">Mode Devis</h3>
+                                        <p class="text-purple-700 text-sm leading-relaxed">
+                                            Synchronisation des devis entre Batigest et Batisimply. 
+                                            Pour ceux qui n'ont pas le module de gestion de chantier.
+                                        </p>
+                                        <div class="mt-4 flex items-center text-purple-600 text-sm">
+                                            <i class="fas fa-check-circle mr-2"></i>
+                                            <span>Idéal pour la gestion des devis</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Mode Actuel Display -->
+                            <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 mb-6 w-full max-w-md">
+                                <div class="text-center">
+                                    <div class="flex items-center justify-center mb-3">
+                                        <div class="w-8 h-8 {{ 'bg-blue-500' if mode != 'devis' else 'bg-purple-500' }} rounded-lg flex items-center justify-center mr-3">
+                                            <i class="fas {{ 'fa-hard-hat' if mode != 'devis' else 'fa-file-invoice-dollar' }} text-white text-sm"></i>
+                                        </div>
+                                        <h4 class="text-lg font-semibold text-gray-900">Mode Actuel</h4>
+                                    </div>
+                                    <p class="text-2xl font-bold {{ 'text-blue-600' if mode != 'devis' else 'text-purple-600' }} mb-2">
+                                        {{ 'Chantier' if mode != 'devis' else 'Devis' }}
+                                    </p>
+                                    <p class="text-sm text-gray-600">
+                                        {{ 'Synchronisation des chantiers entre les systèmes' if mode != 'devis' else 'Synchronisation des devis entre les systèmes' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Bouton de sauvegarde -->
+                            <button type="submit" 
+                                    class="group relative overflow-hidden bg-gradient-to-r from-evidence-blue to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-3">
+                                <div class="relative z-10 flex items-center space-x-3">
+                                    <i class="fas fa-save text-lg"></i>
+                                    <span class="font-semibold">Enregistrer le mode</span>
+                                </div>
+                                <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                            </button>
+
+                            <!-- Informations supplémentaires -->
+                            <div class="mt-6 text-center">
+                                <p class="text-sm text-gray-500 max-w-md">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    Le changement de mode affecte toutes les opérations de synchronisation. 
+                                    Assurez-vous que vos bases de données sont compatibles.
+                                </p>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </form>
-        
-        <!-- Switch Type de données -->
+        </section>
+
+        <!-- Section Logiciel -->
+        <section id="section-software" class="section-content p-8 hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Choix du Logiciel</h2>
+                    <p class="text-gray-600">Sélectionnez le logiciel principal utilisé par le client</p>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                    <form action="/update-debug" method="post" class="mb-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-bug text-white text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="text-gray-900 font-medium">Mode Debug</div>
+                                    <div class="text-gray-500 text-sm">Affiche les détails des transferts sur la page d'accueil</div>
+                                </div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                              <input type="checkbox" name="debug" value="true" class="sr-only peer" {{ 'checked' if debug else '' }}>
+                              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                            </label>
+                        </div>
+                        <div class="mt-3 text-right">
+                            <button type="submit" class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800">Appliquer</button>
+                        </div>
+                    </form>
+                    <form action="/update-software" method="post">
+                        <div class="flex flex-col items-center">
+                            <!-- Logiciel Cards -->
+                            <div class="grid md:grid-cols-2 gap-8 mb-8 w-full max-w-3xl">
+                                <!-- Logiciel Codial -->
+                                <div class="relative">
+                                    <input type="radio" name="software" value="codial" id="software-codial" 
+                                           class="sr-only peer" {{ 'checked' if software == 'codial' else '' }}>
+                                    <label for="software-codial" 
+                                           class="block p-8 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-2xl cursor-pointer transition-all duration-300 peer-checked:border-blue-500 peer-checked:shadow-lg hover:scale-105 hover:-translate-y-1 hover:shadow-xl">
+                                        <div class="flex items-center justify-between mb-6">
+                                            <div class="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
+                                                <img src="/static/logo_codial.png" alt="Codial" class="w-10 h-10 object-contain">
+                                            </div>
+                                            <div class="w-6 h-6 border-2 border-blue-300 rounded-full flex items-center justify-center peer-checked:bg-white peer-checked:border-white">
+                                                <div class="w-3 h-3 rounded-full bg-transparent peer-checked:bg-blue-600 transition-all duration-300"></div>
+                                            </div>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-blue-900 mb-3">Codial</h3>
+                                        <p class="text-blue-700 text-sm leading-relaxed mb-4">
+                                            Logiciel de gestion commerciale et comptable spécialisé dans la construction. 
+                                            Gestion complète des devis, factures et suivi client.
+                                        </p>
+                                    </label>
+                                </div>
+
+                                <!-- Logiciel Batigest -->
+                                <div class="relative">
+                                    <input type="radio" name="software" value="batigest" id="software-batigest" 
+                                           class="sr-only peer" {{ 'checked' if software == 'batigest' else '' }}>
+                                    <label for="software-batigest" 
+                                           class="block p-8 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-2xl cursor-pointer transition-all duration-300 peer-checked:border-green-500 peer-checked:shadow-lg hover:scale-105 hover:-translate-y-1 hover:shadow-xl">
+                                        <div class="flex items-center justify-between mb-6">
+                                            <div class="w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center shadow-lg">
+                                                <img src="/static/logo_batigest.png" alt="Batigest" class="w-10 h-10 object-contain">
+                                            </div>
+                                            <div class="w-6 h-6 border-2 border-green-300 rounded-full flex items-center justify-center peer-checked:bg-white peer-checked:border-white">
+                                                <div class="w-3 h-3 rounded-full bg-transparent peer-checked:bg-green-600 transition-all duration-300"></div>
+                                            </div>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-green-900 mb-3">Batigest</h3>
+                                        <p class="text-green-700 text-sm leading-relaxed mb-4">
+                                            Logiciel de gestion de chantiers et de suivi de production. 
+                                            Gestion complète des projets de construction et des ressources.
+                                        </p>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Logiciel Actuel Display -->
+                            <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 mb-6 w-full max-w-md">
+                                <div class="text-center">
+                                    <div class="flex items-center justify-center mb-3">
+                                        <div class="w-10 h-10 {{ 'bg-blue-500' if software == 'codial' else 'bg-green-500' }} rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                                            <img src="{{ '/static/logo_codial.png' if software == 'codial' else '/static/logo_batigest.png' }}" 
+                                                 alt="{{ 'Codial' if software == 'codial' else 'Batigest' }}" 
+                                                 class="w-6 h-6 object-contain">
+                                        </div>
+                                        <h4 class="text-lg font-semibold text-gray-900">Logiciel Principal</h4>
+                                    </div>
+                                    <p class="text-2xl font-bold {{ 'text-blue-600' if software == 'codial' else 'text-green-600' }} mb-2">
+                                        {{ 'Codial' if software == 'codial' else 'Batigest' }}
+                                    </p>
+                                    <p class="text-sm text-gray-600">
+                                        {{ 'Gestion commerciale et comptable' if software == 'codial' else 'Gestion de chantiers et production' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Bouton de sauvegarde -->
+                            <button type="submit" 
+                                    class="group relative overflow-hidden bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8 py-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-3">
+                                <div class="relative z-10 flex items-center space-x-3">
+                                    <i class="fas fa-save text-lg"></i>
+                                    <span class="font-semibold">Enregistrer le logiciel</span>
+                                </div>
+                                <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                            </button>
+
+                            <!-- Informations supplémentaires -->
+                            <div class="mt-6 text-center">
+                                <p class="text-sm text-gray-500 max-w-md">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    Ce choix détermine le logiciel principal pour la synchronisation. 
+                                    Les paramètres de connexion seront adaptés en conséquence.
+                                </p>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Système -->
+        <section id="section-system" class="section-content p-8 hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Outils système</h2>
+                    <p class="text-gray-600">Outils de maintenance et de configuration système</p>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                    <div class="space-y-6">
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-database text-white text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">Initialisation PostgreSQL</h3>
+                                    <p class="text-gray-500 text-sm">Créer les tables nécessaires dans la base PostgreSQL</p>
+                                </div>
+                            </div>
+                            <form action="/init-table" method="post">
+                                <button type="submit" 
+                                        class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 flex items-center space-x-2">
+                                    <i class="fas fa-play"></i>
+                                    <span>Initialiser</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <script>
-        function connectSqlServer(event) {
-            event.preventDefault();
-            showLoading('Connexion à SQL Server en cours...');
+        // Navigation entre les sections
+        function showSection(sectionName) {
+            // Masquer toutes les sections
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.classList.add('hidden');
+            });
             
-            setTimeout(() => {
-                updateConnectionBadge('sqlStatusBadge', true);
-                showMessage('Connexion SQL Server établie avec succès !', 'success');
-            }, 2000);
+            // Retirer la classe active de tous les boutons de navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active', 'bg-evidence-purple', 'text-white');
+                item.classList.add('bg-gray-50', 'text-gray-700');
+            });
+            
+            // Afficher la section sélectionnée
+            document.getElementById(`section-${sectionName}`).classList.remove('hidden');
+            
+            // Activer le bouton de navigation correspondant
+            const navButton = document.getElementById(`nav-${sectionName}`);
+            navButton.classList.add('active', 'bg-evidence-purple', 'text-white');
+            navButton.classList.remove('bg-gray-50', 'text-gray-700');
         }
 
-        function connectPostgres(event) {
-            event.preventDefault();
-            showLoading('Connexion à PostgreSQL en cours...');
+        function togglePasswordVisibility(fieldId) {
+            const field = document.getElementById(fieldId);
+            const icon = document.getElementById(fieldId + '_icon');
             
-            setTimeout(() => {
-                updateConnectionBadge('pgStatusBadge', true);
-                showMessage('Connexion PostgreSQL établie avec succès !', 'success');
-            }, 2000);
-        }
-
-        function updateConnectionBadge(badgeId, connected) {
-            const badge = document.getElementById(badgeId);
-            if (connected) {
-                badge.className = 'px-3 py-1 bg-green-500 text-white rounded-full text-sm font-medium flex items-center space-x-1';
-                badge.innerHTML = '<i class="fas fa-check-circle text-xs"></i><span>Connecté</span>';
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.className = 'fas fa-eye-slash';
             } else {
-                badge.className = 'px-3 py-1 bg-red-500 text-white rounded-full text-sm font-medium flex items-center space-x-1';
-                badge.innerHTML = '<i class="fas fa-times-circle text-xs"></i><span>Déconnecté</span>';
+                field.type = 'password';
+                icon.className = 'fas fa-eye';
             }
         }
 
@@ -308,19 +793,80 @@
             }, 5000);
         }
 
-        function showLoading(message) {
-            const statusMessage = document.getElementById('statusMessage');
-            
-            statusMessage.innerHTML = `
-                <div class="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-4 max-w-2xl mx-auto">
-                    <div class="flex items-center justify-center">
-                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
-                        <span class="font-medium">${message}</span>
-                    </div>
-                </div>
-            `;
-            statusMessage.classList.remove('hidden');
+        function refreshLicenseValidation() {
+            const licenseKey = document.getElementById('license_key').value;
+            if (!licenseKey) {
+                showMessage('Veuillez d\'abord entrer une clé de licence', 'error');
+                return;
+            }
+
+            // Afficher un indicateur de chargement
+            const refreshButton = document.querySelector('button[onclick="refreshLicenseValidation()"]');
+            const originalContent = refreshButton.innerHTML;
+            refreshButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Vérification...</span>';
+            refreshButton.disabled = true;
+
+            // Appel à l'API de rafraîchissement
+            fetch('/refresh-license', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `license_key=${encodeURIComponent(licenseKey)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Licence validée avec succès !', 'success');
+                    // Recharger la page pour mettre à jour l'affichage
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showMessage(data.message || 'Erreur lors de la validation', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Erreur de connexion à l\'API de validation', 'error');
+            })
+            .finally(() => {
+                // Restaurer le bouton
+                refreshButton.innerHTML = originalContent;
+                refreshButton.disabled = false;
+            });
+        }
+
+        // Initialiser la page avec la section licence active
+        document.addEventListener('DOMContentLoaded', function() {
+            // Utiliser la section actuelle si définie, sinon licence par défaut
+            const currentSection = '{{ current_section or "license" }}';
+            showSection(currentSection);
+            checkLicenseStatus();
+        });
+
+        // Vérification automatique de la licence
+        function checkLicenseStatus() {
+            fetch('/check-license-status', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.valid) {
+                    // Si la licence n'est pas valide, afficher un message d'avertissement
+                    if (data.redirect_to === 'license-expired') {
+                        showMessage('Votre licence a expiré. Veuillez la renouveler.', 'error');
+                    } else if (data.redirect_to === 'configuration') {
+                        showMessage('Aucune licence configurée. Veuillez configurer votre licence.', 'info');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors de la vérification de la licence:', error);
+            });
         }
     </script>
 </body>
-</html>
+</html> 
