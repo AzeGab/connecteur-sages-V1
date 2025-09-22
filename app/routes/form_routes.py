@@ -1038,7 +1038,10 @@ async def check_license_status():
             return JSONResponse({
                 "valid": False,
                 "redirect_to": "license-expired",
-                "message": "Licence expirée ou invalide"
+                "message": "Licence expirée ou invalide",
+                "debug": {
+                    "stored": license_info
+                }
             })
     else:
         return JSONResponse({

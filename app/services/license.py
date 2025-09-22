@@ -123,7 +123,31 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
         print("❌ Clé de licence vide")
         return False, None
     
+    # Nettoyage
+    license_key = license_key.strip()
     print(f"🔍 Validation de la clé: {license_key[:8]}...")
+
+    # Mode test: super-clé 'Cobalt' (activé seulement si debug ou ALLOW_TEST_LICENSE=true)
+    try:
+        creds = load_credentials() or {}
+    except Exception:
+        creds = {}
+    debug_mode = bool(creds.get("debug", False))
+    allow_test_env = os.getenv("ALLOW_TEST_LICENSE", "false").lower() == "true"
+    if (debug_mode or allow_test_env) and license_key.lower() == "cobalt":
+        print("🧪 Super-clé de test détectée (Cobalt) – licence acceptée en mode debug")
+        far_future = (datetime.now() + timedelta(days=3650)).isoformat()
+        test_license = {
+            "client_id": "TEST-COBALT",
+            "expires_at": far_future,
+            "usage_count": 0,
+            "max_usage": -1,
+            "is_active": True,
+            "is_archived": False
+        }
+        # Sauvegarder localement au format attendu
+        save_license_info(license_key, test_license)
+        return True, test_license
     
     try:
         # 1) Tenter via service central si configuré
@@ -146,13 +170,19 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
             "Content-Type": "application/json"
         }
         
-        # Requête à la table licenses avec filtre sur license_key
-        url = f"{SUPABASE_URL}/rest/v1/licenses?license_key=eq.{license_key}"
+        # Requête à la table licenses avec filtre et select explicite
+        url = f"{SUPABASE_URL}/rest/v1/licenses"
+        params = {
+            "select": "*",
+            "license_key": f"eq.{license_key.strip()}"
+        }
         print(f"🌐 URL de requête: {url}")
+        print(f"🔎 Paramètres: {params}")
         
         response = requests.get(
             url,
             headers=headers,
+            params=params,
             timeout=10  # Timeout de 10 secondes
         )
         
@@ -161,6 +191,10 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
         if response.status_code == 200:
             data = response.json()
             print(f"📊 Données reçues: {len(data)} licences trouvées")
+            try:
+                print(f"📩 Content-Range: {response.headers.get('Content-Range')}")
+            except Exception:
+                pass
             
             # Vérifier si on a des résultats
             if data and len(data) > 0:
@@ -342,7 +376,8 @@ def is_license_valid() -> bool:
         return False
     
     # Vérification locale de l'expiration
-    expiry_date = license_info.get("expiry_date")
+    # Supporte les deux clés (compat rétro): expiry_date (préféré) ou expires_at
+    expiry_date = license_info.get("expiry_date") or license_info.get("expires_at")
     if expiry_date:
         try:
             expiry_datetime = datetime.fromisoformat(expiry_date.replace('Z', '+00:00'))
