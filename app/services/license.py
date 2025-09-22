@@ -7,7 +7,7 @@ import os
 import requests
 import uuid
 import platform
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 from dotenv import load_dotenv
 
@@ -128,11 +128,15 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
     print(f"🔍 Validation de la clé: {license_key[:8]}...")
 
     # Mode test: super-clé 'Cobalt' (activé seulement si debug ou ALLOW_TEST_LICENSE=true)
+    # Lire le flag debug directement depuis credentials.json pour éviter toute dépendance
+    debug_mode = False
     try:
-        creds = load_credentials() or {}
+        if os.path.exists(CREDENTIALS_FILE) and os.path.getsize(CREDENTIALS_FILE) > 0:
+            with open(CREDENTIALS_FILE, "r", encoding="utf-8-sig") as f:
+                _creds = json.load(f)
+                debug_mode = bool(_creds.get("debug", False))
     except Exception:
-        creds = {}
-    debug_mode = bool(creds.get("debug", False))
+        debug_mode = False
     allow_test_env = os.getenv("ALLOW_TEST_LICENSE", "false").lower() == "true"
     if (debug_mode or allow_test_env) and license_key.lower() == "cobalt":
         print("🧪 Super-clé de test détectée (Cobalt) – licence acceptée en mode debug")
