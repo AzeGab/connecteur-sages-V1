@@ -169,6 +169,43 @@ Depuis la page d'accueil:
 
 ---
 
+### 8.1) Initialiser le mapping des salariés (obligatoire pour la synchro des heures)
+
+Pour que l'envoi des heures vers Batigest (SQL Server) fonctionne, le connecteur doit retrouver dans la table `Salarie` le salarié correspondant à l'utilisateur BatiSimply. Le champ utilisé est `Salarie.codebs`, qui doit contenir l'UUID BatiSimply de l'utilisateur.
+
+Sans ce mapping, aucune heure ne sera insérée dans `SuiviMO`.
+
+Étapes recommandées (one-shot à l'installation):
+
+1. Vérifier que la configuration BatiSimply est renseignée (onglet Configuration → Batisimply) et que le token est récupérable.
+2. Récupérer la liste des utilisateurs depuis l'API BatiSimply (consultez la documentation de l'API pour l'endpoint « users/employees »; vous avez besoin a minima de l'`id` et éventuellement de l'`email`/nom).
+3. Faire correspondre chaque utilisateur BatiSimply à un salarié côté Batigest (table `Salarie`) via l'email ou le nom.
+4. Renseigner `Salarie.codebs` avec l'UUID BatiSimply correspondant.
+
+Requêtes utiles (SQL Server):
+
+```sql
+-- Vérifier les salariés non mappés
+SELECT TOP 50 Code, Nom, codebs
+FROM Salarie
+WHERE codebs IS NULL OR codebs = ''
+ORDER BY Nom;
+
+-- Exemple de mise à jour manuelle (remplacez par vos valeurs)
+UPDATE Salarie
+SET codebs = 'd7b4ba33-33db-4a1c-80db-e7645828795b'
+WHERE Code = 'JP';
+```
+
+Conseils:
+- Gérez les homonymes avec prudence (privilégier l'email si disponible).
+- Conservez un export (CSV) des correspondances réalisées.
+- Cette étape est à faire une seule fois; mettez-la à jour lors d'une arrivée/départ.
+
+Note: Une automatisation de ce mapping (appel API BatiSimply → mise à jour `Salarie.codebs`) pourra être ajoutée ultérieurement sous forme d'outil/endpoint dédié.
+
+---
+
 ## 9) Déploiement simplifié (installateur automatisé)
 
 Le script `installer.py` peut automatiser l’installation (Windows):

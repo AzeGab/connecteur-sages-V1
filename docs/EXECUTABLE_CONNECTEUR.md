@@ -144,6 +144,26 @@ Vous pouvez également:
 
 ---
 
+### Étape indispensable (une seule fois): mapping des salariés
+
+Pour que les heures soient envoyées dans `SuiviMO`, chaque salarié doit être mappé à un utilisateur BatiSimply. Le champ `Salarie.codebs` doit contenir l'UUID BatiSimply du collaborateur correspondant.
+
+Procédure (à l'installation):
+1. Configurez l’onglet Batisimply (SSO/API) et testez la récupération du token.
+2. Récupérez la liste des utilisateurs via l’API BatiSimply (id/email/nom).
+3. Faites correspondre chaque utilisateur à un salarié (table `Salarie`).
+4. Renseignez `Salarie.codebs` avec l’UUID BatiSimply.
+
+Requêtes utiles (SQL Server):
+```sql
+SELECT TOP 50 Code, Nom, codebs FROM Salarie WHERE codebs IS NULL OR codebs = '' ORDER BY Nom;
+-- Exemple de mise à jour
+UPDATE Salarie SET codebs = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' WHERE Code = 'JP';
+```
+
+Sans ce mapping, la synchro « BatiSimply → Batigest » affichera « Aucun utilisateur trouvé » et 0 heure transférée.
+
+---
 ## 11) Mise à jour de l’exécutable
 
 1. Arrêtez l’ancien `connecteur.exe`
