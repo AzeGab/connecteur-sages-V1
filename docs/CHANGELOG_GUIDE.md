@@ -26,7 +26,7 @@ Ce guide explique comment maintenir le fichier `ChangeLog.md` à jour avec les m
 ### **Structure d'une entrée :**
 
 ```markdown
-## [YYYY-MM-DD] - Titre de la modification
+## [DD-MM-YYYY] - Titre de la modification
 
 ### 🎯 **Sous-titre descriptif**
 
@@ -70,7 +70,7 @@ git diff
 ```
 
 ### **2. Structure de l'entrée :**
-- **Date** : Format ISO (YYYY-MM-DD)
+- **Date** : Format DD-MM-YYYY
 - **Titre** : Résumé en une phrase
 - **Contexte** : Pourquoi cette modification ?
 - **Modifications** : Qu'est-ce qui a changé ?
@@ -93,7 +93,7 @@ git commit -m "feat: Description de la modification
 
 ### **Nouvelle fonctionnalité :**
 ```markdown
-## [2025-01-24] - Ajout de la synchronisation automatique
+## [24-01-2025] - Ajout de la synchronisation automatique
 
 ### 🔄 **Synchronisation programmée des heures**
 
@@ -114,7 +114,7 @@ git commit -m "feat: Description de la modification
 
 ### **Correction de bug :**
 ```markdown
-## [2025-01-24] - Correction du décalage horaire
+## [24-01-2025] - Correction du décalage horaire
 
 ### 🐛 **Gestion des fuseaux horaires**
 
