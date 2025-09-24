@@ -9,14 +9,14 @@ from app.services.connex import connect_to_postgres, load_credentials
 # INITIALISATION DE LA BASE DE DONNÉES CODIAL
 # ============================================================================
 
-def init_codial_postgres_table():
+def init_codial_tables():
     """
-    Initialise la table PostgreSQL pour Codial avec les colonnes nécessaires.
+    Initialise les tables PostgreSQL pour Codial avec les colonnes nécessaires.
     
     Cette fonction :
     1. Crée la table codial_chantiers si elle n'existe pas
-    2. Ajoute les colonnes de suivi des modifications si nécessaire
-    3. Met à jour les dates existantes si nécessaire
+    2. Crée la table codial_heures si elle n'existe pas
+    3. Crée la table codial_heures_map pour le mapping des heures
     """
     try:
         # Connexion à PostgreSQL
@@ -39,53 +39,83 @@ def init_codial_postgres_table():
         postgres_cursor.execute("""
             CREATE TABLE IF NOT EXISTS codial_chantiers (
                 id SERIAL PRIMARY KEY,
-                code VARCHAR(50) UNIQUE NOT NULL,
+                id_projet INTEGER UNIQUE,
+                code VARCHAR(50) UNIQUE,
+                nom VARCHAR(255),
                 date_debut DATE,
                 date_fin DATE,
-                nom_client VARCHAR(255),
                 description TEXT,
-                adr_chantier VARCHAR(255),
+                reference VARCHAR(100),
+                adresse_chantier VARCHAR(255),
                 cp_chantier VARCHAR(10),
                 ville_chantier VARCHAR(100),
-                total_mo DECIMAL(10,2),
+                code_pays_chantier VARCHAR(10),
+                coderep VARCHAR(50),
+                client_nom VARCHAR(255),
+                meca_prenom VARCHAR(100),
+                meca_nom VARCHAR(100),
+                statut VARCHAR(50),
                 sync BOOLEAN DEFAULT FALSE,
-                sync_date TIMESTAMP,
                 created_at TIMESTAMP DEFAULT NOW(),
                 updated_at TIMESTAMP DEFAULT NOW()
             )
         """)
 
-        # Vérification de l'existence des colonnes de suivi
+        # Création de la table codial_heures si elle n'existe pas
         postgres_cursor.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'codial_chantiers'
+            CREATE TABLE IF NOT EXISTS codial_heures (
+                id SERIAL PRIMARY KEY,
+                id_heure VARCHAR(255) UNIQUE,
+                id_projet INTEGER,
+                id_utilisateur VARCHAR(255),
+                code_chantier VARCHAR(50),
+                code_salarie VARCHAR(50),
+                date_heure DATE,
+                date_debut TIMESTAMP,
+                date_fin TIMESTAMP,
+                heures DECIMAL(5,2),
+                commentaire TEXT,
+                sync BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
         """)
-        existing_columns = [row[0] for row in postgres_cursor.fetchall()]
 
-        # Ajout des colonnes si elles n'existent pas
-        if 'sync' not in existing_columns:
-            postgres_cursor.execute("""
-                ALTER TABLE codial_chantiers 
-                ADD COLUMN sync BOOLEAN DEFAULT FALSE
-            """)
-            print("✅ Colonne sync ajoutée à codial_chantiers")
-
-        if 'sync_date' not in existing_columns:
-            postgres_cursor.execute("""
-                ALTER TABLE codial_chantiers 
-                ADD COLUMN sync_date TIMESTAMP
-            """)
-            print("✅ Colonne sync_date ajoutée à codial_chantiers")
+        # Création de la table codial_heures_map pour le mapping des heures
+        postgres_cursor.execute("""
+            CREATE TABLE IF NOT EXISTS codial_heures_map (
+                id_heure VARCHAR(255) PRIMARY KEY,
+                code_chantier VARCHAR(50) NOT NULL,
+                code_salarie VARCHAR(50) NOT NULL,
+                date_hfsql TIMESTAMP NOT NULL
+            )
+        """)
 
         # Validation des modifications
         postgres_conn.commit()
         postgres_cursor.close()
         postgres_conn.close()
 
-        print("✅ Table codial_chantiers initialisée avec succès")
+        print("✅ Tables Codial initialisées avec succès")
         return True
 
     except Exception as e:
         print(f"❌ Erreur lors de l'initialisation de la table Codial : {e}")
         return False
+
+def check_codial_connection():
+    """
+    Vérifie la connexion à la base de données HFSQL (Codial).
+    """
+    try:
+        from app.services.connex import connect_to_hfsql
+        
+        hfsql_conn = connect_to_hfsql()
+        if hfsql_conn:
+            hfsql_conn.close()
+            return True, "✅ Connexion HFSQL (Codial) réussie"
+        else:
+            return False, "❌ Connexion HFSQL (Codial) échouée"
+            
+    except Exception as e:
+        return False, f"❌ Erreur de connexion HFSQL (Codial) : {str(e)}"

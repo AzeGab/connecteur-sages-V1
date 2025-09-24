@@ -1,59 +1,56 @@
 # app/services/batigest/__init__.py
-# Package Batigest - Gestion des flux de données Batigest
+# Package Batigest - Gestion des synchronisations avec Batigest (SQL Server)
+# Organisation par flux de données
 
-# Imports des fonctions principales pour faciliter l'utilisation
-from .chantiers import (
-    transfer_chantiers,
-    transfer_chantiers_vers_batisimply,
-    recup_chantiers_batisimply,
-    recup_chantiers_postgres,
-    recup_code_projet_chantiers,
-    check_batigest_heures_content,
-    update_code_projet_chantiers
+# Flux SQL Server -> PostgreSQL -> BatiSimply
+from .sqlserver_to_batisimply import (
+    transfer_chantiers_sqlserver_to_postgres,
+    transfer_chantiers_postgres_to_batisimply,
+    transfer_heures_sqlserver_to_postgres,
+    transfer_heures_postgres_to_batisimply,
+    transfer_devis_sqlserver_to_postgres,
+    transfer_devis_postgres_to_batisimply,
+    sync_sqlserver_to_batisimply
 )
 
-from .heures import (
-    transfer_heures_to_postgres,
-    transfer_heures_to_sqlserver
+# Flux BatiSimply -> PostgreSQL -> SQL Server
+from .batisimply_to_sqlserver import (
+    transfer_chantiers_batisimply_to_postgres,
+    transfer_chantiers_postgres_to_sqlserver,
+    transfer_heures_batisimply_to_postgres,
+    transfer_heures_postgres_to_sqlserver,
+    transfer_devis_batisimply_to_postgres,
+    transfer_devis_postgres_to_sqlserver,
+    sync_batisimply_to_sqlserver
 )
 
-from .devis import (
-    transfer_devis,
-    transfer_devis_vers_batisimply
-)
-
-from .sync import (
-    sync_batigest_to_batisimply,
-    sync_batisimply_to_batigest
-)
-
+# Utilitaires
 from .utils import (
-    init_postgres_table
+    init_batigest_tables,
+    check_batigest_connection
 )
 
 # Exports publics
 __all__ = [
-    # Chantiers
-    'transfer_chantiers',
-    'transfer_chantiers_vers_batisimply',
-    'recup_chantiers_batisimply',
-    'recup_chantiers_postgres',
-    'recup_code_projet_chantiers',
-    'check_batigest_heures_content',
-    'update_code_projet_chantiers',
+    # Flux SQL Server -> PostgreSQL -> BatiSimply
+    'transfer_chantiers_sqlserver_to_postgres',
+    'transfer_chantiers_postgres_to_batisimply',
+    'transfer_heures_sqlserver_to_postgres',
+    'transfer_heures_postgres_to_batisimply',
+    'transfer_devis_sqlserver_to_postgres',
+    'transfer_devis_postgres_to_batisimply',
+    'sync_sqlserver_to_batisimply',
     
-    # Heures
-    'transfer_heures_to_postgres',
-    'transfer_heures_to_sqlserver',
-    
-    # Devis
-    'transfer_devis',
-    'transfer_devis_vers_batisimply',
-    
-    # Synchronisations complètes
-    'sync_batigest_to_batisimply',
-    'sync_batisimply_to_batigest',
+    # Flux BatiSimply -> PostgreSQL -> SQL Server
+    'transfer_chantiers_batisimply_to_postgres',
+    'transfer_chantiers_postgres_to_sqlserver',
+    'transfer_heures_batisimply_to_postgres',
+    'transfer_heures_postgres_to_sqlserver',
+    'transfer_devis_batisimply_to_postgres',
+    'transfer_devis_postgres_to_sqlserver',
+    'sync_batisimply_to_sqlserver',
     
     # Utilitaires
-    'init_postgres_table'
+    'init_batigest_tables',
+    'check_batigest_connection'
 ]

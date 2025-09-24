@@ -4,6 +4,194 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 
 ---
 
+## [24-09-2025] - Correction des noms de colonnes SQL Server et finalisation de la synchronisation des chantiers
+
+### 🎯 **Correction des noms de colonnes et synchronisation fonctionnelle**
+
+**Contexte :** Après avoir corrigé les noms de tables, il fallait corriger les noms des colonnes dans les requêtes SQL pour correspondre à la structure réelle de la base de données Batigest.
+
+### **Modifications apportées :**
+
+#### **1. Colonnes de la table `dbo.ChantierDef` corrigées**
+- **`Nom`** → **`Libelle`** : Nom du chantier
+- **`Statut`** → **`Etat`** : État du chantier
+- **`CodeClient`** : Conservé (nom correct)
+- **`DateDebut`** et **`DateFin`** : Conservés (noms corrects)
+
+#### **2. Requêtes SQL corrigées**
+- **SELECT** : `SELECT Code, Libelle, DateDebut, DateFin, Etat, CodeClient`
+- **UPDATE** : `SET Libelle = %s, DateDebut = %s, DateFin = %s, Etat = %s, CodeClient = %s`
+- **INSERT** : `INSERT INTO dbo.ChantierDef (Code, Libelle, DateDebut, DateFin, Etat, CodeClient)`
+
+#### **3. Connexions PostgreSQL corrigées**
+- **Paramètres manquants** : Ajout des paramètres de connexion dans toutes les fonctions
+- **Cohérence** : Toutes les fonctions utilisent maintenant les mêmes paramètres
+
+### **Résultats obtenus :**
+- ✅ **Synchronisation des chantiers fonctionnelle** : SQL Server → PostgreSQL → BatiSimply
+- ✅ **Connexions stables** : SQL Server et PostgreSQL se connectent correctement
+- ✅ **Requêtes SQL valides** : Plus d'erreurs de colonnes introuvables
+- ✅ **Token BatiSimply** : Récupération et utilisation du token d'authentification
+
+### **Impact pour les utilisateurs :**
+- 🎉 **Synchronisation opérationnelle** : Le flux Batigest → BatiSimply fonctionne
+- ✅ **Messages clairs** : Feedback précis sur le succès/échec de chaque étape
+- 🔧 **Base solide** : Architecture prête pour les autres flux (heures, devis)
+
+---
+
+## [24-09-2025] - Correction des noms de tables SQL Server avec le préfixe dbo.
+
+### 🗄️ **Correction des noms de tables SQL Server**
+
+**Contexte :** Les requêtes SQL utilisaient des noms de tables sans le préfixe `dbo.` (par exemple `Chantier` au lieu de `dbo.ChantierDef`), causant des erreurs "Nom d'objet non valide" lors de l'exécution des requêtes.
+
+### **Modifications apportées :**
+
+#### **1. Tables Batigest corrigées**
+- **`Chantier`** → **`dbo.ChantierDef`**
+- **`SuiviMO`** → **`dbo.SuiviMO`**
+- **`Devis`** → **`dbo.Devis`**
+
+#### **2. Types de requêtes corrigées**
+- **SELECT** : Requêtes de lecture des données
+- **INSERT** : Insertion de nouveaux enregistrements
+- **UPDATE** : Mise à jour des enregistrements existants
+- **COUNT** : Vérification d'existence des enregistrements
+
+#### **3. Fichiers modifiés**
+- **`sqlserver_to_batisimply.py`** : Requêtes SELECT corrigées
+- **`batisimply_to_sqlserver.py`** : Requêtes INSERT, UPDATE, COUNT corrigées
+
+### **Impact pour les utilisateurs :**
+- ✅ **Tables trouvées** : Plus d'erreur "Nom d'objet non valide"
+- ✅ **Requêtes fonctionnelles** : Les requêtes SQL peuvent maintenant s'exécuter
+- ✅ **Synchronisation possible** : Les fonctions de transfert peuvent accéder aux données
+- ⚠️ **Structure des colonnes** : Nécessite de vérifier les noms exacts des colonnes
+
+---
+
+## [24-09-2025] - Correction des paramètres de connexion dans les fonctions de transfert
+
+### 🔧 **Correction des appels aux fonctions de connexion**
+
+**Contexte :** Les fonctions de transfert appelaient `connect_to_sqlserver()`, `connect_to_postgres()` et `connect_to_hfsql()` sans paramètres, mais ces fonctions nécessitent les informations de connexion (serveur, utilisateur, mot de passe, base de données).
+
+### **Modifications apportées :**
+
+#### **1. Fonctions Batigest corrigées**
+- **`sqlserver_to_batisimply.py`** : Ajout des paramètres de connexion pour SQL Server et PostgreSQL
+- **`batisimply_to_sqlserver.py`** : Ajout des paramètres de connexion pour SQL Server et PostgreSQL
+
+#### **2. Fonctions Codial corrigées**
+- **`hfsql_to_batisimply.py`** : Ajout des paramètres de connexion pour HFSQL et PostgreSQL
+- **`batisimply_to_hfsql.py`** : Ajout des paramètres de connexion pour HFSQL et PostgreSQL
+
+#### **3. Gestion d'erreurs améliorée**
+- **Messages SQL clairs** : Erreurs spécifiques pour les tables introuvables
+- **Validation des credentials** : Vérification des informations de connexion avant utilisation
+- **Paramètres par défaut** : Valeurs par défaut pour HFSQL (user: admin, port: 4900)
+
+### **Impact pour les utilisateurs :**
+- ✅ **Connexions fonctionnelles** : Les fonctions de transfert peuvent maintenant se connecter aux bases
+- ✅ **Messages d'erreur clairs** : Indication précise des problèmes (tables manquantes, etc.)
+- ✅ **Configuration flexible** : Support des paramètres par défaut pour HFSQL
+- ✅ **Diagnostic facilité** : Messages d'erreur plus informatifs
+
+---
+
+## [24-09-2025] - Correction des fonctions de synchronisation
+
+### 🔧 **Correction de l'erreur "cannot unpack non-iterable bool object"**
+
+**Contexte :** Les fonctions de synchronisation retournaient seulement un booléen (`True`) au lieu d'un tuple `(success, message)`, causant l'erreur "cannot unpack non-iterable bool object" lors des tentatives de synchronisation.
+
+### **Modifications apportées :**
+
+#### **1. Fonctions Batigest corrigées**
+- **`sync_sqlserver_to_batisimply()`** : Retourne maintenant `(success, message)`
+- **`sync_batisimply_to_sqlserver()`** : Retourne maintenant `(success, message)`
+
+#### **2. Fonctions Codial corrigées**
+- **`sync_hfsql_to_batisimply()`** : Retourne maintenant `(success, message)`
+- **`sync_batisimply_to_hfsql()`** : Retourne maintenant `(success, message)`
+
+#### **3. Amélioration de la gestion d'erreurs**
+- **Gestion globale** : `overall_success` pour suivre le succès global
+- **Messages détaillés** : Collecte de tous les messages de chaque étape
+- **Gestion d'exceptions** : Try/catch pour capturer les erreurs inattendues
+- **Messages contextuels** : Messages de succès/erreur spécifiques à chaque flux
+
+### **Impact pour les utilisateurs :**
+- ✅ **Synchronisation fonctionnelle** : Plus d'erreur "cannot unpack non-iterable bool object"
+- ✅ **Messages clairs** : Feedback précis sur le succès/échec de chaque étape
+- ✅ **Robustesse** : Gestion d'erreurs améliorée pour éviter les crashes
+- ✅ **Traçabilité** : Messages détaillés pour diagnostiquer les problèmes
+
+---
+
+## [24-09-2025] - Séparation des boutons d'initialisation PostgreSQL par logiciel
+
+### 🎯 **Amélioration de l'interface d'initialisation PostgreSQL**
+
+**Contexte :** L'interface d'initialisation PostgreSQL était générique et ne permettait pas de choisir spécifiquement quel logiciel initialiser. Il était nécessaire de séparer les boutons pour une meilleure clarté et contrôle.
+
+### **Modifications apportées :**
+
+#### **1. Interface utilisateur améliorée**
+- **Remplacement du bouton unique** par deux boutons séparés
+- **Bouton Batigest** : Couleur bleue avec logo Batigest
+- **Bouton Codial** : Couleur orange avec logo Codial
+- **Layout responsive** : Grille adaptative pour mobile et desktop
+
+#### **2. Routes spécialisées**
+- **`/init-batigest-tables`** : Initialise uniquement les tables Batigest
+- **`/init-codial-tables`** : Initialise uniquement les tables Codial
+- **Messages spécifiques** : Confirmation adaptée à chaque logiciel
+
+#### **3. Avantages de la séparation**
+- ✅ **Clarté** : L'utilisateur sait exactement ce qu'il initialise
+- ✅ **Flexibilité** : Possibilité d'initialiser un seul logiciel
+- ✅ **Sécurité** : Évite les initialisations accidentelles
+- ✅ **Maintenance** : Plus facile de diagnostiquer les problèmes
+
+### **Impact pour les utilisateurs :**
+- 🎯 **Interface intuitive** : Deux boutons clairement identifiés
+- 🔧 **Contrôle précis** : Initialisation ciblée par logiciel
+- 📱 **Responsive** : Interface adaptée à tous les écrans
+- ✅ **Feedback clair** : Messages de confirmation spécifiques
+
+---
+
+## [24-09-2025] - Ajout des tables de mapping des heures dans l'initialisation PostgreSQL
+
+### 🗄️ **Amélioration de l'initialisation des tables PostgreSQL**
+
+**Contexte :** Les tables de mapping des heures (`batigest_heures_map` et `codial_heures_map`) sont essentielles pour le système de synchronisation incrémentale des heures, mais elles n'étaient pas créées automatiquement lors de l'initialisation.
+
+### **Modifications apportées :**
+
+#### **1. Table de mapping Batigest**
+- **Ajout de `batigest_heures_map`** dans `init_batigest_tables()`
+- **Structure :** `id_heure` (PK), `code_chantier`, `code_salarie`, `date_sqlserver`
+- **Usage :** Mapping entre les heures BatiSimply et les clés SQL Server
+
+#### **2. Table de mapping Codial**
+- **Ajout de `codial_heures_map`** dans `init_codial_tables()`
+- **Structure :** `id_heure` (PK), `code_chantier`, `code_salarie`, `date_hfsql`
+- **Usage :** Mapping entre les heures BatiSimply et les clés HFSQL
+
+#### **3. Mise à jour de la documentation**
+- **Commentaires des fonctions** mis à jour pour refléter la création des 4 tables
+- **Messages de succès** adaptés pour indiquer la création de toutes les tables
+
+### **Impact pour les utilisateurs :**
+- ✅ **Initialisation complète** : Le bouton "Initialiser" crée maintenant toutes les tables nécessaires
+- ✅ **Synchronisation fiable** : Les tables de mapping permettent une synchronisation incrémentale sans doublons
+- ✅ **Compatibilité** : Fonctionne pour les deux logiciels (Batigest et Codial)
+
+---
+
 ## [24-09-2025] - Nettoyage complet du projet et suppression des fichiers sensibles
 
 ### 🧹 **Nettoyage complet du projet et sécurisation**

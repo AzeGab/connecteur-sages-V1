@@ -705,8 +705,8 @@
 
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                     <div class="space-y-6">
-                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                            <div class="flex items-center space-x-4">
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-4 mb-4">
                                 <div class="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
                                     <i class="fas fa-database text-white text-xl"></i>
                                 </div>
@@ -715,13 +715,48 @@
                                     <p class="text-gray-500 text-sm">Créer les tables nécessaires dans la base PostgreSQL</p>
                                 </div>
                             </div>
-                            <form action="/init-table" method="post">
-                                <button type="submit" 
-                                        class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 flex items-center space-x-2">
-                                    <i class="fas fa-play"></i>
-                                    <span>Initialiser</span>
-                                </button>
-                            </form>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Bouton Batigest -->
+                                <div class="bg-white rounded-lg p-4 border border-gray-200">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <img src="/static/logo_batigest.png" alt="Batigest" class="w-8 h-8">
+                                            <div>
+                                                <h4 class="font-medium text-gray-900">Tables Batigest</h4>
+                                                <p class="text-sm text-gray-500">SQL Server → PostgreSQL</p>
+                                            </div>
+                                        </div>
+                                        <form action="/init-batigest-tables" method="post" class="inline">
+                                            <button type="submit" 
+                                                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2">
+                                                <i class="fas fa-play"></i>
+                                                <span>Initialiser</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                
+                                <!-- Bouton Codial -->
+                                <div class="bg-white rounded-lg p-4 border border-gray-200">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <img src="/static/logo_codial.png" alt="Codial" class="w-8 h-8">
+                                            <div>
+                                                <h4 class="font-medium text-gray-900">Tables Codial</h4>
+                                                <p class="text-sm text-gray-500">HFSQL → PostgreSQL</p>
+                                            </div>
+                                        </div>
+                                        <form action="/init-codial-tables" method="post" class="inline">
+                                            <button type="submit" 
+                                                    class="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2">
+                                                <i class="fas fa-play"></i>
+                                                <span>Initialiser</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

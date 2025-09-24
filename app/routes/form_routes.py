@@ -27,26 +27,57 @@ from app.services.connex import (
     check_connection_status
 )
 
-# Services - Batigest
+# Services - Batigest (flux SQL Server -> PostgreSQL -> BatiSimply)
 from app.services.batigest import (
-    transfer_chantiers,
-    transfer_chantiers_vers_batisimply,
-    update_code_projet_chantiers,
-    recup_chantiers_batisimply,
-    recup_code_projet_chantiers,
-    sync_batigest_to_batisimply,
-    sync_batisimply_to_batigest,
-    init_postgres_table
+    transfer_chantiers_sqlserver_to_postgres,
+    transfer_chantiers_postgres_to_batisimply,
+    transfer_heures_sqlserver_to_postgres,
+    transfer_heures_postgres_to_batisimply,
+    transfer_devis_sqlserver_to_postgres,
+    transfer_devis_postgres_to_batisimply,
+    sync_sqlserver_to_batisimply
 )
 
-# Services - Heures (depuis Batigest)
+# Services - Batigest (flux BatiSimply -> PostgreSQL -> SQL Server)
 from app.services.batigest import (
-    transfer_heures_to_postgres,
-    transfer_heures_to_sqlserver
+    transfer_chantiers_batisimply_to_postgres,
+    transfer_chantiers_postgres_to_sqlserver,
+    transfer_heures_batisimply_to_postgres,
+    transfer_heures_postgres_to_sqlserver,
+    transfer_devis_batisimply_to_postgres,
+    transfer_devis_postgres_to_sqlserver,
+    sync_batisimply_to_sqlserver
 )
 
-# Services - Devis (depuis Batigest)
-from app.services.batigest import transfer_devis
+# Services - Batigest (utilitaires)
+from app.services.batigest import (
+    init_batigest_tables,
+    check_batigest_connection
+)
+
+# Services - Codial (flux HFSQL -> PostgreSQL -> BatiSimply)
+from app.services.codial import (
+    transfer_chantiers_hfsql_to_postgres,
+    transfer_chantiers_postgres_to_batisimply,
+    transfer_heures_hfsql_to_postgres,
+    transfer_heures_postgres_to_batisimply,
+    sync_hfsql_to_batisimply
+)
+
+# Services - Codial (flux BatiSimply -> PostgreSQL -> HFSQL)
+from app.services.codial import (
+    transfer_chantiers_batisimply_to_postgres,
+    transfer_chantiers_postgres_to_hfsql,
+    transfer_heures_batisimply_to_postgres,
+    transfer_heures_postgres_to_hfsql,
+    sync_batisimply_to_hfsql
+)
+
+# Services - Codial (utilitaires)
+from app.services.codial import (
+    init_codial_tables,
+    check_codial_connection
+)
 
 # Services - Licence
 from app.services.license import (
@@ -393,10 +424,10 @@ async def transfer_data(request: Request):
         message = "❌ Merci de renseigner les informations de connexion SQL Server et PostgreSQL avant de lancer le transfert."
     else:
         if debug_mode:
-            (success, message), logs = _capture_output(transfer_chantiers)
+            (success, message), logs = _capture_output(transfer_chantiers_sqlserver_to_postgres)
             debug_output = f"=== Debug: /transfer ===\n{logs}"
         else:
-            success, message = transfer_chantiers()
+            success, message = transfer_chantiers_sqlserver_to_postgres()
     
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -471,10 +502,10 @@ async def recup_heures_batisimply(request: Request):
     debug_output = None
     try:
         if debug_mode:
-            success, logs = _capture_output(transfer_heures_to_postgres)
+            success, logs = _capture_output(transfer_heures_sqlserver_to_postgres)
             debug_output = f"=== Debug: /recup-heures ===\n{logs}"
         else:
-            success = transfer_heures_to_postgres()
+            success, message = transfer_heures_sqlserver_to_postgres()
         if success:
             message = "✅ Heures récupérées et insérées dans PostgreSQL avec succès."
         else:
@@ -594,10 +625,10 @@ async def sync_batigest_to_batisimply_route(request: Request):
     debug_output = None
     try:
         if debug_mode:
-            (success, message), logs = _capture_output(sync_batigest_to_batisimply)
+            (success, message), logs = _capture_output(sync_sqlserver_to_batisimply)
             debug_output = f"=== Debug: /sync-batigest-to-batisimply ===\n{logs}"
         else:
-            success, message = sync_batigest_to_batisimply()
+            success, message = sync_sqlserver_to_batisimply()
     except Exception as e:
         success = False
         message = f"❌ Erreur lors de la synchronisation : {e}"
@@ -629,10 +660,10 @@ async def sync_batisimply_to_batigest_route(request: Request):
     debug_output = None
     try:
         if debug_mode:
-            (success, message), logs = _capture_output(sync_batisimply_to_batigest)
+            (success, message), logs = _capture_output(sync_batisimply_to_sqlserver)
             debug_output = f"=== Debug: /sync-batisimply-to-batigest ===\n{logs}"
         else:
-            success, message = sync_batisimply_to_batigest()
+            success, message = sync_batisimply_to_sqlserver()
     except Exception as e:
         success = False
         message = f"❌ Erreur lors de la synchronisation : {e}"
@@ -649,10 +680,84 @@ async def sync_batisimply_to_batigest_route(request: Request):
         "debug_output": debug_output
     })
 
-@router.post("/init-table", response_class=HTMLResponse)
-async def init_table_route(request: Request):
+# ============================================================================
+# ROUTES DE SYNCHRONISATION CODIAL
+# ============================================================================
+
+@router.post("/sync-codial-to-batisimply", response_class=HTMLResponse)
+async def sync_codial_to_batisimply_route(request: Request):
     """
-    Route pour initialiser la table PostgreSQL.
+    Route pour synchroniser les données de Codial (HFSQL) vers BatiSimply.
+    
+    Args:
+        request (Request): Requête FastAPI
+        
+    Returns:
+        TemplateResponse: Page HTML avec le message de résultat
+    """
+    debug_mode = _effective_debug_mode()
+    debug_output = None
+    try:
+        if debug_mode:
+            (success, message), logs = _capture_output(sync_hfsql_to_batisimply)
+            debug_output = f"=== Debug: /sync-codial-to-batisimply ===\n{logs}"
+        else:
+            success, message = sync_hfsql_to_batisimply()
+    except Exception as e:
+        success = False
+        message = f"❌ Erreur lors de la synchronisation Codial → BatiSimply : {e}"
+    
+    sql_connected, pg_connected = check_connection_status()
+    creds = load_credentials() or {}
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected,
+        "software": creds.get("software", "batigest"),
+        "debug_mode": debug_mode,
+        "debug_output": debug_output
+    })
+
+@router.post("/sync-batisimply-to-codial", response_class=HTMLResponse)
+async def sync_batisimply_to_codial_route(request: Request):
+    """
+    Route pour synchroniser les données de BatiSimply vers Codial (HFSQL).
+    
+    Args:
+        request (Request): Requête FastAPI
+        
+    Returns:
+        TemplateResponse: Page HTML avec le message de résultat
+    """
+    debug_mode = _effective_debug_mode()
+    debug_output = None
+    try:
+        if debug_mode:
+            (success, message), logs = _capture_output(sync_batisimply_to_hfsql)
+            debug_output = f"=== Debug: /sync-batisimply-to-codial ===\n{logs}"
+        else:
+            success, message = sync_batisimply_to_hfsql()
+    except Exception as e:
+        success = False
+        message = f"❌ Erreur lors de la synchronisation BatiSimply → Codial : {e}"
+    
+    sql_connected, pg_connected = check_connection_status()
+    creds = load_credentials() or {}
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected,
+        "software": creds.get("software", "batigest"),
+        "debug_mode": debug_mode,
+        "debug_output": debug_output
+    })
+
+@router.post("/init-batigest-tables", response_class=HTMLResponse)
+async def init_batigest_tables_route(request: Request):
+    """
+    Route pour initialiser les tables PostgreSQL Batigest.
     
     Args:
         request (Request): Requête FastAPI
@@ -661,20 +766,55 @@ async def init_table_route(request: Request):
         TemplateResponse: Page HTML avec le message de résultat
     """
     try:
-        success = init_postgres_table()
+        success = init_batigest_tables()
         if success:
-            message = "✅ Table PostgreSQL initialisée avec succès"
+            message = "✅ Tables PostgreSQL Batigest initialisées avec succès"
         else:
-            message = "❌ Erreur lors de l'initialisation de la table"
+            message = "❌ Erreur lors de l'initialisation des tables Batigest"
+                
     except Exception as e:
-        message = f"❌ Erreur lors de l'initialisation : {e}"
+        message = f"❌ Erreur lors de l'initialisation des tables Batigest : {e}"
     
     sql_connected, pg_connected = check_connection_status()
+    creds = load_credentials() or {}
     return templates.TemplateResponse("configuration.html", {
         "request": request,
         "message": message,
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
+        "software": creds.get("software", "batigest"),
+        "current_section": "system"
+    })
+
+@router.post("/init-codial-tables", response_class=HTMLResponse)
+async def init_codial_tables_route(request: Request):
+    """
+    Route pour initialiser les tables PostgreSQL Codial.
+    
+    Args:
+        request (Request): Requête FastAPI
+        
+    Returns:
+        TemplateResponse: Page HTML avec le message de résultat
+    """
+    try:
+        success = init_codial_tables()
+        if success:
+            message = "✅ Tables PostgreSQL Codial initialisées avec succès"
+        else:
+            message = "❌ Erreur lors de l'initialisation des tables Codial"
+                
+    except Exception as e:
+        message = f"❌ Erreur lors de l'initialisation des tables Codial : {e}"
+    
+    sql_connected, pg_connected = check_connection_status()
+    creds = load_credentials() or {}
+    return templates.TemplateResponse("configuration.html", {
+        "request": request,
+        "message": message,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected,
+        "software": creds.get("software", "batigest"),
         "current_section": "system"
     })
 
@@ -1070,4 +1210,96 @@ async def get_license_key():
             "license_key": None,
             "found": False,
             "message": "Aucune clé de licence trouvée dans les credentials"
+        })
+
+# ============================================================================
+# ROUTES JSON POUR LA BARRE DE PROGRESSION
+# ============================================================================
+
+@router.post("/api/sync-batigest-to-batisimply")
+async def api_sync_batigest_to_batisimply():
+    """
+    API pour la synchronisation Batigest → BatiSimply avec retour JSON.
+    
+    Returns:
+        JSONResponse: Résultat de la synchronisation
+    """
+    try:
+        success, message = sync_sqlserver_to_batisimply()
+        return JSONResponse({
+            "success": success,
+            "message": message,
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "message": f"❌ Erreur lors de la synchronisation Batigest → BatiSimply : {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        })
+
+@router.post("/api/sync-batisimply-to-batigest")
+async def api_sync_batisimply_to_batigest():
+    """
+    API pour la synchronisation BatiSimply → Batigest avec retour JSON.
+    
+    Returns:
+        JSONResponse: Résultat de la synchronisation
+    """
+    try:
+        success, message = sync_batisimply_to_sqlserver()
+        return JSONResponse({
+            "success": success,
+            "message": message,
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "message": f"❌ Erreur lors de la synchronisation BatiSimply → Batigest : {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        })
+
+@router.post("/api/sync-codial-to-batisimply")
+async def api_sync_codial_to_batisimply():
+    """
+    API pour la synchronisation Codial → BatiSimply avec retour JSON.
+    
+    Returns:
+        JSONResponse: Résultat de la synchronisation
+    """
+    try:
+        success, message = sync_hfsql_to_batisimply()
+        return JSONResponse({
+            "success": success,
+            "message": message,
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "message": f"❌ Erreur lors de la synchronisation Codial → BatiSimply : {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        })
+
+@router.post("/api/sync-batisimply-to-codial")
+async def api_sync_batisimply_to_codial():
+    """
+    API pour la synchronisation BatiSimply → Codial avec retour JSON.
+    
+    Returns:
+        JSONResponse: Résultat de la synchronisation
+    """
+    try:
+        success, message = sync_batisimply_to_hfsql()
+        return JSONResponse({
+            "success": success,
+            "message": message,
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "message": f"❌ Erreur lors de la synchronisation BatiSimply → Codial : {str(e)}",
+            "timestamp": datetime.now().isoformat()
         })

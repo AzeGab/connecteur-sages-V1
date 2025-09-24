@@ -117,37 +117,52 @@
             <!-- Boutons de synchronisation -->
             <div class="grid md:grid-cols-2 gap-6">
                 <div class="flex justify-center">
-                    <form action="/sync-batigest-to-batisimply" method="post">
-                        <button type="submit"
-                            class="group relative overflow-hidden bg-gradient-to-br from-sync-blue to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white p-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                            <div class="relative z-10">
-                                <div class="flex items-center justify-center mb-4">
-                                    <i class="fas fa-arrow-right text-2xl"></i>
-                                </div>
-                                <h4 class="text-xl font-bold mb-2">{{ 'Codial' if software == 'codial' else 'Batigest' }} → Batisimply</h4>
-                                <p class="text-blue-100 text-sm">Synchroniser vers Batisimply</p>
+                    <button type="button" onclick="startSync('{{ 'codial' if software == 'codial' else 'batigest' }}', 'batisimply')"
+                        class="group relative overflow-hidden bg-gradient-to-br from-sync-blue to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white p-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-center mb-4">
+                                <i class="fas fa-arrow-right text-2xl"></i>
                             </div>
-                            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                        </button>
-                    </form>
+                            <h4 class="text-xl font-bold mb-2">{{ 'Codial' if software == 'codial' else 'Batigest' }} → Batisimply</h4>
+                            <p class="text-blue-100 text-sm">Synchroniser vers Batisimply</p>
+                        </div>
+                        <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                    </button>
                 </div>
                 <div class="flex justify-center">
-                    <form action="/sync-batisimply-to-batigest" method="post">
-                        <button type="submit"
-                            class="group relative overflow-hidden bg-gradient-to-br from-sync-purple to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white p-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                            <div class="relative z-10">
-                                <div class="flex items-center justify-center mb-4">
-                                    <i class="fas fa-arrow-left text-2xl"></i>
-                                </div>
-                                <h4 class="text-xl font-bold mb-2">Batisimply → {{ 'Codial' if software == 'codial' else 'Batigest' }}</h4>
-                                <p class="text-purple-100 text-sm">Synchroniser vers {{ 'Codial' if software == 'codial' else 'Batigest' }}</p>
+                    <button type="button" onclick="startSync('batisimply', '{{ 'codial' if software == 'codial' else 'batigest' }}')"
+                        class="group relative overflow-hidden bg-gradient-to-br from-sync-purple to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white p-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-center mb-4">
+                                <i class="fas fa-arrow-left text-2xl"></i>
                             </div>
-                            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                        </button>
-                    </form>
+                            <h4 class="text-xl font-bold mb-2">Batisimply → {{ 'Codial' if software == 'codial' else 'Batigest' }}</h4>
+                            <p class="text-purple-100 text-sm">Synchroniser vers {{ 'Codial' if software == 'codial' else 'Batigest' }}</p>
+                        </div>
+                        <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                    </button>
                 </div>
             </div>
             
+        </div>
+
+        <!-- Barre de progression -->
+        <div id="progressContainer" class="hidden mt-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-lg font-semibold text-gray-900" id="progressTitle">Synchronisation en cours...</h4>
+                    <span class="text-sm text-gray-500" id="progressPercent">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
+                    <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+                </div>
+                <div class="text-sm text-gray-600" id="progressMessage">Initialisation...</div>
+                <div class="mt-4">
+                    <button id="cancelSync" class="hidden bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        <i class="fas fa-stop mr-2"></i>Annuler
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Message de statut -->
@@ -210,6 +225,183 @@
                 }
             }
         }
+
+        // Variables globales pour la synchronisation
+        let syncInProgress = false;
+        let currentSyncId = null;
+
+        // Fonction pour démarrer la synchronisation
+        function startSync(from, to) {
+            if (syncInProgress) {
+                alert('Une synchronisation est déjà en cours. Veuillez patienter.');
+                return;
+            }
+
+            syncInProgress = true;
+            showProgressBar(from, to);
+            
+            // Déterminer l'endpoint selon la direction
+            let endpoint;
+            if (from === 'batigest' || from === 'codial') {
+                endpoint = from === 'codial' ? '/api/sync-codial-to-batisimply' : '/api/sync-batigest-to-batisimply';
+            } else {
+                endpoint = to === 'codial' ? '/api/sync-batisimply-to-codial' : '/api/sync-batisimply-to-batigest';
+            }
+
+            // Démarrer la synchronisation avec mise à jour de la progression
+            performSync(endpoint);
+        }
+
+        // Fonction pour afficher la barre de progression
+        function showProgressBar(from, to) {
+            const container = document.getElementById('progressContainer');
+            const title = document.getElementById('progressTitle');
+            const message = document.getElementById('progressMessage');
+            
+            title.textContent = `Synchronisation ${from} → ${to}`;
+            message.textContent = 'Initialisation...';
+            
+            container.classList.remove('hidden');
+            updateProgress(0, 'Connexion aux bases de données...');
+        }
+
+        // Fonction pour mettre à jour la progression
+        function updateProgress(percent, message) {
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressMessage = document.getElementById('progressMessage');
+            
+            progressBar.style.width = percent + '%';
+            progressPercent.textContent = Math.round(percent) + '%';
+            progressMessage.textContent = message;
+        }
+
+        // Fonction pour effectuer la synchronisation
+        async function performSync(endpoint) {
+            try {
+                // Étape 1: Connexion (10%)
+                updateProgress(10, 'Connexion aux bases de données...');
+                await sleep(500);
+
+                // Étape 2: Récupération des données (30%)
+                updateProgress(30, 'Récupération des données...');
+                await sleep(800);
+
+                // Étape 3: Traitement (60%)
+                updateProgress(60, 'Traitement des données...');
+                await sleep(1000);
+
+                // Étape 4: Envoi vers l'API (80%)
+                updateProgress(80, 'Envoi vers l\'API...');
+                await sleep(600);
+
+                // Appel réel à l'API
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Étape 5: Finalisation (100%)
+                        updateProgress(100, 'Synchronisation terminée avec succès!');
+                        await sleep(1000);
+                        
+                        // Afficher le message de succès
+                        showResultMessage(result.message, 'success');
+                        hideProgressBar();
+                    } else {
+                        throw new Error(result.message);
+                    }
+                } else {
+                    throw new Error('Erreur HTTP: ' + response.status);
+                }
+
+            } catch (error) {
+                updateProgress(0, 'Erreur lors de la synchronisation: ' + error.message);
+                syncInProgress = false;
+                
+                // Afficher l'erreur
+                setTimeout(() => {
+                    hideProgressBar();
+                    showResultMessage('Erreur lors de la synchronisation: ' + error.message, 'error');
+                }, 2000);
+            }
+        }
+
+        // Fonction pour masquer la barre de progression
+        function hideProgressBar() {
+            const container = document.getElementById('progressContainer');
+            container.classList.add('hidden');
+            syncInProgress = false;
+        }
+
+        // Fonction pour afficher le message de résultat
+        function showResultMessage(message, type) {
+            // Créer un élément de notification
+            const notification = document.createElement('div');
+            notification.className = `flex items-start gap-4 p-5 rounded-2xl border shadow-sm mb-8 animate-fade-in ${
+                type === 'success' ? 'bg-green-50 border-green-200' : 
+                type === 'error' ? 'bg-red-50 border-red-200' : 
+                'bg-blue-50 border-blue-200'
+            }`;
+            
+            const iconClass = type === 'success' ? 'fa-check-circle text-green-500' : 
+                             type === 'error' ? 'fa-exclamation-triangle text-red-500' : 
+                             'fa-info-circle text-blue-500';
+            
+            const titleClass = type === 'success' ? 'text-green-800' : 
+                              type === 'error' ? 'text-red-800' : 
+                              'text-blue-800';
+            
+            const messageClass = type === 'success' ? 'text-green-700' : 
+                                type === 'error' ? 'text-red-700' : 
+                                'text-blue-700';
+            
+            notification.innerHTML = `
+                <div>
+                    <i class="fas ${iconClass} text-2xl mt-1"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="font-semibold mb-1 ${titleClass}">
+                        ${type === 'success' ? 'Succès' : type === 'error' ? 'Erreur' : 'Information'}
+                    </div>
+                    <div class="text-sm leading-6 ${messageClass}">${message}</div>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" 
+                        class="ml-2 text-lg focus:outline-none ${type === 'success' ? 'text-green-400 hover:text-green-600' : type === 'error' ? 'text-red-400 hover:text-red-600' : 'text-blue-400 hover:text-blue-600'}">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            // Insérer la notification après le header
+            const main = document.querySelector('main');
+            main.insertBefore(notification, main.firstChild);
+            
+            // Auto-supprimer après 10 secondes
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 10000);
+        }
+
+        // Fonction utilitaire pour simuler des délais
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Gestionnaire pour le bouton d'annulation
+        document.getElementById('cancelSync').addEventListener('click', function() {
+            if (confirm('Êtes-vous sûr de vouloir annuler la synchronisation?')) {
+                hideProgressBar();
+                syncInProgress = false;
+            }
+        });
     </script>
 </body>
 </html>
