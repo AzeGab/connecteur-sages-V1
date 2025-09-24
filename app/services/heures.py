@@ -102,8 +102,8 @@ def transfer_heures_to_postgres():
                 date_fin = date_fin.replace(second=0, microsecond=0)
             except Exception:
                 # En cas de format inattendu, fallback sur la valeur brute
-                date_debut = h["startDate"]
-                date_fin = h["endDate"]
+            date_debut = h["startDate"]
+            date_fin = h["endDate"]
             user_id = h["user"]["id"]
             id_projet = h.get("project", {}).get("id")
             status = h["managementStatus"]
@@ -362,7 +362,7 @@ def transfer_heures_to_sqlserver():
                 sqlserver_cursor.execute(
                     """
                     INSERT INTO SuiviMO([CodeChantier], [CodeSalarie], [Date], [NbH0], [NbH3], [NbH4])
-                    VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
                     """,
                     (code_chantier, code_salarie, date_debut, nb_h0, nb_h3, nb_h4)
                 )

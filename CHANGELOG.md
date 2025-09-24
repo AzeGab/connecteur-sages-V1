@@ -4,7 +4,7 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 
 ---
 
-## [2025-01-24] - Restructuration complète de l'architecture des services
+## [24-09-2025] - Restructuration complète de l'architecture des services
 
 ### 🏗️ **Refactorisation majeure de l'organisation du code**
 
@@ -59,7 +59,7 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 
 ---
 
-## [2025-01-24] - Amélioration de la synchronisation des heures
+## [22-09-2025] - Amélioration de la synchronisation des heures
 
 ### 🔄 **Système de synchronisation incrémentale des heures**
 
@@ -95,7 +95,7 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 
 ---
 
-## [2025-01-24] - Amélioration de l'interface utilisateur
+## [11-09-2025] - Amélioration de l'interface utilisateur
 
 ### 🎨 **Interface de configuration modernisée**
 
@@ -138,7 +138,7 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 
 ---
 
-## [2025-01-24] - Amélioration de la validation des licences
+## [22-09-2025] - Amélioration de la validation des licences
 
 ### 🔐 **Système de validation des licences robuste**
 
@@ -168,7 +168,7 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 
 ---
 
-## [2025-01-24] - Documentation et scripts de debug
+## [22-09-2025] - Documentation et scripts de debug
 
 ### 📚 **Outils de diagnostic et documentation**
 
@@ -199,7 +199,7 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 
 ---
 
-## [2025-01-24] - Corrections techniques diverses
+## [03-09-2025] - Corrections techniques diverses
 
 ### 🔧 **Améliorations techniques et corrections de bugs**
 
@@ -229,7 +229,7 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 ## Notes de version
 
 ### **Version actuelle :** 1.0.0
-### **Dernière mise à jour :** 2025-01-24
+### **Dernière mise à jour :** 24-09-2025
 ### **Prochaine version prévue :** 1.1.0 (Fonctionnalités Codial complètes)
 
 ---
