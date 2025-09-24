@@ -17,7 +17,7 @@ from app.services.connex import (
     connect_to_sqlserver,
     recup_batisimply_token,
 )
-from app.services.chantier import update_code_projet_chantiers
+from app.services.batigest import update_code_projet_chantiers
 from app.services.heures import transfer_heures_to_sqlserver
 
 

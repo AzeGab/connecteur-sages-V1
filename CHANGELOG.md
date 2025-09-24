@@ -1,187 +1,247 @@
-# Changelog - Connecteur SAGES
+# ChangeLog - Connecteur Sages V1
 
-## [2.0.0] - 2025-06-24
-
-### 🎉 Nouveautés majeures
-
-#### Système de licences intégré
-
-- **Validation en temps réel** via API Supabase
-- **Middleware de protection** sur toutes les routes protégées
-- **Interface de gestion des licences** moderne avec sidebar
-- **Page de licence expirée** dédiée avec modal de revérification
-- **Vérification automatique** au chargement des pages
-
-#### Interface utilisateur améliorée
-
-- **Sidebar de configuration** avec navigation entre sections
-- **Section Licence** avec champ sécurisé et indicateur de validité
-- **Notifications modernes** remplaçant les alertes
-- **Overlay de chargement** élégant pour les vérifications
-- **Design responsive** et cohérent
-
-### 🔧 Améliorations techniques
-
-#### Service de licence (`app/services/license.py`)
-
-- Validation directe via API REST Supabase
-- Gestion locale des informations de licence
-- Logs détaillés pour le diagnostic
-- Gestion des cas d'usage illimité (`max_usage = -1`)
-- Vérification de tous les critères de validité
-
-#### Middleware de licence (`app/middleware/license_middleware.py`)
-
-- Vérification automatique sur les routes protégées
-- Redirection intelligente selon le statut de la licence
-- Affichage direct de la page de licence expirée
-- Gestion des routes exclues
-
-#### Routes API (`app/routes/form_routes.py`)
-
-- `/check-license-status` : Vérification du statut
-- `/get-license-key` : Récupération de la clé locale
-- `/update-license` : Mise à jour de la clé
-- `/refresh-license` : Rafraîchissement de la validation
-- Logs détaillés pour le diagnostic
-
-### 🎨 Interface utilisateur
-
-#### Page de configuration (`app/templates/configuration.html`)
-
-- **Sidebar de navigation** avec 4 sections :
-  - Licence (gestion des clés)
-  - Bases de données (connexions SQL)
-  - Mode de données (chantier/devis)
-  - Système (outils de maintenance)
-- **Section Licence** avec :
-  - Champ de saisie sécurisé
-  - Indicateur de validité en temps réel
-  - Bouton d'actualisation
-  - Sauvegarde même des clés invalides
-
-#### Page de licence expirée (`app/templates/license_expired.html`)
-
-- **Interface dédiée** avec informations détaillées
-- **Bouton de revérification** avec modal moderne
-- **Rafraîchissement automatique** toutes les 5 minutes
-- **Notifications élégantes** au lieu d'alertes
-- **Overlay de chargement** de 1 seconde
-
-#### Page principale (`app/templates/index.html`)
-
-- **Redirection automatique** si licence invalide
-
-### 🔒 Sécurité
-
-#### Protection des routes
-
-- **Routes protégées** : `/`, `/transfer`, `/sync-*`, etc.
-- **Routes exclues** : `/configuration`, `/license-expired`, etc.
-- **Vérification automatique** à chaque requête
-
-#### Stockage sécurisé
-
-- **Fichier credentials.json** pour les informations locales
-- **Aucune transmission** de clés en clair
-- **Validation via API** sécurisée uniquement
-
-### 📊 Fonctionnalités
-
-#### Validation en temps réel
-
-- **Critères de validation** :
-  - `is_active = true`
-  - `expires_at > now()`
-  - `is_archived = false`
-  - `usage_count < max_usage` (si applicable)
-
-#### Gestion locale
-
-- **Structure des données** :
-  ```json
-  {
-    "license": {
-      "key": "XXXX-XXXX-XXXX-XXXX",
-      "client_name": "Client XXXXX",
-      "expiry_date": "2027-06-23T09:46:12.23389+00:00",
-      "features": ["chantier", "devis", "heures"],
-      "updated_at": "2025-06-24T10:00:00",
-      "valid": true,
-      "usage_count": 0,
-      "max_usage": -1,
-      "is_active": true
-    }
-  }
-  ```
-
-### 🐛 Corrections
-
-#### Logique de validation
-
-- **Correction du bug** de vérification de l'usage count
-- **Gestion correcte** des licences illimitées (`max_usage = -1`)
-- **Sauvegarde des clés invalides** pour affichage persistant
-
-#### Interface utilisateur
-
-- **Correction de l'affichage** des clés dans la configuration
-- **Amélioration des messages** d'erreur
-- **Gestion des timeouts** et erreurs de connexion
-
-### 📝 Documentation
-
-#### Fichiers mis à jour
-
-- **README.md** : Documentation complète avec système de licences
-- **LICENSE_API_CONFIG.md** : Guide détaillé du système de licences
-- **CHANGELOG.md** : Ce fichier
-
-#### Nouveaux fichiers
-
-- **test_supabase_connection.py** : Script de test de connexion
-- **Documentation des routes** API
-
-### 🔧 Configuration
-
-#### Variables d'environnement
-
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your_anon_key_here
-```
-
-#### Structure Supabase
-
-- **Table `licenses`** avec tous les champs nécessaires
-- **API REST** pour la validation
-- **Clé anon** pour les requêtes client
-
-### 🚀 Déploiement
-
-#### Prérequis
-
-- **Licence valide** requise pour l'utilisation
-- **Accès Internet** pour la validation
-- **Variables d'environnement** configurées
-
-#### Installation
-
-1. **Configuration de la licence** en premier
-2. **Configuration des bases de données**
-3. **Test de connexion** avec le script fourni
+Ce fichier documente toutes les modifications importantes apportées au projet Connecteur Sages. Il est mis à jour à chaque modification significative et synchronisé avec Git.
 
 ---
 
-## [1.0.0] - 2025-06-23
+## [2025-01-24] - Restructuration complète de l'architecture des services
 
-### Version initiale
+### 🏗️ **Refactorisation majeure de l'organisation du code**
 
-- Synchronisation Batigest ↔ Batisimply
-- Interface web basique
-- Gestion des connexions SQL
-- Transfert de données
+**Contexte :** Le code était organisé en fichiers monolithiques difficiles à maintenir. Nous avons restructuré l'architecture pour une meilleure organisation et maintenabilité.
+
+### **Modifications apportées :**
+
+#### **1. Renommage et réorganisation des fichiers**
+- **`app/services/chantier.py` → `app/services/batigest/`** (package complet)
+- **`app/services/codial.py` → `app/services/codial/`** (package complet)
+- **Suppression des anciens fichiers monolithiques**
+
+#### **2. Création de packages modulaires**
+
+**Package Batigest (`app/services/batigest/`) :**
+- `__init__.py` - Exports publics et interface du package
+- `chantiers.py` - Gestion des chantiers (SQL Server ↔ PostgreSQL ↔ BatiSimply)
+- `heures.py` - Gestion des heures (BatiSimply ↔ PostgreSQL ↔ SQL Server)
+- `devis.py` - Gestion des devis (SQL Server ↔ PostgreSQL ↔ BatiSimply)
+- `sync.py` - Synchronisations complètes entre systèmes
+- `utils.py` - Utilitaires (initialisation des tables, etc.)
+
+**Package Codial (`app/services/codial/`) :**
+- `__init__.py` - Exports publics et interface du package
+- `chantiers.py` - Gestion des chantiers (HFSQL ↔ PostgreSQL ↔ BatiSimply)
+- `heures.py` - Gestion des heures (BatiSimply ↔ HFSQL)
+- `sync.py` - Synchronisations complètes entre systèmes
+- `utils.py` - Utilitaires (initialisation des tables, etc.)
+
+#### **3. Mise à jour des imports**
+- **`app/routes/form_routes.py`** - Imports mis à jour pour utiliser les nouveaux packages
+- **`scripts/debug_heures.py`** - Imports mis à jour
+- **Documentation** - Toutes les références mises à jour
+
+#### **4. Améliorations techniques**
+- **Installation de `pytz`** - Gestion des fuseaux horaires pour les heures
+- **Séparation des responsabilités** - Chaque fichier a un rôle spécifique
+- **Interface cohérente** - Même structure pour Batigest et Codial
+
+### **Avantages de cette restructuration :**
+
+✅ **Maintenabilité** - Plus facile de déboguer et modifier le code  
+✅ **Lisibilité** - Code organisé par flux métier  
+✅ **Évolutivité** - Facile d'ajouter de nouveaux flux ou logiciels  
+✅ **Réutilisabilité** - Fonctions importables individuellement  
+✅ **Séparation claire** - Batigest et Codial dans des packages distincts  
+
+### **Impact pour les utilisateurs :**
+- **Aucun impact** - L'interface utilisateur reste identique
+- **Performance** - Code plus optimisé et organisé
+- **Fiabilité** - Meilleure gestion des erreurs et du debugging
 
 ---
 
-*Dernière mise à jour : 24/06/2025*
+## [2025-01-24] - Amélioration de la synchronisation des heures
+
+### 🔄 **Système de synchronisation incrémentale des heures**
+
+**Contexte :** Le système de synchronisation des heures entre BatiSimply et SQL Server créait des doublons et ne gérait pas correctement les modifications.
+
+### **Modifications apportées :**
+
+#### **1. Système de mapping PostgreSQL**
+- **Table `batigest_heures_map`** - Mapping persistant entre BatiSimply et SQL Server
+- **Logique UPSERT** - Insertion ou mise à jour intelligente des heures
+- **Gestion des doublons** - Élimination des enregistrements dupliqués
+
+#### **2. Amélioration de la gestion des fuseaux horaires**
+- **Conversion UTC → Europe/Paris** - Correction du décalage de 2 heures
+- **Normalisation des dates** - Arrondi à la minute pour éviter les microsecondes
+- **Configuration flexible** - Fuseau horaire configurable via `credentials.json`
+
+#### **3. Fenêtre de synchronisation optimisée**
+- **Période de 180 jours** - Synchronisation des X derniers jours (configurable)
+- **Performance améliorée** - Moins de données à traiter
+- **Logique incrémentale** - Seules les heures modifiées sont synchronisées
+
+#### **4. Gestion robuste des erreurs**
+- **Filtrage des heures NULL** - Évite les erreurs SQL Server
+- **Vérification des salariés** - Mapping BatiSimply → SQL Server
+- **Messages d'erreur détaillés** - Debugging facilité
+
+### **Impact pour les utilisateurs :**
+- **Synchronisation plus rapide** - Moins de données à traiter
+- **Pas de doublons** - Heures uniques dans SQL Server
+- **Heures correctes** - Fuseau horaire respecté
+- **Fiabilité** - Gestion d'erreurs améliorée
+
+---
+
+## [2025-01-24] - Amélioration de l'interface utilisateur
+
+### 🎨 **Interface de configuration modernisée**
+
+**Contexte :** L'interface de configuration manquait de clarté et de fonctionnalités de debug.
+
+### **Modifications apportées :**
+
+#### **1. Badges de statut des connexions**
+- **Indicateurs visuels** - Pastilles colorées pour chaque base de données
+- **Statut en temps réel** - Connexion réussie/échouée
+- **Localisation** - Badges dans l'onglet "Bases de données"
+
+#### **2. Mode debug intégré**
+- **Switch activable/désactivable** - Contrôle du mode debug
+- **Persistence** - Sauvegarde dans `credentials.json`
+- **Logs détaillés** - Affichage des opérations en temps réel
+- **Localisation** - Panel debug dans l'onglet "Bases de données"
+
+#### **3. Support multi-logiciels**
+- **Batigest** - Interface SQL Server
+- **Codial** - Interface HFSQL avec champs adaptés
+- **Changement dynamique** - Interface qui s'adapte au logiciel sélectionné
+
+#### **4. Configuration BatiSimply**
+- **Nouvel onglet** - Configuration des paramètres API
+- **Sauvegarde sécurisée** - Données stockées dans `credentials.json`
+- **Champs complets** - SSO URL, Client ID, Secret, etc.
+
+#### **5. Amélioration des messages d'erreur**
+- **Messages dynamiques** - Titre et style adaptés au type de message
+- **Détails techniques** - Section collapsible pour le debugging
+- **Formatage propre** - Suppression des caractères d'échappement
+- **Bouton de fermeture** - Messages fermables par l'utilisateur
+
+### **Impact pour les utilisateurs :**
+- **Interface plus claire** - Statut des connexions visible
+- **Debug facilité** - Mode debug intégré et persistant
+- **Support Codial** - Interface adaptée pour HFSQL
+- **Messages d'erreur lisibles** - Debugging simplifié
+
+---
+
+## [2025-01-24] - Amélioration de la validation des licences
+
+### 🔐 **Système de validation des licences robuste**
+
+**Contexte :** Le système de validation des licences était fragile et difficile à déboguer.
+
+### **Modifications apportées :**
+
+#### **1. Clé de test "Cobalt"**
+- **Super mot de passe** - Clé "Cobalt" pour les tests en mode debug
+- **Bypass de validation** - Contournement pour le développement
+- **Sécurité** - Uniquement actif en mode debug
+
+#### **2. Amélioration de la validation Supabase**
+- **Requêtes optimisées** - Filtres explicites pour les performances
+- **Gestion d'erreurs** - Fallback vers les informations locales
+- **Debug amélioré** - Logs détaillés pour le troubleshooting
+
+#### **3. Persistance des informations**
+- **Sauvegarde locale** - Informations de licence dans `credentials.json`
+- **Récupération d'erreur** - Utilisation des données locales en cas d'échec
+- **Cohérence** - Synchronisation entre Supabase et local
+
+### **Impact pour les utilisateurs :**
+- **Tests facilités** - Clé "Cobalt" pour le développement
+- **Validation fiable** - Moins d'échecs de validation
+- **Debug simplifié** - Logs clairs pour les problèmes de licence
+
+---
+
+## [2025-01-24] - Documentation et scripts de debug
+
+### 📚 **Outils de diagnostic et documentation**
+
+**Contexte :** Manque d'outils pour diagnostiquer les problèmes de synchronisation.
+
+### **Modifications apportées :**
+
+#### **1. Script de debug des heures**
+- **`scripts/debug_heures.py`** - Diagnostic complet du pipeline des heures
+- **Filtres configurables** - Par période, par ID d'heure, etc.
+- **Mise à jour des codes** - Fonction pour corriger les mappings
+- **Application des synchronisations** - Test des transferts
+
+#### **2. Documentation technique**
+- **`docs/SYNCHRO_HEURES_MAPPING.md`** - Explication du système de synchronisation
+- **`docs/INSTALLATION_WINDOWS.md`** - Guide d'installation complet
+- **`docs/EXECUTABLE_CONNECTEUR.md`** - Documentation de l'exécutable
+
+#### **3. Requêtes SQL de diagnostic**
+- **Création de tables** - Scripts pour `batigest_devis` et `batigest_heures_map`
+- **Requêtes de vérification** - Diagnostic des données
+- **Mapping des salariés** - Initialisation des correspondances
+
+### **Impact pour les utilisateurs :**
+- **Diagnostic facilité** - Outils pour identifier les problèmes
+- **Documentation complète** - Guides d'installation et d'utilisation
+- **Maintenance simplifiée** - Scripts de diagnostic automatisés
+
+---
+
+## [2025-01-24] - Corrections techniques diverses
+
+### 🔧 **Améliorations techniques et corrections de bugs**
+
+#### **1. Gestion des connexions HFSQL**
+- **Support DSN** - Connexion via DSN pour Codial
+- **Pilotes multiples** - Fallback sur différents pilotes HFSQL
+- **Champs optionnels** - Mot de passe et port configurables
+- **Gestion d'erreurs** - Messages d'erreur détaillés pour HFSQL
+
+#### **2. Amélioration de la configuration**
+- **Sauvegarde persistante** - Toutes les configurations dans `credentials.json`
+- **Validation des données** - Vérification des champs requis
+- **Interface adaptative** - Changement dynamique selon le logiciel
+
+#### **3. Optimisation des performances**
+- **Requêtes optimisées** - Amélioration des requêtes SQL
+- **Gestion mémoire** - Fermeture propre des connexions
+- **Logs structurés** - Messages de debug organisés
+
+### **Impact pour les utilisateurs :**
+- **Connexion HFSQL fiable** - Support complet de Codial
+- **Configuration persistante** - Paramètres sauvegardés
+- **Performance améliorée** - Synchronisations plus rapides
+
+---
+
+## Notes de version
+
+### **Version actuelle :** 1.0.0
+### **Dernière mise à jour :** 2025-01-24
+### **Prochaine version prévue :** 1.1.0 (Fonctionnalités Codial complètes)
+
+---
+
+## Comment contribuer
+
+Pour toute modification importante :
+1. Mettre à jour ce ChangeLog
+2. Commiter avec un message descriptif
+3. Tester les modifications
+4. Documenter les nouvelles fonctionnalités
+
+---
+
+*Ce ChangeLog est maintenu à jour avec chaque modification significative du projet.*

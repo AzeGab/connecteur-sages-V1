@@ -269,7 +269,7 @@ def main():
         story,
         styles,
         "Services – Chantiers",
-        "app/services/chantier.py",
+        "app/services/batigest.py",
         "Transferts Batigest → PostgreSQL (agrégats Devis.TempsMO), envoi vers BatiSimply (création/mise à jour), correspondances de codes projet, initialisation colonne 'sync'.",
         key_points=[
             "transfer_chantiers(): INSERT ... ON CONFLICT dans batigest_chantiers.",

@@ -204,11 +204,7 @@ Les logs sont accessibles via l'interface web dans la section "Configuration". I
 
 ## Support
 
-Pour toute assistance :
 
-- Support technique : [dev2@groupe-sages.fr](mailto:dev2@groupe-sages.fr)
-- Support développement : [dev3@groupe-sages.fr](mailto:dev3@groupe-sages.fr)
-- **Support licences : [support@groupe-sages.fr](mailto:support@groupe-sages.fr)**
 
 ## Mises à Jour
 
@@ -297,8 +293,7 @@ Voir `requirements.txt` pour la liste complète.
 
 Pour toute question ou bug, contactez :
 
-- dev2@groupe-sages.fr
-- dev3@groupe-sages.fr
+
 
 # Licence Manager - Système de Gestion des Licences
 

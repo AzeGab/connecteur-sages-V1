@@ -27,8 +27,8 @@ from app.services.connex import (
     check_connection_status
 )
 
-# Services - Chantiers
-from app.services.chantier import (
+# Services - Batigest
+from app.services.batigest import (
     transfer_chantiers,
     transfer_chantiers_vers_batisimply,
     update_code_projet_chantiers,

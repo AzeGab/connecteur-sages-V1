@@ -107,7 +107,7 @@ ORDER BY [Date] DESC;
 - `app/services/heures.py`:
   - `transfer_heures_to_postgres()`
   - `transfer_heures_to_sqlserver()` (logique mapping et upsert SQL Server)
-- `app/services/chantier.py`:
+- `app/services/batigest.py`:
   - `update_code_projet_chantiers()`
 - Routes UI: `app/routes/form_routes.py`
 

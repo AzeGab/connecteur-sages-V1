@@ -1,6 +1,6 @@
 # Liste des fonctions du projet
 
-## app/services/chantier.py
+## app/services/batigest.py
 - `transfer_chantiers()` : Transfère les données des chantiers depuis SQL Server vers PostgreSQL.
 - `transfer_chantiers_vers_batisimply()` : Transfère les chantiers depuis PostgreSQL vers BatiSimply.
 - `recup_chantiers_batisimply()` : Récupère les chantiers depuis BatiSimply via l'API.

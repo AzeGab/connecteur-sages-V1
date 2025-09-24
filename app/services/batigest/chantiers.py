@@ -1,18 +1,15 @@
-# app/services/chantier_service.py
-# Module de gestion du transfert des chantiers
-# Ce fichier contient les fonctions nécessaires pour transférer les données
-# des chantiers depuis SQL Server vers PostgreSQL
+# app/services/batigest/chantiers.py
+# Module de gestion du transfert des chantiers Batigest
+# Ce fichier contient les fonctions nécessaires pour transférer les chantiers
+# entre SQL Server, PostgreSQL et BatiSimply
 
 import psycopg2
 from app.services.connex import connect_to_sqlserver, connect_to_postgres, load_credentials, recup_batisimply_token, connexion
 import requests
 import json
-from datetime import date
-from app.services.heures import transfer_heures_to_postgres, transfer_heures_to_sqlserver
-from app.services.devis import transfer_devis, transfer_devis_vers_batisimply
 
 # ============================================================================
-# TRANSFERT VERS POSTGRESQL
+# TRANSFERT SQLSERVER VERS POSTGRESQL
 # ============================================================================
 
 def transfer_chantiers():
@@ -107,7 +104,7 @@ def transfer_chantiers():
         return False, f"❌ Erreur lors du transfert : {e}"
 
 # ============================================================================
-# TRANSFERT VERS BATISIMPLY
+# TRANSFERT POSTGRESQL VERS BATISIMPLY
 # ============================================================================
 
 def transfer_chantiers_vers_batisimply():
@@ -515,176 +512,3 @@ def update_code_projet_chantiers():
     
     print("=== FIN DE LA MISE À JOUR DES CODES PROJET ===")
     return True
-
-# ============================================================================
-# SYNCHRONISATION DE BATIGEST VERS BATISIMPLY
-# ============================================================================
-
-def sync_batigest_to_batisimply():
-    """
-    Synchronise les données de Batigest vers Batisimply via PostgreSQL.
-    - Étape 1 : Récupère les données depuis Batigest (SQL Server) vers PostgreSQL.
-    - Étape 2 : Transfère les heures de Batigest vers PostgreSQL.
-    - Étape 3 : Transfère les chantiers depuis PostgreSQL vers BatiSimply.
-    
-    Returns:
-        tuple: (bool, str)
-    """
-    try:
-        print("\n=== DÉBUT DE LA SYNCHRONISATION BATIGEST → BATISIMPLY ===")
-
-        # 1. Récupération des credentials et du mode
-        creds = load_credentials()
-        if not creds:
-            return False, "❌ Impossible de charger les credentials."
-
-        mode = creds.get("mode", "chantier")
-        print(f"\n🔁 Mode de synchronisation : {mode}")
-
-        # 2. Transfert des données Batigest → PostgreSQL
-        print("\n🔄 Transfert des données Batigest vers PostgreSQL...")
-        if mode == "devis":
-            success, message = transfer_devis()
-        else:
-            success, message = transfer_chantiers()
-
-        if not success:
-            return False, f"❌ Échec du transfert SQL Server → PostgreSQL : {message}"
-        print(f"✅ {message}")
-
-        print("\n🔄 Transfert des chantiers PostgreSQL → Batisimply...")
-        if mode == "devis":
-            success = transfer_devis_vers_batisimply()
-        else:
-            success = transfer_chantiers_vers_batisimply()
-
-        if not success:
-            return False, f"❌ Échec du transfert SQL Server → PostgreSQL : {message}"
-        print(f"✅ {message}")
-
-        print("\n=== SYNCHRONISATION TERMINÉE AVEC SUCCÈS ===")
-        return True, "✅ Synchronisation complète Batigest → Batisimply réussie."
-
-    except Exception as e:
-        print(f"\n❌ Erreur inattendue : {e}")
-        return False, f"❌ Erreur lors de la synchronisation : {e}"
-
-
-# ============================================================================
-# SYNCHRONISATION DE BATISIMPLY VERS BATIGEST
-# ============================================================================
-
-def sync_batisimply_to_batigest():
-    """
-    Synchronise les heures de Batisimply vers Batigest via PostgreSQL.
-    
-    Flux : Batisimply → PostgreSQL → Batigest (SQL Server)
-    
-    Returns:
-        tuple: (bool, str)
-            - bool: True si la synchronisation a réussi, False sinon
-            - str: Message décrivant le résultat de l'opération
-    """
-    try:
-        print("\n=== DÉBUT DE LA SYNCHRONISATION BATISIMPLY → BATIGEST ===")
-        
-        # Récupération du token Batisimply
-        token = recup_batisimply_token()
-        if not token:
-            return False, "❌ Impossible de continuer sans token Batisimply"
-
-        # Configuration de l'API BatiSimply
-        API_URL = "https://api.staging.batisimply.fr/api/project"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        postgres_conn, sqlserver_conn = connexion()
-
-        print("✅ Connexions aux bases de données établies")
-
-        # 1. Synchronisation Batisimply → PostgreSQL
-        print("\n🔄 Synchronisation Batisimply → PostgreSQL")
-        
-        # Récupération des heures depuis Batisimply et envoi vers PostgreSQL
-    
-        transfer_heures_to_postgres()
-        update_code_projet_chantiers()
-        # 2. Synchronisation PostgreSQL → Batigest
-        transfer_heures_to_sqlserver()
-
-        # Fermeture des connexions
-        postgres_conn.close()
-        sqlserver_conn.close()
-
-        print("\n=== FIN DE LA SYNCHRONISATION BATISIMPLY → BATIGEST ===")
-        return True, "✅ Synchronisation complète Batisimply → Batigest réussie."
-
-    except Exception as e:
-        print(f"\n❌ Erreur lors de la synchronisation : {e}")
-        return False, f"❌ Erreur lors de la synchronisation : {e}"
-
-# ============================================================================
-# INITIALISATION DE LA BASE DE DONNÉES
-# ============================================================================
-
-def init_postgres_table():
-    """
-    Initialise la table PostgreSQL avec les colonnes nécessaires pour le suivi des modifications.
-    
-    Cette fonction :
-    1. Vérifie si les colonnes de dates de modification existent
-    2. Les ajoute si elles n'existent pas
-    3. Met à jour les dates existantes si nécessaire
-    """
-    try:
-        # Connexion à PostgreSQL
-        creds = load_credentials()
-        if not creds or "postgres" not in creds:
-            print("❌ Informations PostgreSQL manquantes")
-            return False
-
-        pg = creds["postgres"]
-        postgres_conn = connect_to_postgres(
-            pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
-        )
-        if not postgres_conn:
-            print("❌ Connexion à PostgreSQL échouée")
-            return False
-
-        postgres_cursor = postgres_conn.cursor()
-
-        # Vérification de l'existence des colonnes
-        postgres_cursor.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'batigest_chantiers'
-        """)
-        existing_columns = [row[0] for row in postgres_cursor.fetchall()]
-
-        # Ajout des colonnes si elles n'existent pas
-        if 'sync' not in existing_columns:
-            postgres_cursor.execute("""
-                ALTER TABLE batigest_chantiers 
-                ADD COLUMN sync BOOLEAN
-            """)
-            print("✅ Colonne sync ajoutée")
-
-        # Validation des modifications
-        postgres_conn.commit()
-        postgres_cursor.close()
-        postgres_conn.close()
-
-        return True
-
-    except Exception as e:
-        print(f"❌ Erreur lors de l'initialisation de la table : {e}")
-        return False
-
-# ============================================================================
-
-
-
-
-    
