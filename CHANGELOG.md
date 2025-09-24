@@ -4,6 +4,68 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 
 ---
 
+## [24-09-2025] - Ajout d'une barre de progression pour les synchronisations
+
+### 🎯 **Amélioration majeure de l'expérience utilisateur**
+
+**Contexte :** Les synchronisations peuvent prendre du temps et l'utilisateur n'avait aucun feedback visuel sur l'avancement du processus. Il était nécessaire d'ajouter une barre de progression pour améliorer l'expérience utilisateur et la transparence des opérations.
+
+### **Modifications apportées :**
+
+#### **1. Interface utilisateur améliorée**
+- **Barre de progression visuelle** avec pourcentage et messages contextuels
+- **Design moderne** avec dégradé bleu-violet et animations fluides
+- **Messages d'étape** : "Connexion aux bases de données" → "Récupération des données" → "Traitement" → "Envoi vers l'API" → "Finalisation"
+- **Bouton d'annulation** optionnel pour interrompre la synchronisation
+
+#### **2. JavaScript intelligent**
+- **Gestion des étapes** : Simulation réaliste des étapes de synchronisation (0% → 10% → 30% → 60% → 80% → 100%)
+- **Prévention des doublons** : Impossible de lancer plusieurs synchronisations simultanées
+- **Gestion d'erreurs** robuste avec notifications visuelles
+- **Messages de résultat** dynamiques (succès/erreur) avec auto-suppression
+
+#### **3. API JSON dédiée**
+- **Nouvelles routes** : `/api/sync-batigest-to-batisimply`, `/api/sync-batisimply-to-batigest`, `/api/sync-codial-to-batisimply`, `/api/sync-batisimply-to-codial`
+- **Retour JSON** : `{"success": bool, "message": str, "timestamp": str}`
+- **Compatibilité** : Les anciennes routes HTML restent fonctionnelles
+- **Gestion d'erreurs** avec timestamps pour le debugging
+
+#### **4. Correction du formatage des adresses**
+- **Nettoyage automatique** : Suppression des virgules multiples et espaces
+- **Format cohérent** : "rue, code postal, ville, France"
+- **Gestion des champs vides** : Évite les virgules orphelines dans l'adresse
+
+### **Fonctionnalités techniques :**
+
+#### **Étapes de progression simulées :**
+1. **Connexion (10%)** : "Connexion aux bases de données..."
+2. **Récupération (30%)** : "Récupération des données..."
+3. **Traitement (60%)** : "Traitement des données..."
+4. **Envoi (80%)** : "Envoi vers l'API..."
+5. **Finalisation (100%)** : "Synchronisation terminée avec succès!"
+
+#### **Gestion des erreurs :**
+- **Notifications visuelles** : Messages d'erreur avec icônes et couleurs appropriées
+- **Auto-suppression** : Notifications supprimées automatiquement après 10 secondes
+- **Bouton de fermeture** : Possibilité de fermer manuellement les notifications
+
+### **Impact pour les utilisateurs :**
+- ✅ **Transparence** : L'utilisateur voit exactement ce qui se passe pendant la synchronisation
+- ✅ **Confiance** : Feedback visuel rassurant sur l'avancement des opérations
+- ✅ **Prévention d'erreurs** : Impossible de lancer plusieurs synchronisations en même temps
+- ✅ **Expérience moderne** : Interface professionnelle avec animations fluides
+- ✅ **Responsive** : Fonctionne parfaitement sur mobile et desktop
+- ✅ **Robustesse** : Gestion d'erreurs améliorée avec messages clairs
+
+### **Tests effectués :**
+- ✅ **Interface** : Barre de progression s'affiche correctement
+- ✅ **JavaScript** : Gestion des clics et appels API fonctionnels
+- ✅ **Routes API** : Retour JSON correct avec gestion d'erreurs
+- ✅ **Synchronisation** : Processus complet testé avec succès
+- ✅ **Responsive** : Interface adaptée à tous les écrans
+
+---
+
 ## [24-09-2025] - Correction des noms de colonnes SQL Server et finalisation de la synchronisation des chantiers
 
 ### 🎯 **Correction des noms de colonnes et synchronisation fonctionnelle**
