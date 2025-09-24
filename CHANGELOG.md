@@ -4,6 +4,34 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 
 ---
 
+## [24-09-2025] - Nettoyage et correction des imports après restructuration
+
+### 🧹 **Correction des imports et suppression des fichiers orphelins**
+
+**Contexte :** Après la restructuration des packages, il restait des fichiers orphelins et des imports incorrects qui pouvaient causer des conflits.
+
+### **Modifications apportées :**
+
+#### **1. Suppression des fichiers orphelins**
+- **`app/services/heures.py`** - Fichier dupliqué supprimé (existe dans `batigest/heures.py`)
+- **`app/services/devis.py`** - Fichier dupliqué supprimé (existe dans `batigest/devis.py`)
+
+#### **2. Correction des imports**
+- **`app/routes/form_routes.py`** - Imports mis à jour vers les packages `batigest`
+- **`scripts/debug_heures.py`** - Import corrigé vers `app.services.batigest`
+
+#### **3. Vérification complète**
+- **Tests d'imports** - Tous les packages testés et fonctionnels
+- **Linting** - Aucune erreur détectée
+- **Structure propre** - Dossier `services` nettoyé et organisé
+
+### **Impact pour les utilisateurs :**
+- **Fiabilité** - Plus de conflits d'imports
+- **Performance** - Suppression des doublons
+- **Maintenabilité** - Structure claire et cohérente
+
+---
+
 ## [24-09-2025] - Restructuration complète de l'architecture des services
 
 ### 🏗️ **Refactorisation majeure de l'organisation du code**

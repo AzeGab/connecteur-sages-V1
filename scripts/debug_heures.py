@@ -18,7 +18,7 @@ from app.services.connex import (
     recup_batisimply_token,
 )
 from app.services.batigest import update_code_projet_chantiers
-from app.services.heures import transfer_heures_to_sqlserver
+from app.services.batigest import transfer_heures_to_sqlserver
 
 
 def iso_utc_start(dt: datetime) -> str:

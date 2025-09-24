@@ -39,14 +39,14 @@ from app.services.batigest import (
     init_postgres_table
 )
 
-# Services - Heures
-from app.services.heures import (
+# Services - Heures (depuis Batigest)
+from app.services.batigest import (
     transfer_heures_to_postgres,
     transfer_heures_to_sqlserver
 )
 
-# Services - Devis
-from app.services.devis import transfer_devis
+# Services - Devis (depuis Batigest)
+from app.services.batigest import transfer_devis
 
 # Services - Licence
 from app.services.license import (
