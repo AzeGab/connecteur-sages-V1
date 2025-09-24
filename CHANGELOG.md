@@ -4,6 +4,42 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 
 ---
 
+## [24-09-2025] - Nettoyage complet du projet et suppression des fichiers sensibles
+
+### 🧹 **Nettoyage complet du projet et sécurisation**
+
+**Contexte :** Après la restructuration des packages, un nettoyage complet du projet était nécessaire pour supprimer les fichiers obsolètes, les doublons et les fichiers contenant des informations sensibles.
+
+### **Modifications apportées :**
+
+#### **1. Suppression des fichiers obsolètes et temporaires**
+- **`installer.py`** - Script d'installation obsolète supprimé
+- **`Requete SQL pour trouver les heures.txt`** - Fichier temporaire supprimé
+- **`build/`** - Dossier de build PyInstaller supprimé (fichiers temporaires)
+
+#### **2. Suppression des fichiers contenant des informations sensibles**
+- **`LICENSE_KEYS.md`** - Contenait des clés de licence sensibles
+- **`env.example`** - Contenait des clés Supabase en clair
+
+#### **3. Mise à jour de la documentation**
+- **`fonctions.md`** - Références mises à jour vers les packages
+- **`docs/SYNCHRO_HEURES_MAPPING.md`** - Références corrigées
+- **`MIGRATION_BASE_TAMPON_DISTANTE.md`** - Références mises à jour
+- **`docs/generate_project_pdf.py`** - Références corrigées
+
+#### **4. Vérification de la structure finale**
+- **Tests d'imports** - Tous les packages testés et fonctionnels
+- **Linting** - Aucune erreur détectée
+- **Structure propre** - Projet nettoyé et organisé
+
+### **Impact pour les utilisateurs :**
+- **Sécurité** - Suppression des informations sensibles du repository
+- **Performance** - Suppression des fichiers inutiles
+- **Maintenabilité** - Structure claire et cohérente
+- **Documentation** - Références mises à jour et correctes
+
+---
+
 ## [24-09-2025] - Nettoyage et correction des imports après restructuration
 
 ### 🧹 **Correction des imports et suppression des fichiers orphelins**

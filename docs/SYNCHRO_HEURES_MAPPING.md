@@ -104,10 +104,10 @@ ORDER BY [Date] DESC;
 ---
 
 ### Références code
-- `app/services/heures.py`:
+- `app/services/batigest/heures.py`:
   - `transfer_heures_to_postgres()`
   - `transfer_heures_to_sqlserver()` (logique mapping et upsert SQL Server)
-- `app/services/batigest.py`:
+- `app/services/batigest/heures.py`:
   - `update_code_projet_chantiers()`
 - Routes UI: `app/routes/form_routes.py`
 

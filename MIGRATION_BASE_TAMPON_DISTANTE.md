@@ -93,7 +93,7 @@ Client → Application Locale → API Serveur Distant → PostgreSQL Distant →
 #### Fichiers à modifier :
 
 - `app/services/connex.py`
-- `app/services/batigest.py`
+- `app/services/batigest/` (package)
 - `app/services/devis.py`
 - `app/services/heures.py`
 
