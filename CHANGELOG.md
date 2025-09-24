@@ -95,49 +95,6 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 
 ---
 
-## [11-09-2025] - Amélioration de l'interface utilisateur
-
-### 🎨 **Interface de configuration modernisée**
-
-**Contexte :** L'interface de configuration manquait de clarté et de fonctionnalités de debug.
-
-### **Modifications apportées :**
-
-#### **1. Badges de statut des connexions**
-- **Indicateurs visuels** - Pastilles colorées pour chaque base de données
-- **Statut en temps réel** - Connexion réussie/échouée
-- **Localisation** - Badges dans l'onglet "Bases de données"
-
-#### **2. Mode debug intégré**
-- **Switch activable/désactivable** - Contrôle du mode debug
-- **Persistence** - Sauvegarde dans `credentials.json`
-- **Logs détaillés** - Affichage des opérations en temps réel
-- **Localisation** - Panel debug dans l'onglet "Bases de données"
-
-#### **3. Support multi-logiciels**
-- **Batigest** - Interface SQL Server
-- **Codial** - Interface HFSQL avec champs adaptés
-- **Changement dynamique** - Interface qui s'adapte au logiciel sélectionné
-
-#### **4. Configuration BatiSimply**
-- **Nouvel onglet** - Configuration des paramètres API
-- **Sauvegarde sécurisée** - Données stockées dans `credentials.json`
-- **Champs complets** - SSO URL, Client ID, Secret, etc.
-
-#### **5. Amélioration des messages d'erreur**
-- **Messages dynamiques** - Titre et style adaptés au type de message
-- **Détails techniques** - Section collapsible pour le debugging
-- **Formatage propre** - Suppression des caractères d'échappement
-- **Bouton de fermeture** - Messages fermables par l'utilisateur
-
-### **Impact pour les utilisateurs :**
-- **Interface plus claire** - Statut des connexions visible
-- **Debug facilité** - Mode debug intégré et persistant
-- **Support Codial** - Interface adaptée pour HFSQL
-- **Messages d'erreur lisibles** - Debugging simplifié
-
----
-
 ## [22-09-2025] - Amélioration de la validation des licences
 
 ### 🔐 **Système de validation des licences robuste**
@@ -196,6 +153,49 @@ Ce fichier documente toutes les modifications importantes apportées au projet C
 - **Diagnostic facilité** - Outils pour identifier les problèmes
 - **Documentation complète** - Guides d'installation et d'utilisation
 - **Maintenance simplifiée** - Scripts de diagnostic automatisés
+
+---
+
+## [11-09-2025] - Amélioration de l'interface utilisateur
+
+### 🎨 **Interface de configuration modernisée**
+
+**Contexte :** L'interface de configuration manquait de clarté et de fonctionnalités de debug.
+
+### **Modifications apportées :**
+
+#### **1. Badges de statut des connexions**
+- **Indicateurs visuels** - Pastilles colorées pour chaque base de données
+- **Statut en temps réel** - Connexion réussie/échouée
+- **Localisation** - Badges dans l'onglet "Bases de données"
+
+#### **2. Mode debug intégré**
+- **Switch activable/désactivable** - Contrôle du mode debug
+- **Persistence** - Sauvegarde dans `credentials.json`
+- **Logs détaillés** - Affichage des opérations en temps réel
+- **Localisation** - Panel debug dans l'onglet "Bases de données"
+
+#### **3. Support multi-logiciels**
+- **Batigest** - Interface SQL Server
+- **Codial** - Interface HFSQL avec champs adaptés
+- **Changement dynamique** - Interface qui s'adapte au logiciel sélectionné
+
+#### **4. Configuration BatiSimply**
+- **Nouvel onglet** - Configuration des paramètres API
+- **Sauvegarde sécurisée** - Données stockées dans `credentials.json`
+- **Champs complets** - SSO URL, Client ID, Secret, etc.
+
+#### **5. Amélioration des messages d'erreur**
+- **Messages dynamiques** - Titre et style adaptés au type de message
+- **Détails techniques** - Section collapsible pour le debugging
+- **Formatage propre** - Suppression des caractères d'échappement
+- **Bouton de fermeture** - Messages fermables par l'utilisateur
+
+### **Impact pour les utilisateurs :**
+- **Interface plus claire** - Statut des connexions visible
+- **Debug facilité** - Mode debug intégré et persistant
+- **Support Codial** - Interface adaptée pour HFSQL
+- **Messages d'erreur lisibles** - Debugging simplifié
 
 ---
 
