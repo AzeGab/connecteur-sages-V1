@@ -27,57 +27,8 @@ from app.services.connex import (
     check_connection_status
 )
 
-# Services - Batigest (flux SQL Server -> PostgreSQL -> BatiSimply)
-from app.services.batigest import (
-    transfer_chantiers_sqlserver_to_postgres,
-    transfer_chantiers_postgres_to_batisimply,
-    transfer_heures_sqlserver_to_postgres,
-    transfer_heures_postgres_to_batisimply,
-    transfer_devis_sqlserver_to_postgres,
-    transfer_devis_postgres_to_batisimply,
-    sync_sqlserver_to_batisimply
-)
-
-# Services - Batigest (flux BatiSimply -> PostgreSQL -> SQL Server)
-from app.services.batigest import (
-    transfer_chantiers_batisimply_to_postgres,
-    transfer_chantiers_postgres_to_sqlserver,
-    transfer_heures_batisimply_to_postgres,
-    transfer_heures_postgres_to_sqlserver,
-    transfer_devis_batisimply_to_postgres,
-    transfer_devis_postgres_to_sqlserver,
-    sync_batisimply_to_sqlserver
-)
-
-# Services - Batigest (utilitaires)
-from app.services.batigest import (
-    init_batigest_tables,
-    check_batigest_connection
-)
-
-# Services - Codial (flux HFSQL -> PostgreSQL -> BatiSimply)
-from app.services.codial import (
-    transfer_chantiers_hfsql_to_postgres,
-    transfer_chantiers_postgres_to_batisimply,
-    transfer_heures_hfsql_to_postgres,
-    transfer_heures_postgres_to_batisimply,
-    sync_hfsql_to_batisimply
-)
-
-# Services - Codial (flux BatiSimply -> PostgreSQL -> HFSQL)
-from app.services.codial import (
-    transfer_chantiers_batisimply_to_postgres,
-    transfer_chantiers_postgres_to_hfsql,
-    transfer_heures_batisimply_to_postgres,
-    transfer_heures_postgres_to_hfsql,
-    sync_batisimply_to_hfsql
-)
-
-# Services - Codial (utilitaires)
-from app.services.codial import (
-    init_codial_tables,
-    check_codial_connection
-)
+import app.services.batigest as batigest_services
+import app.services.codial as codial_services
 
 # Services - Licence
 from app.services.license import (
@@ -424,10 +375,10 @@ async def transfer_data(request: Request):
         message = "❌ Merci de renseigner les informations de connexion SQL Server et PostgreSQL avant de lancer le transfert."
     else:
         if debug_mode:
-            (success, message), logs = _capture_output(transfer_chantiers_sqlserver_to_postgres)
+            (success, message), logs = _capture_output(batigest_services.transfer_chantiers_sqlserver_to_postgres)
             debug_output = f"=== Debug: /transfer ===\n{logs}"
         else:
-            success, message = transfer_chantiers_sqlserver_to_postgres()
+            success, message = batigest_services.transfer_chantiers_sqlserver_to_postgres()
     
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -502,10 +453,10 @@ async def recup_heures_batisimply(request: Request):
     debug_output = None
     try:
         if debug_mode:
-            success, logs = _capture_output(transfer_heures_sqlserver_to_postgres)
+            success, logs = _capture_output(batigest_services.transfer_heures_sqlserver_to_postgres)
             debug_output = f"=== Debug: /recup-heures ===\n{logs}"
         else:
-            success, message = transfer_heures_sqlserver_to_postgres()
+            success, message = batigest_services.transfer_heures_sqlserver_to_postgres()
         if success:
             message = "✅ Heures récupérées et insérées dans PostgreSQL avec succès."
         else:
@@ -625,10 +576,10 @@ async def sync_batigest_to_batisimply_route(request: Request):
     debug_output = None
     try:
         if debug_mode:
-            (success, message), logs = _capture_output(sync_sqlserver_to_batisimply)
+            (success, message), logs = _capture_output(batigest_services.sync_sqlserver_to_batisimply)
             debug_output = f"=== Debug: /sync-batigest-to-batisimply ===\n{logs}"
         else:
-            success, message = sync_sqlserver_to_batisimply()
+            success, message = batigest_services.sync_sqlserver_to_batisimply()
     except Exception as e:
         success = False
         message = f"❌ Erreur lors de la synchronisation : {e}"
@@ -660,10 +611,10 @@ async def sync_batisimply_to_batigest_route(request: Request):
     debug_output = None
     try:
         if debug_mode:
-            (success, message), logs = _capture_output(sync_batisimply_to_sqlserver)
+            (success, message), logs = _capture_output(batigest_services.sync_batisimply_to_sqlserver)
             debug_output = f"=== Debug: /sync-batisimply-to-batigest ===\n{logs}"
         else:
-            success, message = sync_batisimply_to_sqlserver()
+            success, message = batigest_services.sync_batisimply_to_sqlserver()
     except Exception as e:
         success = False
         message = f"❌ Erreur lors de la synchronisation : {e}"
@@ -699,10 +650,10 @@ async def sync_codial_to_batisimply_route(request: Request):
     debug_output = None
     try:
         if debug_mode:
-            (success, message), logs = _capture_output(sync_hfsql_to_batisimply)
+            (success, message), logs = _capture_output(codial_services.sync_hfsql_to_batisimply)
             debug_output = f"=== Debug: /sync-codial-to-batisimply ===\n{logs}"
         else:
-            success, message = sync_hfsql_to_batisimply()
+            success, message = codial_services.sync_hfsql_to_batisimply()
     except Exception as e:
         success = False
         message = f"❌ Erreur lors de la synchronisation Codial → BatiSimply : {e}"
@@ -734,10 +685,10 @@ async def sync_batisimply_to_codial_route(request: Request):
     debug_output = None
     try:
         if debug_mode:
-            (success, message), logs = _capture_output(sync_batisimply_to_hfsql)
+            (success, message), logs = _capture_output(codial_services.sync_batisimply_to_hfsql)
             debug_output = f"=== Debug: /sync-batisimply-to-codial ===\n{logs}"
         else:
-            success, message = sync_batisimply_to_hfsql()
+            success, message = codial_services.sync_batisimply_to_hfsql()
     except Exception as e:
         success = False
         message = f"❌ Erreur lors de la synchronisation BatiSimply → Codial : {e}"
@@ -755,7 +706,7 @@ async def sync_batisimply_to_codial_route(request: Request):
     })
 
 @router.post("/init-batigest-tables", response_class=HTMLResponse)
-async def init_batigest_tables_route(request: Request):
+async def batigest_services.init_batigest_tables()_route(request: Request):
     """
     Route pour initialiser les tables PostgreSQL Batigest.
     
@@ -766,7 +717,7 @@ async def init_batigest_tables_route(request: Request):
         TemplateResponse: Page HTML avec le message de résultat
     """
     try:
-        success = init_batigest_tables()
+        success = batigest_services.init_batigest_tables()()
         if success:
             message = "✅ Tables PostgreSQL Batigest initialisées avec succès"
         else:
@@ -787,7 +738,7 @@ async def init_batigest_tables_route(request: Request):
     })
 
 @router.post("/init-codial-tables", response_class=HTMLResponse)
-async def init_codial_tables_route(request: Request):
+async def codial_services.init_codial_tables()_route(request: Request):
     """
     Route pour initialiser les tables PostgreSQL Codial.
     
@@ -798,7 +749,7 @@ async def init_codial_tables_route(request: Request):
         TemplateResponse: Page HTML avec le message de résultat
     """
     try:
-        success = init_codial_tables()
+        success = codial_services.init_codial_tables()()
         if success:
             message = "✅ Tables PostgreSQL Codial initialisées avec succès"
         else:
@@ -1225,7 +1176,7 @@ async def api_sync_batigest_to_batisimply():
         JSONResponse: Résultat de la synchronisation
     """
     try:
-        success, message = sync_sqlserver_to_batisimply()
+        success, message = batigest_services.sync_sqlserver_to_batisimply()
         return JSONResponse({
             "success": success,
             "message": message,
@@ -1247,7 +1198,7 @@ async def api_sync_batisimply_to_batigest():
         JSONResponse: Résultat de la synchronisation
     """
     try:
-        success, message = sync_batisimply_to_sqlserver()
+        success, message = batigest_services.sync_batisimply_to_sqlserver()
         return JSONResponse({
             "success": success,
             "message": message,
@@ -1269,7 +1220,7 @@ async def api_sync_codial_to_batisimply():
         JSONResponse: Résultat de la synchronisation
     """
     try:
-        success, message = sync_hfsql_to_batisimply()
+        success, message = codial_services.sync_hfsql_to_batisimply()
         return JSONResponse({
             "success": success,
             "message": message,
@@ -1291,7 +1242,7 @@ async def api_sync_batisimply_to_codial():
         JSONResponse: Résultat de la synchronisation
     """
     try:
-        success, message = sync_batisimply_to_hfsql()
+        success, message = codial_services.sync_batisimply_to_hfsql()
         return JSONResponse({
             "success": success,
             "message": message,
