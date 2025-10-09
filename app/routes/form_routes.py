@@ -706,7 +706,7 @@ async def sync_batisimply_to_codial_route(request: Request):
     })
 
 @router.post("/init-batigest-tables", response_class=HTMLResponse)
-async def batigest_services.init_batigest_tables()_route(request: Request):
+async def init_batigest_tables_route(request: Request):
     """
     Route pour initialiser les tables PostgreSQL Batigest.
     
@@ -717,7 +717,7 @@ async def batigest_services.init_batigest_tables()_route(request: Request):
         TemplateResponse: Page HTML avec le message de résultat
     """
     try:
-        success = batigest_services.init_batigest_tables()()
+        success = batigest_services.init_batigest_tables()
         if success:
             message = "✅ Tables PostgreSQL Batigest initialisées avec succès"
         else:
@@ -738,7 +738,7 @@ async def batigest_services.init_batigest_tables()_route(request: Request):
     })
 
 @router.post("/init-codial-tables", response_class=HTMLResponse)
-async def codial_services.init_codial_tables()_route(request: Request):
+async def init_codial_tables_route(request: Request):
     """
     Route pour initialiser les tables PostgreSQL Codial.
     
@@ -749,7 +749,7 @@ async def codial_services.init_codial_tables()_route(request: Request):
         TemplateResponse: Page HTML avec le message de résultat
     """
     try:
-        success = codial_services.init_codial_tables()()
+        success = codial_services.init_codial_tables()
         if success:
             message = "✅ Tables PostgreSQL Codial initialisées avec succès"
         else:
