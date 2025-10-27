@@ -210,6 +210,7 @@ async def connect_sqlserver(
         "sql_connected": sql_connected,
         "pg_connected": pg_connected,
         "software": (load_credentials() or {}).get("software", "batigest"),
+        "hfsql_db": (load_credentials() or {}).get("hfsql", {}).get("database"),
         "debug_mode": debug_mode,
         "debug_output": debug_output,
         "current_section": "databases"
@@ -228,12 +229,12 @@ async def connect_hfsql(
     """
     Teste et sauvegarde la connexion HFSQL (Codial) si le logiciel sélectionné est Codial.
     """
-    # Si software != codial, on refuse silencieusement et on affiche l’onglet
+    # Si software != codial, on refuse silencieusement et on affiche l'onglet
     creds = load_credentials() or {}
     debug_mode = _effective_debug_mode()
     debug_output = None
     if creds.get("software", "batigest") != "codial":
-        message = "ℹ️ Logiciel non configuré sur Codial. Basculez d’abord le logiciel."
+        message = "ℹ️ Logiciel non configuré sur Codial. Basculez d'abord le logiciel."
     else:
         if debug_mode:
             # Collecte d'informations utiles
@@ -250,10 +251,15 @@ async def connect_hfsql(
                 f"Python bits={arch}\nODBC Drivers=[{drivers}]\n"
             )
             host_value = f"DSN={dsn}" if dsn else server
+            # Forcer la base au niveau DSN pour éviter la base par défaut du DSN
+            if host_value.upper().startswith("DSN="):
+                host_value = f"{host_value};DATABASE={database}"
             conn, logs = _capture_output(connect_to_hfsql, host_value, user, password, database, port)
             debug_output = header + logs
         else:
             host_value = f"DSN={dsn}" if dsn else server
+            if host_value.upper().startswith("DSN="):
+                host_value = f"{host_value};DATABASE={database}"
             conn = connect_to_hfsql(host_value, user, password, database, port)
         if conn:
             creds["hfsql"] = {
@@ -279,6 +285,110 @@ async def connect_hfsql(
         "debug_mode": debug_mode,
         "debug_output": debug_output,
         "software": (load_credentials() or {}).get("software", "batigest"),
+        "hfsql_db": (load_credentials() or {}).get("hfsql", {}).get("database"),
+        "current_section": "databases"
+    })
+
+@router.get("/query-hfsql-reparat", response_class=HTMLResponse)
+async def query_hfsql_reparat(request: Request):
+    """
+    Route pour exécuter la requête SELECT * FROM CLIENT sur HFSQL
+    et afficher les résultats dans un cadre.
+    """
+    creds = load_credentials() or {}
+    debug_mode = _effective_debug_mode()
+    debug_output = None
+    query_results = None
+    query_error = None
+    
+    if creds.get("software") != "codial" or "hfsql" not in creds:
+        query_error = "Configuration HFSQL non trouvée. Veuillez d'abord configurer la connexion HFSQL."
+    else:
+        hfsql_config = creds["hfsql"]
+        host_value = f"DSN={hfsql_config['dsn']}" if hfsql_config.get("dsn") else hfsql_config.get("host", "localhost")
+        # Forcer la base au niveau DSN si applicable
+        if host_value.upper().startswith("DSN="):
+            host_value = f"{host_value};DATABASE={hfsql_config.get('database', 'HFSQL')}"
+        
+        try:
+            if debug_mode:
+                conn, logs = _capture_output(connect_to_hfsql, 
+                    host_value,
+                    hfsql_config.get("user", "admin"),
+                    hfsql_config.get("password", ""),
+                    hfsql_config.get("database", "HFSQL"),
+                    hfsql_config.get("port", "4900")
+                )
+                debug_output = f"=== Debug: /query-hfsql-reparat ===\n{logs}"
+            else:
+                conn = connect_to_hfsql(
+                    host_value,
+                    hfsql_config.get("user", "admin"),
+                    hfsql_config.get("password", ""),
+                    hfsql_config.get("database", "HFSQL"),
+                    hfsql_config.get("port", "4900")
+                )
+            
+            if conn:
+                try:
+                    cursor = conn.cursor()
+                    # Essayer différentes requêtes pour REPARAT
+                    queries_to_try = [
+                        "SELECT COUNT(*) as total FROM REPARAT",
+                        "SELECT TOP 10 * FROM REPARAT",
+                        "SELECT TOP 5 R1CLEUNIK, NUMEROR, CODE, NOM, ADRESSE1, VILLE, MARQUE, TYPE FROM REPARAT",
+                        "SELECT R1CLEUNIK, NUMEROR, CODE, NOM, ADRESSE1, VILLE FROM REPARAT",
+                        "SELECT * FROM REPARAT WHERE 1=1"
+                    ]
+                    
+                    for query in queries_to_try:
+                        try:
+                            cursor.execute(query)
+                            results = cursor.fetchall()
+                            
+                            if results:
+                                # Récupérer les colonnes
+                                columns = [description[0] for description in cursor.description]
+                                
+                                # Préparer les données pour l'affichage
+                                query_results = {
+                                    "query": query,
+                                    "columns": columns,
+                                    "data": results,
+                                    "count": len(results)
+                                }
+                                break
+                                
+                        except Exception as e:
+                            continue
+                    
+                    if not query_results:
+                        query_error = "Aucune requête n'a pu être exécutée avec succès. Vérifiez la structure de la table REPARAT."
+                    
+                    cursor.close()
+                    conn.close()
+                    
+                except Exception as e:
+                    query_error = f"Erreur lors de l'exécution de la requête: {str(e)}"
+                    if conn:
+                        conn.close()
+            else:
+                query_error = "Impossible de se connecter à la base HFSQL. Vérifiez la configuration."
+                
+        except Exception as e:
+            query_error = f"Erreur de connexion: {str(e)}"
+    
+    sql_connected, pg_connected = check_connection_status()
+    return templates.TemplateResponse("configuration.html", {
+        "request": request,
+        "sql_connected": sql_connected,
+        "pg_connected": pg_connected,
+        "software": creds.get("software", "batigest"),
+        "hfsql_db": (creds.get("hfsql") or {}).get("database"),
+        "debug_mode": debug_mode,
+        "debug_output": debug_output,
+        "query_results": query_results,
+        "query_error": query_error,
         "current_section": "databases"
     })
 
@@ -799,6 +909,7 @@ async def configuration_page(request: Request):
         "software": creds.get("software", "batigest") if creds else "batigest",
         "debug": creds.get("debug", False) if creds else False,
         "batisimply": creds.get("batisimply", {}) if creds else {},
+        "hfsql_db": (creds.get("hfsql") or {}).get("database") if creds else None,
         "license_key": license_key,
         "license_valid": license_valid,
         "license_expiry_date": license_expiry_date,

@@ -47,10 +47,10 @@ def connect_to_sqlserver(server, user, password, database):
     )
     try:
         conn = pyodbc.connect(conn_str)
-        print("✅ Connexion SQL Server réussie")
+        print("Connexion SQL Server reussie")
         return conn
     except Exception as e:
-        print("❌ Erreur de connexion SQL Server:", e)
+        print("Erreur de connexion SQL Server:", e)
         return None
 
 # ============================================================================
@@ -82,13 +82,13 @@ def connect_to_postgres(host, user, password, database, port="5432"):
             client_encoding='utf8',
             options='-c client_encoding=utf8'
         )
-        print("✅ Connexion PostgreSQL réussie")
+        print("Connexion PostgreSQL reussie")
         return conn
     except psycopg2.OperationalError as e:
-        print(f"❌ Erreur de connexion PostgreSQL : {e}")
+        print(f"Erreur de connexion PostgreSQL : {e}")
         return None
     except Exception as e:
-        print(f"❌ Erreur PostgreSQL : {e}")
+        print(f"Erreur PostgreSQL : {e}")
         return None
     
 # ============================================================================
@@ -102,46 +102,175 @@ def connect_to_hfsql(host: str, user: str = "admin", password: str = "", databas
     - Requiert l'installation du pilote ODBC PC SOFT (HFSQL Client/Serveur)
     - Connexion "DSN-less" avec Driver explicite
     - Supporte un host de type "DSN=NomDeDSN" si vous utilisez un DSN Windows
+    - Gestion avancée des erreurs de version et compatibilité
+    
+    Solutions pour erreur "couche cliente plus récente":
+    1. Mettre à jour le client HFSQL vers la dernière version
+    2. Utiliser un DSN Windows configuré
+    3. Vérifier la compatibilité serveur/client
+    4. Essayer différents formats de chaîne de connexion
     """
     try:
-        # Si un DSN Windows est fourni (ex: "DSN=MON_DSN"), utiliser tel quel
+        # Si un DSN Windows est fourni (ex: "DSN=MON_DSN"), forcer la base ciblée
+        # Certains DSN imposent une base par défaut; on la surpasse via DATABASE
         if host.upper().startswith("DSN="):
-            conn_str = f"{host};UID={user};PWD={password}"
-            conn = pypyodbc.connect(conn_str)
-            print("✅ Connexion HFSQL via DSN réussie")
-            return conn
+            dsn_conn_strings = [
+                f"{host};DATABASE={database};UID={user};PWD={password}",
+                f"{host};Database={database};UID={user};PWD={password}",
+                f"{host};UID={user};PWD={password}"
+            ]
+            for idx, conn_str in enumerate(dsn_conn_strings, start=1):
+                try:
+                    conn = pypyodbc.connect(conn_str)
+                    print(f"Connexion HFSQL via DSN reussie (essai {idx}, avec base '{database}')")
+                    return conn
+                except Exception as e:
+                    print(f"Erreur DSN HFSQL (pypyodbc, essai {idx}): {e}")
+                    # Essayer aussi avec pyodbc
+                    try:
+                        conn = pyodbc.connect(conn_str)
+                        print(f"Connexion HFSQL via DSN (pyodbc) reussie (essai {idx}, avec base '{database}')")
+                        return conn
+                    except Exception as e2:
+                        print(f"Erreur DSN HFSQL (pyodbc, essai {idx}): {e2}")
 
-        # Essayer plusieurs noms de driver possibles
+        # Essayer plusieurs noms de driver possibles avec différents formats
         driver_candidates = [
             "HFSQL Client/Server (Unicode)",
             "HFSQL Client/Server",
             "HFSQL (Unicode)",
             "HFSQL",
+            "HFSQL Client/Server Unicode",
+            "HFSQL Unicode Client/Server",
+            "HFSQL Client/Server 64-bit",
+            "HFSQL Client/Server 32-bit"
+        ]
+
+        # Formats de chaîne de connexion à tester
+        connection_formats = [
+            # Format pypyodbc
+            {
+                "driver": "Driver={{{driver}}};",
+                "server": "Server Name={host};",
+                "port": "Server Port={port};",
+                "database": "Database={database};",
+                "auth": "UID={user};PWD={password}"
+            },
+            # Format pyodbc
+            {
+                "driver": "DRIVER={{{driver}}};",
+                "server": "SERVER={host};",
+                "port": "PORT={port};",
+                "database": "DATABASE={database};",
+                "auth": "UID={user};PWD={password};TrustServerCertificate=yes"
+            },
+            # Format alternatif
+            {
+                "driver": "Driver={{{driver}}};",
+                "server": "Server={host};",
+                "port": "Port={port};",
+                "database": "Database={database};",
+                "auth": "User={user};Password={password}"
+            }
         ]
 
         last_error = None
-        for drv in driver_candidates:
-            try:
-                conn_str = (
-                    "Driver={{{driver}}};"
-                    "Server Name={host};"
-                    "Server Port={port};"
-                    "Database={database};"
-                    "UID={user};"
-                    "PWD={password}"
-                ).format(driver=drv, host=host, port=port, database=database, user=user, password=password)
-                conn = pypyodbc.connect(conn_str)
-                print(f"✅ Connexion HFSQL réussie avec le driver '{drv}'")
-                return conn
-            except Exception as e:  # garder la dernière erreur pour diagnostic
-                last_error = e
-                continue
+        successful_driver = None
+        
+        for format_idx, conn_format in enumerate(connection_formats):
+            print(f"Test format de connexion {format_idx + 1}...")
+            
+            for drv in driver_candidates:
+                try:
+                    # Vérifier si le driver existe
+                    if drv not in pyodbc.drivers():
+                        continue
+                    
+                    conn_str = (
+                        conn_format["driver"] +
+                        conn_format["server"] +
+                        conn_format["port"] +
+                        conn_format["database"] +
+                        conn_format["auth"]
+                    ).format(driver=drv, host=host, port=port, database=database, user=user, password=password)
+                    
+                    # Essayer avec pypyodbc
+                    try:
+                        conn = pypyodbc.connect(conn_str)
+                        print(f"Connexion HFSQL reussie avec le driver '{drv}' (format {format_idx + 1})")
+                        return conn
+                    except Exception as e1:
+                        # Essayer avec pyodbc
+                        try:
+                            conn = pyodbc.connect(conn_str, timeout=30)
+                            print(f"Connexion HFSQL reussie avec le driver '{drv}' (pyodbc, format {format_idx + 1})")
+                            return conn
+                        except Exception as e2:
+                            last_error = e2 if "couche cliente plus récente" in str(e2) else e1
+                            continue
+                            
+                except Exception as e:
+                    last_error = e
+                    continue
 
-        print("❌ Erreur HFSQL (pilote/DSN):", last_error)
-        print("ℹ️ Vérifiez que le pilote ODBC HFSQL Client/Serveur est installé et que le nom du driver est correct.")
+        # Si aucune connexion n'a réussi, essayer des méthodes alternatives
+        print("Tentative de connexion avec paramètres alternatifs...")
+        
+        # Méthode alternative 1: Connexion sans base de données spécifiée
+        try:
+            for drv in ["HFSQL Client/Server", "HFSQL"]:
+                if drv in pyodbc.drivers():
+                    conn_str = f"DRIVER={{{drv}}};SERVER={host};PORT={port};UID={user};PWD={password}"
+                    conn = pyodbc.connect(conn_str, timeout=30)
+                    print(f"Connexion HFSQL reussie (sans base spécifiée) avec '{drv}'")
+                    return conn
+        except Exception as e:
+            pass
+        
+        # Méthode alternative 2: Connexion avec host:port
+        try:
+            for drv in ["HFSQL Client/Server", "HFSQL"]:
+                if drv in pyodbc.drivers():
+                    conn_str = f"DRIVER={{{drv}}};SERVER={host}:{port};DATABASE={database};UID={user};PWD={password}"
+                    conn = pyodbc.connect(conn_str, timeout=30)
+                    print(f"Connexion HFSQL reussie (host:port) avec '{drv}'")
+                    return conn
+        except Exception as e:
+            pass
+
+        print("Erreur HFSQL (pilote/DSN):", last_error)
+        print("Verifiez que le pilote ODBC HFSQL Client/Serveur est installe et que le nom du driver est correct.")
+        
+        # Diagnostic spécifique pour l'erreur de version
+        if last_error and "couche cliente plus récente" in str(last_error):
+            print("\n=== DIAGNOSTIC HFSQL DÉTAILLÉ ===")
+            print("ERREUR: Version du client HFSQL trop ancienne")
+            print("Détails de l'erreur:")
+            print(f"  {last_error}")
+            print("\nSOLUTIONS RECOMMANDÉES:")
+            print("1. Mettre à jour le client HFSQL vers la dernière version")
+            print("   - Télécharger depuis: https://www.pcsoft.fr/telechargements/")
+            print("   - Installer HFSQL Client/Server (version 64-bit si Python 64-bit)")
+            print("   - Redémarrer l'ordinateur après installation")
+            print("2. Créer un DSN Windows configuré")
+            print("   - Ouvrir 'Sources de données ODBC' (odbcad32.exe)")
+            print("   - Créer un DSN système avec les paramètres:")
+            print(f"     * Serveur: {host}")
+            print(f"     * Port: {port}")
+            print(f"     * Base: {database}")
+            print(f"     * Utilisateur: {user}")
+            print("   - Utiliser 'DSN=NomDuDSN' dans votre configuration")
+            print("3. Vérifier la compatibilité serveur/client")
+            print("   - Contacter l'administrateur du serveur HFSQL")
+            print("   - Vérifier que le serveur accepte les connexions")
+            print("4. Exécuter le script de diagnostic: python debug_hfsql_advanced.py")
+            print(f"\nVersion client détectée: IEWDHFSRV=13.63")
+            print(f"Serveur cible: {host}:{port}")
+            print(f"Base de données: {database}")
+        
         return None
     except Exception as e:
-        print("❌ Erreur HFSQL :", e)
+        print("Erreur HFSQL générale :", e)
         return None
 
 # ============================================================================
@@ -231,8 +360,8 @@ def recup_batisimply_token():
             missing.append("client_secret")
 
     if missing:
-        print(f"❌ Paramètres BatiSimply manquants ({grant_type}) : {', '.join(missing)}")
-        print("ℹ️ Renseigne la section 'batisimply' dans credentials.json ou les variables d'environnement BATISIMPLY_*.")
+        print(f"Parametres BatiSimply manquants ({grant_type}) : {', '.join(missing)}")
+        print("Renseigne la section 'batisimply' dans credentials.json ou les variables d'environnement BATISIMPLY_*.")
         return None
 
     # 3) Construire le payload selon le grant
@@ -267,8 +396,8 @@ def recup_batisimply_token():
     try:
         resp = session.post(url, data=payload, headers=headers, timeout=12)
     except requests.RequestException as e:
-        print(f"❌ Erreur réseau lors de la récupération du token : {e}")
-        print(f"ℹ️ URL SSO utilisée: {url} | grant_type={grant_type} | client_id={client_id}")
+        print(f"Erreur reseau lors de la recuperation du token : {e}")
+        print(f"URL SSO utilisee: {url} | grant_type={grant_type} | client_id={client_id}")
         return None
 
     content_type = resp.headers.get("Content-Type", "")
@@ -283,26 +412,26 @@ def recup_batisimply_token():
                 pass
         if not err_msg:
             err_msg = resp.text[:500].replace("\n", " ")
-        print(f"❌ Token SSO échec [{resp.status_code}] {err_msg}")
-        print(f"ℹ️ URL SSO utilisée: {url} | grant_type={grant_type} | client_id={client_id}")
+        print(f"Token SSO echec [{resp.status_code}] {err_msg}")
+        print(f"URL SSO utilisee: {url} | grant_type={grant_type} | client_id={client_id}")
         return None
 
     # 5) Extraire access_token
     try:
         data = resp.json()
     except ValueError:
-        print(f"❌ Réponse SSO non JSON: {resp.text[:200]}")
+        print(f"Reponse SSO non JSON: {resp.text[:200]}")
         return None
 
     access_token = data.get("access_token")
     if not access_token:
-        print(f"❌ 'access_token' absent dans la réponse SSO: {data}")
+        print(f"'access_token' absent dans la reponse SSO: {data}")
         return None
 
     if "expires_in" in data:
-        print(f"✅ Token récupéré (expire dans {data['expires_in']}s)")
+        print(f"Token recupere (expire dans {data['expires_in']}s)")
     else:
-        print("✅ Token récupéré")
+        print("Token recupere")
 
     return access_token
 
