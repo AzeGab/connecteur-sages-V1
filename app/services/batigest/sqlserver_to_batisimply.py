@@ -6,7 +6,90 @@ import psycopg2
 import requests
 import json
 from datetime import date, datetime
+from decimal import Decimal
+from typing import Dict, Iterable, Optional
 from app.services.connex import connect_to_sqlserver, connect_to_postgres, load_credentials, recup_batisimply_token
+
+
+def _record_from_row(columns: Iterable[str], row) -> Dict[str, object]:
+    """
+    Construit un dictionnaire {colonne: valeur} à partir d'un résultat SQL Server.
+    Les noms de colonnes sont normalisés en minuscules pour simplifier les accès.
+    """
+    return {columns[idx].lower(): row[idx] for idx in range(len(columns))}
+
+
+def _pick(record: Dict[str, object], keys: Iterable[str], fallback_contains: Optional[Iterable[str]] = None):
+    """
+    Recherche la première valeur non vide correspondant à une liste de clés.
+    Peut également utiliser des sous-chaînes pour trouver une colonne alternative.
+    """
+    for key in keys:
+        value = record.get(key.lower())
+        if value not in (None, ""):
+            return value
+    if fallback_contains:
+        for column, value in record.items():
+            if value in (None, ""):
+                continue
+            if any(token in column for token in fallback_contains):
+                return value
+    return None
+
+
+def _normalize_date(value):
+    """
+    Convertit une valeur SQL Server en date (datetime.date) compatible PostgreSQL.
+    """
+    if value is None:
+        return None
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return None
+        for fmt in ("%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%d/%m/%Y", "%d/%m/%Y %H:%M:%S"):
+            try:
+                return datetime.strptime(value, fmt).date()
+            except ValueError:
+                continue
+    return None
+
+
+def _normalize_float(value):
+    """
+    Convertit les valeurs numériques (Decimal, int, str) en float.
+    """
+    if value is None:
+        return None
+    if isinstance(value, float):
+        return value
+    if isinstance(value, (int, Decimal)):
+        return float(value)
+    if isinstance(value, str):
+        candidate = value.replace(",", ".").strip()
+        if not candidate:
+            return None
+        try:
+            return float(candidate)
+        except ValueError:
+            return None
+    return None
+
+
+def _clean_str(value):
+    """
+    Nettoie les chaînes (trim) et retourne None pour les chaînes vides.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        cleaned = value.strip()
+        return cleaned or None
+    return str(value)
 
 # ============================================================================
 # TRANSFERT DES CHANTIERS SQL SERVER -> POSTGRESQL -> BATISIMPLY
@@ -46,35 +129,118 @@ def transfer_chantiers_sqlserver_to_postgres():
 
         # Requête pour récupérer les chantiers depuis SQL Server
         query_sqlserver = """
-        SELECT Code, Libelle, DateDebut, DateFin, Etat, CodeClient
+        SELECT *
         FROM dbo.ChantierDef
         WHERE Etat = 'E'
         """
         
         try:
             sqlserver_cursor.execute(query_sqlserver)
-            chantiers = sqlserver_cursor.fetchall()
+            chantiers_rows = sqlserver_cursor.fetchall()
+            columns = [col[0] for col in sqlserver_cursor.description]
         except Exception as sql_error:
             return False, f"❌ Erreur SQL Server - Table 'Chantier' introuvable. Vérifiez le nom de la table dans votre base de données. Erreur: {str(sql_error)}"
 
         # Insertion dans PostgreSQL avec gestion des conflits
-        for chantier in chantiers:
-            code, nom, date_debut, date_fin, statut, code_client = chantier
-            
+        inserted_rows = 0
+        for chantier_row in chantiers_rows:
+            record = _record_from_row(columns, chantier_row)
+            code = _clean_str(record.get("code"))
+            if not code:
+                continue
+
+            date_debut = _normalize_date(record.get("datedebut"))
+            date_fin = _normalize_date(record.get("datefin"))
+
+            nom_client = _clean_str(
+                _pick(record, ["nomclient", "client", "nom"], fallback_contains=["client"])
+            ) or f"Chantier {code}"
+
+            description = _clean_str(
+                _pick(record, ["description", "libelle", "nom", "objet"], fallback_contains=["lib"])
+            ) or nom_client
+
+            adr_chantier = _clean_str(
+                _pick(
+                    record,
+                    ["adrchantier", "adressechantier", "adresse1", "adresse"],
+                    fallback_contains=["adr", "adresse"]
+                )
+            )
+            cp_chantier = _clean_str(
+                _pick(
+                    record,
+                    ["cpchantier", "codepostalchantier", "cp", "codepostal"],
+                    fallback_contains=["cp", "postal"]
+                )
+            )
+            ville_chantier = _clean_str(
+                _pick(
+                    record,
+                    ["villechantier", "ville"],
+                    fallback_contains=["ville", "city"]
+                )
+            )
+            total_mo = _normalize_float(
+                _pick(
+                    record,
+                    ["totalmo", "tempsmo", "montantmo", "totmo"],
+                    fallback_contains=["mo"]
+                )
+            )
+
+            now_utc = datetime.utcnow()
+
             query_postgres = """
-            INSERT INTO batigest_chantiers (code, date_debut, date_fin, nom_client, description, sync)
-            VALUES (%s, %s, %s, %s, %s, FALSE)
+            INSERT INTO batigest_chantiers (
+                code,
+                date_debut,
+                date_fin,
+                nom_client,
+                description,
+                adr_chantier,
+                cp_chantier,
+                ville_chantier,
+                total_mo,
+                sync,
+                sync_date,
+                last_modified_batigest
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, %s, %s)
             ON CONFLICT (code) DO UPDATE SET
                 date_debut = EXCLUDED.date_debut,
                 date_fin = EXCLUDED.date_fin,
                 nom_client = EXCLUDED.nom_client,
                 description = EXCLUDED.description,
-                sync = FALSE
+                adr_chantier = EXCLUDED.adr_chantier,
+                cp_chantier = EXCLUDED.cp_chantier,
+                ville_chantier = EXCLUDED.ville_chantier,
+                total_mo = EXCLUDED.total_mo,
+                sync = FALSE,
+                sync_date = EXCLUDED.sync_date,
+                last_modified_batigest = EXCLUDED.last_modified_batigest
             """
             
-            postgres_cursor.execute(query_postgres, (code, date_debut, date_fin, nom, code_client))
+            postgres_cursor.execute(
+                query_postgres,
+                (
+                    code,
+                    date_debut,
+                    date_fin,
+                    nom_client,
+                    description,
+                    adr_chantier,
+                    cp_chantier,
+                    ville_chantier,
+                    total_mo,
+                    now_utc,
+                    now_utc,
+                )
+            )
+            inserted_rows += 1
 
         postgres_conn.commit()
+        message_success = f"✅ {inserted_rows} chantier(s) transféré(s) depuis SQL Server vers PostgreSQL"
         
         # Fermeture des connexions
         sqlserver_cursor.close()
@@ -82,7 +248,7 @@ def transfer_chantiers_sqlserver_to_postgres():
         sqlserver_conn.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(chantiers)} chantier(s) transféré(s) depuis SQL Server vers PostgreSQL"
+        return True, message_success
 
     except Exception as e:
         return False, f"❌ Erreur lors du transfert SQL Server -> PostgreSQL : {str(e)}"
@@ -379,31 +545,113 @@ def transfer_devis_sqlserver_to_postgres():
 
         # Requête pour récupérer les devis depuis SQL Server
         query_sqlserver = """
-        SELECT Code, Nom, Date, TotalTTC, Etat, CodeClient
+        SELECT *
         FROM dbo.Devis
         WHERE Etat IN (0, 3, 4)
         """
         
         sqlserver_cursor.execute(query_sqlserver)
-        devis = sqlserver_cursor.fetchall()
+        devis_rows = sqlserver_cursor.fetchall()
+        devis_columns = [col[0] for col in sqlserver_cursor.description]
+
+        inserted_rows = 0
 
         # Insertion dans PostgreSQL avec gestion des conflits
-        for devi in devis:
-            code, nom, date, total_ttc, etat, code_client = devi
-            
+        for devi in devis_rows:
+            record = _record_from_row(devis_columns, devi)
+            code = _clean_str(record.get("code"))
+            if not code:
+                continue
+
+            date_devis = _normalize_date(
+                _pick(record, ["date", "datecreation", "datedevis", "dateemission"])
+            )
+            nom = _clean_str(
+                _pick(record, ["nom", "libelle", "intitule", "description"], fallback_contains=["nom"])
+            ) or f"Devis {code}"
+            adr = _clean_str(
+                _pick(
+                    record,
+                    ["adr", "adresse", "adressechantier", "adresseclient", "adressefact"],
+                    fallback_contains=["adr", "adresse"]
+                )
+            )
+            cp = _clean_str(
+                _pick(
+                    record,
+                    ["cp", "codepostal", "codepostalchantier", "codepostalclient", "codepostalfact"],
+                    fallback_contains=["cp", "postal"]
+                )
+            )
+            ville = _clean_str(
+                _pick(
+                    record,
+                    ["ville", "villechantier", "villeclient", "villefact"],
+                    fallback_contains=["ville", "city"]
+                )
+            )
+            sujet = _clean_str(
+                _pick(record, ["sujet", "description", "libelle"], fallback_contains=["sujet"])
+            ) or nom
+            date_concretisation = _normalize_date(
+                _pick(
+                    record,
+                    ["dateconcretis", "datevalidation", "dateacceptation", "dateconclusion"]
+                )
+            )
+            temps_mo = _normalize_float(
+                _pick(record, ["tempsmo", "totalmo", "montantmo", "totmo", "heuresmo"], fallback_contains=["mo"])
+            )
+
+            now_utc = datetime.utcnow()
+
             query_postgres = """
-            INSERT INTO batigest_devis (code, date, nom, sujet, sync)
-            VALUES (%s, %s, %s, %s, FALSE)
+            INSERT INTO batigest_devis (
+                code,
+                date,
+                nom,
+                adr,
+                cp,
+                ville,
+                sujet,
+                dateconcretis,
+                tempsmo,
+                sync_date,
+                sync
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE)
             ON CONFLICT (code) DO UPDATE SET
                 date = EXCLUDED.date,
                 nom = EXCLUDED.nom,
+                adr = EXCLUDED.adr,
+                cp = EXCLUDED.cp,
+                ville = EXCLUDED.ville,
                 sujet = EXCLUDED.sujet,
+                dateconcretis = EXCLUDED.dateconcretis,
+                tempsmo = EXCLUDED.tempsmo,
+                sync_date = EXCLUDED.sync_date,
                 sync = FALSE
             """
             
-            postgres_cursor.execute(query_postgres, (code, date, nom, f"Devis {code} - {nom}"))
+            postgres_cursor.execute(
+                query_postgres,
+                (
+                    code,
+                    date_devis,
+                    nom,
+                    adr,
+                    cp,
+                    ville,
+                    sujet,
+                    date_concretisation,
+                    temps_mo,
+                    now_utc,
+                )
+            )
+            inserted_rows += 1
 
         postgres_conn.commit()
+        message_success = f"✅ {inserted_rows} devis transféré(s) depuis SQL Server vers PostgreSQL"
         
         # Fermeture des connexions
         sqlserver_cursor.close()
@@ -411,7 +659,7 @@ def transfer_devis_sqlserver_to_postgres():
         sqlserver_conn.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(devis)} devi(s) transféré(s) depuis SQL Server vers PostgreSQL"
+        return True, message_success
 
     except Exception as e:
         return False, f"❌ Erreur lors du transfert SQL Server -> PostgreSQL : {str(e)}"
