@@ -219,7 +219,7 @@ async def connect_sqlserver(
 @router.post("/connect-hfsql", response_class=HTMLResponse)
 async def connect_hfsql(
     request: Request,
-    server: str = Form(...),
+    server: str = Form(None),
     user: str = Form("admin"),
     password: str = Form(""),
     database: str = Form("HFSQL"),
@@ -250,14 +250,21 @@ async def connect_hfsql(
                 f"DSN={dsn or ''}\nHost={server}\nUser={user}\nDB={database}\nPort={port}\n"
                 f"Python bits={arch}\nODBC Drivers=[{drivers}]\n"
             )
-            host_value = f"DSN={dsn}" if dsn else server
+            # Lister les DSN visibles (64-bit)
+            try:
+                ds_map = __import__('pyodbc').dataSources() or {}
+                dsn_lines = [f"  - {k} -> {v}" for k, v in ds_map.items()]
+                header += "ODBC DSNs (64-bit):\n" + ("\n".join(dsn_lines) if dsn_lines else "(none)") + "\n"
+            except Exception:
+                pass
+            host_value = f"DSN={dsn}" if dsn else (server or "")
             # Forcer la base au niveau DSN pour éviter la base par défaut du DSN
             if host_value.upper().startswith("DSN="):
                 host_value = f"{host_value};DATABASE={database}"
             conn, logs = _capture_output(connect_to_hfsql, host_value, user, password, database, port)
             debug_output = header + logs
         else:
-            host_value = f"DSN={dsn}" if dsn else server
+            host_value = f"DSN={dsn}" if dsn else (server or "")
             if host_value.upper().startswith("DSN="):
                 host_value = f"{host_value};DATABASE={database}"
             conn = connect_to_hfsql(host_value, user, password, database, port)
@@ -288,6 +295,100 @@ async def connect_hfsql(
         "hfsql_db": (load_credentials() or {}).get("hfsql", {}).get("database"),
         "current_section": "databases"
     })
+
+@router.get("/hfsql-health")
+async def hfsql_health():
+    """
+    Vérifie la connexion HFSQL et retourne un diagnostic JSON:
+    - drivers ODBC disponibles
+    - DSN listés
+    - test SELECT 1
+    - COUNT sur REPARAT puis fallback sur CLIENT
+    """
+    creds = load_credentials() or {}
+    if creds.get("software") != "codial" or "hfsql" not in creds:
+        return JSONResponse({"connected": False, "error": "Configuration HFSQL indisponible"}, status_code=400)
+
+    import pyodbc, struct
+    info = {}
+    try:
+        info["odbc_drivers"] = pyodbc.drivers()
+        info["odbc_dsns"] = pyodbc.dataSources()
+    except Exception:
+        info["odbc_drivers"] = []
+        info["odbc_dsns"] = {}
+    try:
+        info["arch_bits"] = struct.calcsize('P') * 8
+    except Exception:
+        info["arch_bits"] = None
+
+    # Détection de la présence du driver Client/Server (Unicode) 64-bit
+    drivers_lower = [d.lower() for d in info.get("odbc_drivers", [])]
+    has_client_server = any("hfsql client/server" in d for d in drivers_lower)
+
+    cfg = creds["hfsql"]
+    host_value = (f"DSN={cfg['dsn']}" if cfg.get("dsn") else (cfg.get("host") or ""))
+    if host_value.upper().startswith("DSN="):
+        host_value = f"{host_value};DATABASE={cfg.get('database','HFSQL')}"
+
+    result = {
+        "connected": False,
+        "via": host_value,
+        "database": cfg.get("database"),
+        "dsn": cfg.get("dsn"),
+        "details": info,
+        "has_client_server_driver": has_client_server,
+        "recommendations": []
+    }
+
+    # Recommandations immédiates selon l'état de l'environnement
+    if not has_client_server:
+        result["recommendations"].append(
+            "Installez le pilote 'HFSQL Client/Server (Unicode) 64-bit' (même version majeure que le serveur)."
+        )
+        result["recommendations"].append(
+            "Ensuite, créez un DSN Système 64-bit avec ce pilote et utilisez-le (champ DSN)."
+        )
+    if cfg.get("dsn"):
+        try:
+            dsn_driver = info.get("odbc_dsns", {}).get(cfg.get("dsn"))
+            if dsn_driver and "Client/Server" not in str(dsn_driver):
+                result["recommendations"].append(
+                    f"Le DSN '{cfg.get('dsn')}' utilise '{dsn_driver}'. Recréez-le avec 'HFSQL Client/Server (Unicode) 64-bit'."
+                )
+        except Exception:
+            pass
+
+    try:
+        conn = connect_to_hfsql(host_value, cfg.get("user","admin"), cfg.get("password",""), cfg.get("database","HFSQL"), cfg.get("port","4900"))
+        if not conn:
+            result["error"] = "Connexion HFSQL échouée"
+            # Exemple de chaîne DSN-less attendue (si le driver Client/Server est présent)
+            result["sample_dsnless"] = (
+                "DRIVER={HFSQL Client/Server (Unicode)};SERVER=<hote>;PORT=4900;DATABASE="
+                + str(cfg.get("database") or "HFSQL") + ";UID=" + str(cfg.get("user") or "admin") + ";PWD=<motdepasse>"
+            )
+            return JSONResponse(result, status_code=200)
+
+        cur = conn.cursor()
+        cur.execute("SELECT 1")
+        result["select1"] = True
+        # Tests de tables
+        counts = {}
+        for tbl in ("REPARAT", "CLIENT"):
+            try:
+                cur.execute(f"SELECT COUNT(*) FROM {tbl}")
+                counts[tbl] = cur.fetchone()[0]
+            except Exception as e:
+                counts[tbl] = str(e)
+        result["counts"] = counts
+        cur.close()
+        conn.close()
+        result["connected"] = True
+        return JSONResponse(result, status_code=200)
+    except Exception as e:
+        result["error"] = str(e)
+        return JSONResponse(result, status_code=200)
 
 @router.get("/query-hfsql-reparat", response_class=HTMLResponse)
 async def query_hfsql_reparat(request: Request):
@@ -903,6 +1004,30 @@ async def configuration_page(request: Request):
     if license_info:
         license_key = license_info.get("key")
     
+    # Infos HFSQL (aide/diagnostic)
+    hfsql_driver_ok = None
+    hfsql_conn_preview = None
+    try:
+        if creds and creds.get("software", "batigest") == "codial":
+            try:
+                import pyodbc
+                _drivers = [d.lower() for d in pyodbc.drivers()]
+                hfsql_driver_ok = any("hfsql client/server" in d for d in _drivers)
+            except Exception:
+                hfsql_driver_ok = False
+            hcfg = (creds.get("hfsql") or {}) if isinstance(creds, dict) else {}
+            host_val = hcfg.get("host", "localhost")
+            dsn_val = hcfg.get("dsn")
+            dbn = hcfg.get("database", "HFSQL")
+            user = hcfg.get("user", "admin")
+            port = hcfg.get("port", "4900")
+            if dsn_val:
+                hfsql_conn_preview = f"DSN={dsn_val};DATABASE={dbn};UID={user};PWD=***"
+            else:
+                hfsql_conn_preview = f"DRIVER={{HFSQL Client/Server (Unicode)}};SERVER={host_val};PORT={port};DATABASE={dbn};UID={user};PWD=***"
+    except Exception:
+        pass
+
     return templates.TemplateResponse("configuration.html", {
         "request": request,
         "mode": creds.get("mode", "chantier") if creds else "chantier",
@@ -915,7 +1040,9 @@ async def configuration_page(request: Request):
         "license_expiry_date": license_expiry_date,
         "current_section": "license",
         "sql_connected": sql_connected,
-        "pg_connected": pg_connected
+        "pg_connected": pg_connected,
+        "hfsql_driver_ok": hfsql_driver_ok,
+        "hfsql_conn_preview": hfsql_conn_preview
     })
 
 @router.get("/license-expired", response_class=HTMLResponse)
@@ -1365,3 +1492,4 @@ async def api_sync_batisimply_to_codial():
             "message": f"❌ Erreur lors de la synchronisation BatiSimply → Codial : {str(e)}",
             "timestamp": datetime.now().isoformat()
         })
+

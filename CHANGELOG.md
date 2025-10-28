@@ -599,3 +599,35 @@ Pour toute modification importante :
 - Connexions BD centralisées et fermeture automatique sécurisée.
 - Meilleure lisibilité des pages (accents) et des logs.
 - Base prête pour refactoriser d’autres flux de synchronisation.
+
+## [28-10-2025 09:02] - HFSQL DSN: forcer la base, correctifs d’indentation, UI et branche Codex
+
+### Résumé clair et horodaté (Europe/Paris)
+- HFSQL: la connexion via DSN utilisait parfois la base par défaut du DSN. Nous forçons désormais explicitement la base choisie dans le formulaire en ajoutant `DATABASE=...` dans la chaîne DSN.
+- Routes: `POST /connect-hfsql` et `GET /query-hfsql-reparat` passent `DSN=...;DATABASE=...` à la fonction de connexion et propagent la base active.
+- UI: affichage de la base HFSQL active dans le bouton de test et utilisation de cette base pour la requête.
+- Correctifs: résolutions d’IndentationError dans les modules de synchro Batigest/Codial, réindentation des blocs `with` et des boucles.
+- Git: création de la branche `Codex` et push des modifications.
+
+### Détails techniques
+- `app/services/connex.py`:
+  - Connexions DSN: essais successifs incluant `;DATABASE={database}` (pypyodbc/pyodbc), pour éviter la base par défaut du DSN.
+- `app/routes/form_routes.py`:
+  - `connect_hfsql`: si DSN présent, concatène `;DATABASE={database}` avant l’appel à `connect_to_hfsql`.
+  - `query-hfsql-reparat`: même logique; base affichée dans le template via `hfsql_db`.
+  - Requêtes REPARAT tentées de manière robuste (COUNT, TOP, colonnes usuelles).
+- `app/templates/configuration.html`:
+  - Bouton: “Tester REPARAT (base active: {{ hfsql_db }})”.
+- Correctifs indentation:
+  - `app/services/batigest/sqlserver_to_batisimply.py`: réalignement du bloc try/for/commit/close.
+  - `app/services/codial/hfsql_to_batisimply.py`: réalignement des blocs heures et chantiers (exécution/commit/close).
+  - `app/services/codial/utils.py`: réindentation des créations de tables dans le bloc `with` + commit/close.
+
+### Impact utilisateur
+- Requêtes HFSQL exécutées sur la base choisie dans le formulaire (pas celle par défaut du DSN).
+- Bouton de test explicite sur la base active; diagnostics plus fiables.
+- Démarrage serveur sans erreurs d’indentation sur les modules de synchro.
+
+### Commandes Git effectuées
+- `git checkout -b Codex` puis `git push -u origin Codex`.
+- Commits: corrections connexions HFSQL DSN, routes/UI, correctifs d’indentation.
