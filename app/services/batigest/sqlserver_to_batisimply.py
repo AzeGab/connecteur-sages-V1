@@ -6,7 +6,8 @@ import psycopg2
 import requests
 import json
 from datetime import date, datetime
-from app.services.connex import connect_to_sqlserver, connect_to_postgres, load_credentials, recup_batisimply_token
+from app.services.connex import load_credentials, recup_batisimply_token
+from app.services.db_manager import DatabaseManager
 
 # ============================================================================
 # TRANSFERT DES CHANTIERS SQL SERVER -> POSTGRESQL -> BATISIMPLY
@@ -22,27 +23,14 @@ def transfer_chantiers_sqlserver_to_postgres():
         if not creds or "sqlserver" not in creds or "postgres" not in creds:
             return False, "❌ Informations de connexion manquantes"
 
-        # Établissement des connexions
-        sqlserver_conn = connect_to_sqlserver(
-            creds["sqlserver"]["server"],
-            creds["sqlserver"]["user"],
-            creds["sqlserver"]["password"],
-            creds["sqlserver"]["database"]
-        )
-        postgres_conn = connect_to_postgres(
-            creds["postgres"]["host"],
-            creds["postgres"]["user"],
-            creds["postgres"]["password"],
-            creds["postgres"]["database"],
-            creds["postgres"].get("port", "5432")
-        )
-        
-        if not sqlserver_conn or not postgres_conn:
-            return False, "❌ Connexion aux bases échouée"
+        db = DatabaseManager.get_instance()
+        with db.sqlserver() as sqlserver_conn, db.postgres() as postgres_conn:
+            if not sqlserver_conn or not postgres_conn:
+                return False, "❌ Connexion aux bases échouée"
 
-        # Création des curseurs
-        sqlserver_cursor = sqlserver_conn.cursor()
-        postgres_cursor = postgres_conn.cursor()
+            # Création des curseurs
+            sqlserver_cursor = sqlserver_conn.cursor()
+            postgres_cursor = postgres_conn.cursor()
 
         # Requête pour récupérer les chantiers depuis SQL Server
         query_sqlserver = """
@@ -51,38 +39,36 @@ def transfer_chantiers_sqlserver_to_postgres():
         WHERE Etat = 'E'
         """
         
-        try:
-            sqlserver_cursor.execute(query_sqlserver)
-            chantiers = sqlserver_cursor.fetchall()
-        except Exception as sql_error:
-            return False, f"❌ Erreur SQL Server - Table 'Chantier' introuvable. Vérifiez le nom de la table dans votre base de données. Erreur: {str(sql_error)}"
+            try:
+                sqlserver_cursor.execute(query_sqlserver)
+                chantiers = sqlserver_cursor.fetchall()
+            except Exception as sql_error:
+                return False, f"❌ Erreur SQL Server - Table 'Chantier' introuvable. Vérifiez le nom de la table dans votre base de données. Erreur: {str(sql_error)}"
 
         # Insertion dans PostgreSQL avec gestion des conflits
-        for chantier in chantiers:
-            code, nom, date_debut, date_fin, statut, code_client = chantier
-            
-            query_postgres = """
-            INSERT INTO batigest_chantiers (code, date_debut, date_fin, nom_client, description, sync)
-            VALUES (%s, %s, %s, %s, %s, FALSE)
-            ON CONFLICT (code) DO UPDATE SET
-                date_debut = EXCLUDED.date_debut,
-                date_fin = EXCLUDED.date_fin,
-                nom_client = EXCLUDED.nom_client,
-                description = EXCLUDED.description,
-                sync = FALSE
-            """
-            
-            postgres_cursor.execute(query_postgres, (code, date_debut, date_fin, nom, code_client))
+            for chantier in chantiers:
+                code, nom, date_debut, date_fin, statut, code_client = chantier
 
-        postgres_conn.commit()
-        
-        # Fermeture des connexions
-        sqlserver_cursor.close()
-        postgres_cursor.close()
-        sqlserver_conn.close()
-        postgres_conn.close()
+                query_postgres = """
+                INSERT INTO batigest_chantiers (code, date_debut, date_fin, nom_client, description, sync)
+                VALUES (%s, %s, %s, %s, %s, FALSE)
+                ON CONFLICT (code) DO UPDATE SET
+                    date_debut = EXCLUDED.date_debut,
+                    date_fin = EXCLUDED.date_fin,
+                    nom_client = EXCLUDED.nom_client,
+                    description = EXCLUDED.description,
+                    sync = FALSE
+                """
 
-        return True, f"✅ {len(chantiers)} chantier(s) transféré(s) depuis SQL Server vers PostgreSQL"
+                postgres_cursor.execute(query_postgres, (code, date_debut, date_fin, nom, code_client))
+
+            postgres_conn.commit()
+
+            # Fermeture explicite des curseurs
+            sqlserver_cursor.close()
+            postgres_cursor.close()
+
+            return True, f"✅ {len(chantiers)} chantier(s) transféré(s) depuis SQL Server vers PostgreSQL"
 
     except Exception as e:
         return False, f"❌ Erreur lors du transfert SQL Server -> PostgreSQL : {str(e)}"

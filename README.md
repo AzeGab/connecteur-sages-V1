@@ -28,17 +28,9 @@ Le Connecteur SAGES est une application de synchronisation entre Batigest et Bat
 
 ## Installation
 
-### 1. Installation Automatisée (Recommandée)
+### Installation
 
-1. Exécuter le fichier `installer.py`
-2. Suivre les instructions à l'écran
-3. L'installateur configurera automatiquement :
-   - L'environnement Python
-   - Les dépendances nécessaires
-   - Les connexions aux bases de données
-   - Le service Windows
-
-### 2. Installation Manuelle
+Installation simple depuis la racine du projet avec les dépendances unifiées.
 
 1. **Installation de Python 3.11**
    - Télécharger Python 3.11 depuis [python.org](https://www.python.org/downloads/)
@@ -59,7 +51,7 @@ Le Connecteur SAGES est une application de synchronisation entre Batigest et Bat
    python -m venv venv
    venv\Scripts\activate
 
-   # Installer les dépendances
+   # Installer les dépendances (fichier unique)
    pip install -r requirements.txt
    ```
 
@@ -102,7 +94,14 @@ Le Connecteur SAGES est une application de synchronisation entre Batigest et Bat
 
 1. Lancer l'application :
    ```bash
+   # via Makefile (Linux/Mac)
+   make run
+
+   # ou directement
    uvicorn app.main:app --reload
+
+   # Windows (double-cliquez ou lancez)
+   run.bat
    ```
 
 2. Accéder à l'interface web :
@@ -233,21 +232,25 @@ Propriété du Groupe SAGES. Tous droits réservés.
 
 ### Dernière mise à jour : 24/06/2025
 
-## Routes principales
+## Routes principales (actuelles)
 
-- **GET /** : Page principale (formulaire de connexion, boutons d'action)
-- **GET /configuration** : Page de configuration avec sidebar
-- **GET /license-expired** : Page de licence expirée
-- **POST /update-license** : Mise à jour de la clé de licence
-- **POST /refresh-license** : Rafraîchissement de la validation de licence
-- **GET /check-license-status** : Vérification du statut de la licence
-- **GET /get-license-key** : Récupération de la clé de licence locale
-- **POST /connect-sqlserver** : Connexion à SQL Server
-- **POST /connect-postgres** : Connexion à PostgreSQL
-- **POST /transfer** : Transfert des chantiers SQL Server → PostgreSQL
-- **POST /transfer-batisimply** : Transfert des chantiers PostgreSQL → BatiSimply
-- **POST /recup-heures** : Récupération des heures depuis BatiSimply
-- **POST /update-code-projet** : Mise à jour des codes projet dans PostgreSQL
+- GET `/` : Accueil
+- GET `/configuration` : Configuration (licence, bases de données, options)
+- GET `/license-expired` : Affichage licence expirée
+- POST `/update-license` : Enregistrement de la clé de licence
+- POST `/refresh-license` : Revalidation de la licence
+- GET `/check-license-status` : Statut de licence (JSON)
+- GET `/get-license-key` : Clé locale (JSON)
+- POST `/connect-sqlserver` : Test et sauvegarde connexion SQL Server
+- POST `/connect-postgres` : Test et sauvegarde connexion PostgreSQL
+- POST `/connect-hfsql` : Test et sauvegarde connexion HFSQL (Codial)
+
+Synchronisation (exemples JSON):
+- POST `/api/sync-batigest-to-batisimply`
+- POST `/api/sync-batisimply-to-batigest`
+- POST `/api/sync-codial-to-batisimply`
+- POST `/api/sync-batisimply-to-codial`
+
 - **POST /transfer-heure-batigest** : Envoi des heures PostgreSQL → Batigest
 - **POST /sync-batigest-to-batisimply** : Synchronisation Batigest → PostgreSQL → BatiSimply
 - **POST /sync-batisimply-to-batigest** : Synchronisation BatiSimply → PostgreSQL → Batigest

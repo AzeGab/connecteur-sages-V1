@@ -30,6 +30,8 @@ from app.middleware.license_middleware import LicenseMiddleware
 # ============================================================================
 # Charger les variables d'environnement
 load_dotenv()
+# Forcer un environnement UTF-8 pour les logs/console quand c'est possible
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 
 # Création de l'instance FastAPI
 app = FastAPI(

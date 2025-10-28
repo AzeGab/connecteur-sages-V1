@@ -559,3 +559,43 @@ Pour toute modification importante :
 ---
 
 *Ce ChangeLog est maintenu à jour avec chaque modification significative du projet.*
+
+---
+
+## [27-10-2025 14:35] - Alignement docs/tests, unification des dépendances, DatabaseManager et encodage UTF‑8
+
+### Résumé
+- Harmonisation de la documentation et des tests avec les routes actuelles.
+- Unification des dépendances dans un `requirements.txt` unique et ajout de scripts de lancement.
+- Ajout d’un `DatabaseManager` minimal et refactor d’un flux de synchronisation.
+- Corrections mineures d’encodage/affichage UTF‑8 (UI et logs).
+
+### Détails
+- Documentation
+  - README: installation/commande de lancement simplifiées; routes principales mises à jour.
+  - Fichier: `README.md`.
+
+- Tests
+  - `test_app.py`: utilise maintenant `GET /`, `GET /configuration`, `GET /license-expired`, `GET /health`.
+  - Fichier: `test_app.py`.
+
+- Dépendances et scripts
+  - Unification des dépendances: `requirements.txt` étendu; suppression de `app/requirements.txt`.
+  - Ajout `Makefile` (cibles `install`, `run`, `dev`) et `run.bat` (Windows) pour démarrer rapidement.
+  - Fichiers: `requirements.txt`, `app/requirements.txt` (supprimé), `Makefile`, `run.bat`.
+
+- Gestion des connexions
+  - Nouveau `app/services/db_manager.py` avec context managers `postgres()` et `sqlserver()`.
+  - Refactor: `transfer_chantiers_sqlserver_to_postgres` basculée sur `DatabaseManager`.
+  - Fichiers: `app/services/db_manager.py`, `app/services/batigest/sqlserver_to_batisimply.py`.
+
+- Encodage / UI / Logs
+  - Titres normalisés dans `configuration.html`, `login.html`, `license_expired.html`.
+  - Forçage `PYTHONIOENCODING=utf-8` au démarrage pour des logs lisibles.
+  - Fichiers: `app/templates/configuration.html`, `app/templates/login.html`, `app/templates/license_expired.html`, `app/main.py`.
+
+### Impact
+- Démarrage et tests plus simples et cohérents.
+- Connexions BD centralisées et fermeture automatique sécurisée.
+- Meilleure lisibilité des pages (accents) et des logs.
+- Base prête pour refactoriser d’autres flux de synchronisation.
