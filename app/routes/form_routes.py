@@ -199,9 +199,9 @@ async def connect_sqlserver(
             "database": database
         }
         save_credentials(creds)
-        message = "✅ Connexion SQL Server réussie !"
+        message = "[OK] Connexion SQL Server réussie !"
     else:
-        message = "❌ Connexion SQL Server échouée."
+        message = "[ERREUR] Connexion SQL Server échouée."
     
     sql_connected, pg_connected = check_connection_status()
     return templates.TemplateResponse("configuration.html", {
@@ -233,7 +233,7 @@ async def connect_hfsql(
     debug_mode = _effective_debug_mode()
     debug_output = None
     if creds.get("software", "batigest") != "codial":
-        message = "ℹ️ Logiciel non configuré sur Codial. Basculez d’abord le logiciel."
+        message = "[INFO] Logiciel non configuré sur Codial. Basculez d’abord le logiciel."
     else:
         if debug_mode:
             # Collecte d'informations utiles
@@ -265,10 +265,10 @@ async def connect_hfsql(
                 "port": port
             }
             save_credentials(creds)
-            message = "✅ Connexion HFSQL réussie !"
+            message = "[OK] Connexion HFSQL réussie !"
             conn.close()
         else:
-            message = "❌ Connexion HFSQL échouée."
+            message = "[ERREUR] Connexion HFSQL échouée."
 
     sql_connected, pg_connected = check_connection_status()
     return templates.TemplateResponse("configuration.html", {
@@ -335,9 +335,9 @@ async def connect_postgres(
             "port": port
         }
         save_credentials(creds)
-        message = "✅ Connexion PostgreSQL réussie !"
+        message = "[OK] Connexion PostgreSQL réussie !"
     else:
-        message = "❌ Connexion PostgreSQL échouée."
+        message = "[ERREUR] Connexion PostgreSQL échouée."
     
     sql_connected, pg_connected = check_connection_status()
     return templates.TemplateResponse("configuration.html", {
@@ -372,7 +372,7 @@ async def transfer_data(request: Request):
     debug_mode = _effective_debug_mode()
     debug_output = None
     if not creds or "sqlserver" not in creds or "postgres" not in creds:
-        message = "❌ Merci de renseigner les informations de connexion SQL Server et PostgreSQL avant de lancer le transfert."
+        message = "[ERREUR] Merci de renseigner les informations de connexion SQL Server et PostgreSQL avant de lancer le transfert."
     else:
         if debug_mode:
             (success, message), logs = _capture_output(batigest_services.transfer_chantiers_sqlserver_to_postgres)
@@ -415,12 +415,12 @@ async def transfer_batisimply(request: Request):
         else:
             success = transfer_chantiers_vers_batisimply()
         if success:
-            message = "✅ Chantier créé avec succès dans BatiSimply."
+            message = "[OK] Chantier créé avec succès dans BatiSimply."
         else:
-            message = "❌ Échec de la création du chantier dans BatiSimply."
+            message = "[ERREUR] Échec de la création du chantier dans BatiSimply."
 
     except Exception as e:
-        message = f"❌ Erreur lors de la création du chantier : {str(e)}"
+        message = f"[ERREUR] Erreur lors de la création du chantier : {str(e)}"
 
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -458,12 +458,12 @@ async def recup_heures_batisimply(request: Request):
         else:
             success, message = batigest_services.transfer_heures_sqlserver_to_postgres()
         if success:
-            message = "✅ Heures récupérées et insérées dans PostgreSQL avec succès."
+            message = "[OK] Heures récupérées et insérées dans PostgreSQL avec succès."
         else:
-            message = "❌ Échec du transfert des heures depuis BatiSimply."
+            message = "[ERREUR] Échec du transfert des heures depuis BatiSimply."
 
     except Exception as e:
-        message = f"❌ Erreur lors du transfert des heures : {str(e)}"
+        message = f"[ERREUR] Erreur lors du transfert des heures : {str(e)}"
 
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -500,12 +500,12 @@ async def update_code_projet(request: Request):
         else:
             success = update_code_projet_chantiers()
         if success:
-            message = "✅ Codes projet mis à jour avec succès dans PostgreSQL."
+            message = "[OK] Codes projet mis à jour avec succès dans PostgreSQL."
         else:
-            message = "❌ Échec de la mise à jour des codes projet dans PostgreSQL."    
+            message = "[ERREUR] Échec de la mise à jour des codes projet dans PostgreSQL."    
 
     except Exception as e:
-        message = f"❌ Erreur lors de la mise à jour des codes projet : {str(e)}"
+        message = f"[ERREUR] Erreur lors de la mise à jour des codes projet : {str(e)}"
 
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -543,11 +543,11 @@ async def transfer_heure_batigest(request: Request):
         else:
             transferred_count = transfer_heures_to_sqlserver()
         if transferred_count > 0:
-            message = f"✅ {transferred_count} heure(s) envoyée(s) avec succès dans Batigest."
+            message = f"[OK] {transferred_count} heure(s) envoyée(s) avec succès dans Batigest."
         else:
-            message = "ℹ️ Aucune heure à transférer ou aucune correspondance trouvée."
+            message = "[INFO] Aucune heure à transférer ou aucune correspondance trouvée."
     except Exception as e:
-        message = f"❌ Erreur lors du transfert des heures vers Batigest : {str(e)}"
+        message = f"[ERREUR] Erreur lors du transfert des heures vers Batigest : {str(e)}"
 
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -582,7 +582,7 @@ async def sync_batigest_to_batisimply_route(request: Request):
             success, message = batigest_services.sync_sqlserver_to_batisimply()
     except Exception as e:
         success = False
-        message = f"❌ Erreur lors de la synchronisation : {e}"
+        message = f"[ERREUR] Erreur lors de la synchronisation : {e}"
     
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -617,7 +617,7 @@ async def sync_batisimply_to_batigest_route(request: Request):
             success, message = batigest_services.sync_batisimply_to_sqlserver()
     except Exception as e:
         success = False
-        message = f"❌ Erreur lors de la synchronisation : {e}"
+        message = f"[ERREUR] Erreur lors de la synchronisation : {e}"
     
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -656,7 +656,7 @@ async def sync_codial_to_batisimply_route(request: Request):
             success, message = codial_services.sync_hfsql_to_batisimply()
     except Exception as e:
         success = False
-        message = f"❌ Erreur lors de la synchronisation Codial → BatiSimply : {e}"
+        message = f"[ERREUR] Erreur lors de la synchronisation Codial -> BatiSimply : {e}"
     
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -691,7 +691,7 @@ async def sync_batisimply_to_codial_route(request: Request):
             success, message = codial_services.sync_batisimply_to_hfsql()
     except Exception as e:
         success = False
-        message = f"❌ Erreur lors de la synchronisation BatiSimply → Codial : {e}"
+        message = f"[ERREUR] Erreur lors de la synchronisation BatiSimply -> Codial : {e}"
     
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -706,7 +706,7 @@ async def sync_batisimply_to_codial_route(request: Request):
     })
 
 @router.post("/init-batigest-tables", response_class=HTMLResponse)
-async def batigest_services.init_batigest_tables()_route(request: Request):
+async def init_batigest_tables_route(request: Request):
     """
     Route pour initialiser les tables PostgreSQL Batigest.
     
@@ -719,12 +719,12 @@ async def batigest_services.init_batigest_tables()_route(request: Request):
     try:
         success = batigest_services.init_batigest_tables()()
         if success:
-            message = "✅ Tables PostgreSQL Batigest initialisées avec succès"
+            message = "[OK] Tables PostgreSQL Batigest initialisées avec succès"
         else:
-            message = "❌ Erreur lors de l'initialisation des tables Batigest"
+            message = "[ERREUR] Erreur lors de l'initialisation des tables Batigest"
                 
     except Exception as e:
-        message = f"❌ Erreur lors de l'initialisation des tables Batigest : {e}"
+        message = f"[ERREUR] Erreur lors de l'initialisation des tables Batigest : {e}"
     
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -738,7 +738,7 @@ async def batigest_services.init_batigest_tables()_route(request: Request):
     })
 
 @router.post("/init-codial-tables", response_class=HTMLResponse)
-async def codial_services.init_codial_tables()_route(request: Request):
+async def init_codial_tables_route(request: Request):
     """
     Route pour initialiser les tables PostgreSQL Codial.
     
@@ -749,14 +749,14 @@ async def codial_services.init_codial_tables()_route(request: Request):
         TemplateResponse: Page HTML avec le message de résultat
     """
     try:
-        success = codial_services.init_codial_tables()()
+        success = codial_services.init_codial_tables()
         if success:
-            message = "✅ Tables PostgreSQL Codial initialisées avec succès"
+            message = "[OK] Tables PostgreSQL Codial initialisées avec succès"
         else:
-            message = "❌ Erreur lors de l'initialisation des tables Codial"
+            message = "[ERREUR] Erreur lors de l'initialisation des tables Codial"
                 
     except Exception as e:
-        message = f"❌ Erreur lors de l'initialisation des tables Codial : {e}"
+        message = f"[ERREUR] Erreur lors de l'initialisation des tables Codial : {e}"
     
     sql_connected, pg_connected = check_connection_status()
     creds = load_credentials() or {}
@@ -987,10 +987,10 @@ def update_license(request: Request, license_key: str = Form(...)):
         
         if is_valid and license_info:
             # La licence est déjà sauvegardée par refresh_license_validation
-            message = "✅ Clé de licence validée et enregistrée avec succès !"
+            message = "[OK] Clé de licence validée et enregistrée avec succès !"
             license_valid = True
             license_expiry_date = license_info.get("expires_at")
-            print("✅ Licence sauvegardée avec succès")
+            print("[OK] Licence sauvegardée avec succès")
         else:
             # Sauvegarder quand même la clé saisie (même invalide) pour que l'utilisateur puisse la voir
             if license_info:
@@ -1006,10 +1006,10 @@ def update_license(request: Request, license_key: str = Form(...)):
                 }
                 save_license_info(license_key, invalid_license_info)
             
-            message = "❌ Clé de licence invalide ou expirée. Veuillez vérifier votre clé."
+            message = "[ERREUR] Clé de licence invalide ou expirée. Veuillez vérifier votre clé."
             license_valid = False
             license_expiry_date = None
-            print("❌ Licence invalide mais sauvegardée")
+            print("[ERREUR] Licence invalide mais sauvegardée")
         
         sql_connected, pg_connected = check_connection_status()
         creds = load_credentials()
@@ -1027,8 +1027,8 @@ def update_license(request: Request, license_key: str = Form(...)):
         })
         
     except Exception as e:
-        print(f"💥 Erreur lors de la mise à jour: {str(e)}")
-        message = f"❌ Erreur lors de la validation : {str(e)}"
+        print(f"[ERREUR] Erreur lors de la mise à jour: {str(e)}")
+        message = f"[ERREUR] Erreur lors de la validation : {str(e)}"
         license_valid = False
         license_expiry_date = None
         
@@ -1072,7 +1072,7 @@ async def refresh_license(request: Request, license_key: str = Form(...)):
         if is_valid:
             # Sauvegarder les informations de licence mises à jour
             save_license_info(license_key, license_data)
-            print("✅ Licence sauvegardée avec succès")
+            print("[OK] Licence sauvegardée avec succès")
             
             return JSONResponse({
                 "success": True,
@@ -1081,7 +1081,7 @@ async def refresh_license(request: Request, license_key: str = Form(...)):
                 "client_name": license_data.get("client_name")
             })
         else:
-            print("❌ Licence invalide ou expirée")
+            print("[ERREUR] Licence invalide ou expirée")
             return JSONResponse({
                 "success": False,
                 "message": "Licence invalide ou expirée",
@@ -1089,7 +1089,7 @@ async def refresh_license(request: Request, license_key: str = Form(...)):
             }, status_code=400)
             
     except Exception as e:
-        print(f"💥 Erreur lors du rafraîchissement: {str(e)}")
+        print(f"[ERREUR] Erreur lors du rafraîchissement: {str(e)}")
         return JSONResponse({
             "success": False,
             "message": f"Erreur lors de la validation : {str(e)}"
@@ -1170,7 +1170,7 @@ async def get_license_key():
 @router.post("/api/sync-batigest-to-batisimply")
 async def api_sync_batigest_to_batisimply():
     """
-    API pour la synchronisation Batigest → BatiSimply avec retour JSON.
+    API pour la synchronisation Batigest -> BatiSimply avec retour JSON.
     
     Returns:
         JSONResponse: Résultat de la synchronisation
@@ -1185,14 +1185,14 @@ async def api_sync_batigest_to_batisimply():
     except Exception as e:
         return JSONResponse({
             "success": False,
-            "message": f"❌ Erreur lors de la synchronisation Batigest → BatiSimply : {str(e)}",
+            "message": f"[ERREUR] Erreur lors de la synchronisation Batigest -> BatiSimply : {str(e)}",
             "timestamp": datetime.now().isoformat()
         })
 
 @router.post("/api/sync-batisimply-to-batigest")
 async def api_sync_batisimply_to_batigest():
     """
-    API pour la synchronisation BatiSimply → Batigest avec retour JSON.
+    API pour la synchronisation BatiSimply -> Batigest avec retour JSON.
     
     Returns:
         JSONResponse: Résultat de la synchronisation
@@ -1207,14 +1207,14 @@ async def api_sync_batisimply_to_batigest():
     except Exception as e:
         return JSONResponse({
             "success": False,
-            "message": f"❌ Erreur lors de la synchronisation BatiSimply → Batigest : {str(e)}",
+            "message": f"[ERREUR] Erreur lors de la synchronisation BatiSimply -> Batigest : {str(e)}",
             "timestamp": datetime.now().isoformat()
         })
 
 @router.post("/api/sync-codial-to-batisimply")
 async def api_sync_codial_to_batisimply():
     """
-    API pour la synchronisation Codial → BatiSimply avec retour JSON.
+    API pour la synchronisation Codial -> BatiSimply avec retour JSON.
     
     Returns:
         JSONResponse: Résultat de la synchronisation
@@ -1229,14 +1229,14 @@ async def api_sync_codial_to_batisimply():
     except Exception as e:
         return JSONResponse({
             "success": False,
-            "message": f"❌ Erreur lors de la synchronisation Codial → BatiSimply : {str(e)}",
+            "message": f"[ERREUR] Erreur lors de la synchronisation Codial -> BatiSimply : {str(e)}",
             "timestamp": datetime.now().isoformat()
         })
 
 @router.post("/api/sync-batisimply-to-codial")
 async def api_sync_batisimply_to_codial():
     """
-    API pour la synchronisation BatiSimply → Codial avec retour JSON.
+    API pour la synchronisation BatiSimply -> Codial avec retour JSON.
     
     Returns:
         JSONResponse: Résultat de la synchronisation
@@ -1251,6 +1251,6 @@ async def api_sync_batisimply_to_codial():
     except Exception as e:
         return JSONResponse({
             "success": False,
-            "message": f"❌ Erreur lors de la synchronisation BatiSimply → Codial : {str(e)}",
+            "message": f"[ERREUR] Erreur lors de la synchronisation BatiSimply -> Codial : {str(e)}",
             "timestamp": datetime.now().isoformat()
         })

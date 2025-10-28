@@ -20,12 +20,12 @@ def transfer_chantiers_batisimply_to_postgres():
         # Récupération du token BatiSimply
         token = recup_batisimply_token()
         if not token:
-            return False, "❌ Impossible de récupérer le token BatiSimply"
+            return False, "[ERREUR] Impossible de récupérer le token BatiSimply"
 
         # Connexion PostgreSQL
         postgres_conn = connect_to_postgres()
         if not postgres_conn:
-            return False, "❌ Connexion PostgreSQL échouée"
+            return False, "[ERREUR] Connexion PostgreSQL échouée"
 
         postgres_cursor = postgres_conn.cursor()
 
@@ -42,7 +42,7 @@ def transfer_chantiers_batisimply_to_postgres():
         )
 
         if response.status_code != 200:
-            return False, f"❌ Erreur API BatiSimply : {response.status_code}"
+            return False, f"[ERREUR] Erreur API BatiSimply : {response.status_code}"
 
         chantiers = response.json()
 
@@ -73,10 +73,10 @@ def transfer_chantiers_batisimply_to_postgres():
         postgres_cursor.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(chantiers)} chantier(s) transféré(s) depuis BatiSimply vers PostgreSQL"
+        return True, f"[OK] {len(chantiers)} chantier(s) transféré(s) depuis BatiSimply vers PostgreSQL"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert BatiSimply -> PostgreSQL : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert BatiSimply -> PostgreSQL : {str(e)}"
 
 def transfer_chantiers_postgres_to_hfsql():
     """
@@ -86,7 +86,7 @@ def transfer_chantiers_postgres_to_hfsql():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "hfsql" not in creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion manquantes"
+            return False, "[ERREUR] Informations de connexion manquantes"
 
         # Établissement des connexions
         hfsql_conn = connect_to_hfsql(
@@ -105,7 +105,7 @@ def transfer_chantiers_postgres_to_hfsql():
         )
         
         if not hfsql_conn or not postgres_conn:
-            return False, "❌ Connexion aux bases échouée"
+            return False, "[ERREUR] Connexion aux bases échouée"
 
         # Création des curseurs
         hfsql_cursor = hfsql_conn.cursor()
@@ -169,10 +169,10 @@ def transfer_chantiers_postgres_to_hfsql():
         hfsql_conn.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(chantiers)} chantier(s) transféré(s) vers HFSQL"
+        return True, f"[OK] {len(chantiers)} chantier(s) transféré(s) vers HFSQL"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert PostgreSQL -> HFSQL : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert PostgreSQL -> HFSQL : {str(e)}"
 
 # ============================================================================
 # TRANSFERT DES HEURES BATISIMPLY -> POSTGRESQL -> HFSQL
@@ -186,12 +186,12 @@ def transfer_heures_batisimply_to_postgres():
         # Récupération du token BatiSimply
         token = recup_batisimply_token()
         if not token:
-            return False, "❌ Impossible de récupérer le token BatiSimply"
+            return False, "[ERREUR] Impossible de récupérer le token BatiSimply"
 
         # Connexion PostgreSQL
         postgres_conn = connect_to_postgres()
         if not postgres_conn:
-            return False, "❌ Connexion PostgreSQL échouée"
+            return False, "[ERREUR] Connexion PostgreSQL échouée"
 
         postgres_cursor = postgres_conn.cursor()
 
@@ -211,7 +211,7 @@ def transfer_heures_batisimply_to_postgres():
         )
 
         if response.status_code != 200:
-            return False, f"❌ Erreur API BatiSimply : {response.status_code}"
+            return False, f"[ERREUR] Erreur API BatiSimply : {response.status_code}"
 
         heures = response.json()
 
@@ -244,10 +244,10 @@ def transfer_heures_batisimply_to_postgres():
         postgres_cursor.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(heures)} heure(s) transférée(s) depuis BatiSimply vers PostgreSQL"
+        return True, f"[OK] {len(heures)} heure(s) transférée(s) depuis BatiSimply vers PostgreSQL"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert BatiSimply -> PostgreSQL : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert BatiSimply -> PostgreSQL : {str(e)}"
 
 def transfer_heures_postgres_to_hfsql():
     """
@@ -257,7 +257,7 @@ def transfer_heures_postgres_to_hfsql():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "hfsql" not in creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion manquantes"
+            return False, "[ERREUR] Informations de connexion manquantes"
 
         # Établissement des connexions
         hfsql_conn = connect_to_hfsql(
@@ -276,7 +276,7 @@ def transfer_heures_postgres_to_hfsql():
         )
         
         if not hfsql_conn or not postgres_conn:
-            return False, "❌ Connexion aux bases échouée"
+            return False, "[ERREUR] Connexion aux bases échouée"
 
         # Création des curseurs
         hfsql_cursor = hfsql_conn.cursor()
@@ -325,10 +325,10 @@ def transfer_heures_postgres_to_hfsql():
         hfsql_conn.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(heures)} heure(s) transférée(s) vers HFSQL"
+        return True, f"[OK] {len(heures)} heure(s) transférée(s) vers HFSQL"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert PostgreSQL -> HFSQL : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert PostgreSQL -> HFSQL : {str(e)}"
 
 # ============================================================================
 # FONCTIONS DE SYNCHRONISATION COMPLÈTE
@@ -338,13 +338,13 @@ def sync_batisimply_to_hfsql():
     """
     Synchronisation complète BatiSimply -> PostgreSQL -> HFSQL.
     """
-    print("=== DÉBUT DE LA SYNCHRONISATION BATISIMPLY → HFSQL ===")
+    print("=== DÉBUT DE LA SYNCHRONISATION BATISIMPLY -> HFSQL ===")
     messages = []
     overall_success = True
     
     try:
         # 1. Transfert des chantiers
-        print("🔄 Synchronisation des chantiers...")
+        print("[SYNC] Synchronisation des chantiers...")
         success, message = transfer_chantiers_batisimply_to_postgres()
         print(message)
         messages.append(message)
@@ -359,7 +359,7 @@ def sync_batisimply_to_hfsql():
             overall_success = False
         
         # 2. Transfert des heures
-        print("🔄 Synchronisation des heures...")
+        print("[SYNC] Synchronisation des heures...")
         success, message = transfer_heures_batisimply_to_postgres()
         print(message)
         messages.append(message)
@@ -373,14 +373,14 @@ def sync_batisimply_to_hfsql():
         else:
             overall_success = False
         
-        print("=== FIN DE LA SYNCHRONISATION BATISIMPLY → HFSQL ===")
+        print("=== FIN DE LA SYNCHRONISATION BATISIMPLY -> HFSQL ===")
         
         if overall_success:
-            return True, "✅ Synchronisation BatiSimply → HFSQL terminée avec succès"
+            return True, "[OK] Synchronisation BatiSimply -> HFSQL terminée avec succès"
         else:
-            return False, "⚠️ Synchronisation BatiSimply → HFSQL terminée avec des erreurs"
+            return False, "[ATTENTION] Synchronisation BatiSimply -> HFSQL terminée avec des erreurs"
             
     except Exception as e:
-        error_msg = f"❌ Erreur lors de la synchronisation BatiSimply → HFSQL : {str(e)}"
+        error_msg = f"[ERREUR] Erreur lors de la synchronisation BatiSimply -> HFSQL : {str(e)}"
         print(error_msg)
         return False, error_msg

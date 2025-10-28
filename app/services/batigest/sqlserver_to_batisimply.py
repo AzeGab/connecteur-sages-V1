@@ -103,7 +103,7 @@ def transfer_chantiers_sqlserver_to_postgres():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "sqlserver" not in creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion manquantes"
+            return False, "[ERREUR] Informations de connexion manquantes"
 
         # Établissement des connexions
         sqlserver_conn = connect_to_sqlserver(
@@ -121,25 +121,70 @@ def transfer_chantiers_sqlserver_to_postgres():
         )
         
         if not sqlserver_conn or not postgres_conn:
-            return False, "❌ Connexion aux bases échouée"
+            return False, "[ERREUR] Connexion aux bases échouée"
 
         # Création des curseurs
         sqlserver_cursor = sqlserver_conn.cursor()
         postgres_cursor = postgres_conn.cursor()
 
         # Requête pour récupérer les chantiers depuis SQL Server
-        query_sqlserver = """
-        SELECT *
-        FROM dbo.ChantierDef
-        WHERE Etat = 'E'
+        # D'abord, listons les tables disponibles pour diagnostiquer
+        query_tables = """
+        SELECT TABLE_NAME 
+        FROM INFORMATION_SCHEMA.TABLES 
+        WHERE TABLE_NAME LIKE '%chantier%' OR TABLE_NAME LIKE '%Chantier%'
         """
         
         try:
+            sqlserver_cursor.execute(query_tables)
+            tables = sqlserver_cursor.fetchall()
+            print(f"[DEBUG] Tables trouvées contenant 'chantier': {[t[0] for t in tables]}")
+        except Exception as e:
+            print(f"[DEBUG] Erreur lors de la recherche des tables: {e}")
+        
+        # Requête principale pour récupérer TOUS les chantiers (sans filtre d'état)
+        query_sqlserver = """
+        SELECT *
+        FROM dbo.ChantierDef
+        """
+        
+        try:
+            # Compter tous les chantiers sans filtre
+            count_query = "SELECT COUNT(*) FROM dbo.ChantierDef"
+            sqlserver_cursor.execute(count_query)
+            total_count = sqlserver_cursor.fetchone()[0]
+            print(f"[DEBUG] Total des chantiers dans ChantierDef: {total_count}")
+            
+            # Voir quels sont les états disponibles
+            states_query = "SELECT DISTINCT Etat FROM dbo.ChantierDef"
+            sqlserver_cursor.execute(states_query)
+            states = sqlserver_cursor.fetchall()
+            print(f"[DEBUG] États disponibles dans ChantierDef: {[s[0] for s in states]}")
+            
+            # Compter les chantiers avec Etat = 'E'
+            count_e_query = "SELECT COUNT(*) FROM dbo.ChantierDef WHERE Etat = 'E'"
+            sqlserver_cursor.execute(count_e_query)
+            count_e = sqlserver_cursor.fetchone()[0]
+            print(f"[DEBUG] Chantiers avec Etat = 'E': {count_e}")
+            
+            # Récupérer TOUS les chantiers pour voir leur contenu
+            all_query = "SELECT TOP 3 * FROM dbo.ChantierDef"
+            sqlserver_cursor.execute(all_query)
+            all_chantiers = sqlserver_cursor.fetchall()
+            all_columns = [col[0] for col in sqlserver_cursor.description]
+            print(f"[DEBUG] Exemple de chantiers (3 premiers):")
+            for i, chantier in enumerate(all_chantiers):
+                record = _record_from_row(all_columns, chantier)
+                print(f"  Chantier {i+1}: Code='{record.get('code', 'N/A')}', Etat='{record.get('Etat', 'N/A')}', Nom='{record.get('nomclient', 'N/A')}'")
+            
+            # Exécuter la requête principale (TOUS les chantiers)
             sqlserver_cursor.execute(query_sqlserver)
             chantiers_rows = sqlserver_cursor.fetchall()
             columns = [col[0] for col in sqlserver_cursor.description]
+            print(f"[DEBUG] Chantiers récupérés (TOUS): {len(chantiers_rows)}")
+            
         except Exception as sql_error:
-            return False, f"❌ Erreur SQL Server - Table 'Chantier' introuvable. Vérifiez le nom de la table dans votre base de données. Erreur: {str(sql_error)}"
+            return False, f"[ERREUR] Erreur SQL Server - Table 'Chantier' introuvable. Vérifiez le nom de la table dans votre base de données. Erreur: {str(sql_error)}"
 
         # Insertion dans PostgreSQL avec gestion des conflits
         inserted_rows = 0
@@ -240,7 +285,7 @@ def transfer_chantiers_sqlserver_to_postgres():
             inserted_rows += 1
 
         postgres_conn.commit()
-        message_success = f"✅ {inserted_rows} chantier(s) transféré(s) depuis SQL Server vers PostgreSQL"
+        message_success = f"[OK] {inserted_rows} chantier(s) transféré(s) depuis SQL Server vers PostgreSQL"
         
         # Fermeture des connexions
         sqlserver_cursor.close()
@@ -251,7 +296,7 @@ def transfer_chantiers_sqlserver_to_postgres():
         return True, message_success
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert SQL Server -> PostgreSQL : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert SQL Server -> PostgreSQL : {str(e)}"
 
 def transfer_chantiers_postgres_to_batisimply():
     """
@@ -261,12 +306,12 @@ def transfer_chantiers_postgres_to_batisimply():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion manquantes"
+            return False, "[ERREUR] Informations de connexion manquantes"
 
         # Récupération du token BatiSimply
         token = recup_batisimply_token()
         if not token:
-            return False, "❌ Impossible de récupérer le token BatiSimply"
+            return False, "[ERREUR] Impossible de récupérer le token BatiSimply"
 
         # Connexion PostgreSQL
         postgres_conn = connect_to_postgres(
@@ -277,7 +322,7 @@ def transfer_chantiers_postgres_to_batisimply():
             creds["postgres"].get("port", "5432")
         )
         if not postgres_conn:
-            return False, "❌ Connexion PostgreSQL échouée"
+            return False, "[ERREUR] Connexion PostgreSQL échouée"
 
         postgres_cursor = postgres_conn.cursor()
 
@@ -347,16 +392,16 @@ def transfer_chantiers_postgres_to_batisimply():
                 update_query = "UPDATE batigest_chantiers SET sync = TRUE WHERE code = %s"
                 postgres_cursor.execute(update_query, (code,))
             else:
-                print(f"⚠️ Erreur lors de l'envoi du chantier {code}: {response.status_code}")
+                print(f"[ATTENTION] Erreur lors de l'envoi du chantier {code}: {response.status_code}")
 
         postgres_conn.commit()
         postgres_cursor.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(chantiers)} chantier(s) envoyé(s) vers BatiSimply"
+        return True, f"[OK] {len(chantiers)} chantier(s) envoyé(s) vers BatiSimply"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert PostgreSQL -> BatiSimply : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert PostgreSQL -> BatiSimply : {str(e)}"
 
 # ============================================================================
 # TRANSFERT DES HEURES SQL SERVER -> POSTGRESQL -> BATISIMPLY
@@ -370,7 +415,7 @@ def transfer_heures_sqlserver_to_postgres():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "sqlserver" not in creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion manquantes"
+            return False, "[ERREUR] Informations de connexion manquantes"
 
         # Établissement des connexions
         sqlserver_conn = connect_to_sqlserver(
@@ -388,7 +433,7 @@ def transfer_heures_sqlserver_to_postgres():
         )
         
         if not sqlserver_conn or not postgres_conn:
-            return False, "❌ Connexion aux bases échouée"
+            return False, "[ERREUR] Connexion aux bases échouée"
 
         # Création des curseurs
         sqlserver_cursor = sqlserver_conn.cursor()
@@ -427,10 +472,10 @@ def transfer_heures_sqlserver_to_postgres():
         sqlserver_conn.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(heures)} heure(s) transférée(s) depuis SQL Server vers PostgreSQL"
+        return True, f"[OK] {len(heures)} heure(s) transférée(s) depuis SQL Server vers PostgreSQL"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert SQL Server -> PostgreSQL : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert SQL Server -> PostgreSQL : {str(e)}"
 
 def transfer_heures_postgres_to_batisimply():
     """
@@ -440,12 +485,12 @@ def transfer_heures_postgres_to_batisimply():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion manquantes"
+            return False, "[ERREUR] Informations de connexion manquantes"
 
         # Récupération du token BatiSimply
         token = recup_batisimply_token()
         if not token:
-            return False, "❌ Impossible de récupérer le token BatiSimply"
+            return False, "[ERREUR] Impossible de récupérer le token BatiSimply"
 
         # Connexion PostgreSQL
         postgres_conn = connect_to_postgres(
@@ -456,7 +501,7 @@ def transfer_heures_postgres_to_batisimply():
             creds["postgres"].get("port", "5432")
         )
         if not postgres_conn:
-            return False, "❌ Connexion PostgreSQL échouée"
+            return False, "[ERREUR] Connexion PostgreSQL échouée"
 
         postgres_cursor = postgres_conn.cursor()
 
@@ -496,16 +541,16 @@ def transfer_heures_postgres_to_batisimply():
                 update_query = "UPDATE batigest_heures SET sync = TRUE WHERE code_chantier = %s AND code_salarie = %s AND date_heure = %s"
                 postgres_cursor.execute(update_query, (code_chantier, code_salarie, date_heure))
             else:
-                print(f"⚠️ Erreur lors de l'envoi de l'heure {code_chantier}-{code_salarie}: {response.status_code}")
+                print(f"[ATTENTION] Erreur lors de l'envoi de l'heure {code_chantier}-{code_salarie}: {response.status_code}")
 
         postgres_conn.commit()
         postgres_cursor.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(heures)} heure(s) envoyée(s) vers BatiSimply"
+        return True, f"[OK] {len(heures)} heure(s) envoyée(s) vers BatiSimply"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert PostgreSQL -> BatiSimply : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert PostgreSQL -> BatiSimply : {str(e)}"
 
 # ============================================================================
 # TRANSFERT DES DEVIS SQL SERVER -> POSTGRESQL -> BATISIMPLY
@@ -519,7 +564,7 @@ def transfer_devis_sqlserver_to_postgres():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "sqlserver" not in creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion manquantes"
+            return False, "[ERREUR] Informations de connexion manquantes"
 
         # Établissement des connexions
         sqlserver_conn = connect_to_sqlserver(
@@ -537,7 +582,7 @@ def transfer_devis_sqlserver_to_postgres():
         )
         
         if not sqlserver_conn or not postgres_conn:
-            return False, "❌ Connexion aux bases échouée"
+            return False, "[ERREUR] Connexion aux bases échouée"
 
         # Création des curseurs
         sqlserver_cursor = sqlserver_conn.cursor()
@@ -651,7 +696,7 @@ def transfer_devis_sqlserver_to_postgres():
             inserted_rows += 1
 
         postgres_conn.commit()
-        message_success = f"✅ {inserted_rows} devis transféré(s) depuis SQL Server vers PostgreSQL"
+        message_success = f"[OK] {inserted_rows} devis transféré(s) depuis SQL Server vers PostgreSQL"
         
         # Fermeture des connexions
         sqlserver_cursor.close()
@@ -662,7 +707,7 @@ def transfer_devis_sqlserver_to_postgres():
         return True, message_success
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert SQL Server -> PostgreSQL : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert SQL Server -> PostgreSQL : {str(e)}"
 
 def transfer_devis_postgres_to_batisimply():
     """
@@ -672,12 +717,12 @@ def transfer_devis_postgres_to_batisimply():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion manquantes"
+            return False, "[ERREUR] Informations de connexion manquantes"
 
         # Récupération du token BatiSimply
         token = recup_batisimply_token()
         if not token:
-            return False, "❌ Impossible de récupérer le token BatiSimply"
+            return False, "[ERREUR] Impossible de récupérer le token BatiSimply"
 
         # Connexion PostgreSQL
         postgres_conn = connect_to_postgres(
@@ -688,7 +733,7 @@ def transfer_devis_postgres_to_batisimply():
             creds["postgres"].get("port", "5432")
         )
         if not postgres_conn:
-            return False, "❌ Connexion PostgreSQL échouée"
+            return False, "[ERREUR] Connexion PostgreSQL échouée"
 
         postgres_cursor = postgres_conn.cursor()
 
@@ -729,16 +774,16 @@ def transfer_devis_postgres_to_batisimply():
                 update_query = "UPDATE batigest_devis SET sync = TRUE WHERE code = %s"
                 postgres_cursor.execute(update_query, (code,))
             else:
-                print(f"⚠️ Erreur lors de l'envoi du devis {code}: {response.status_code}")
+                print(f"[ATTENTION] Erreur lors de l'envoi du devis {code}: {response.status_code}")
 
         postgres_conn.commit()
         postgres_cursor.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(devis)} devi(s) envoyé(s) vers BatiSimply"
+        return True, f"[OK] {len(devis)} devi(s) envoyé(s) vers BatiSimply"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert PostgreSQL -> BatiSimply : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert PostgreSQL -> BatiSimply : {str(e)}"
 
 # ============================================================================
 # FONCTIONS DE SYNCHRONISATION COMPLÈTE
@@ -748,13 +793,13 @@ def sync_sqlserver_to_batisimply():
     """
     Synchronisation complète SQL Server -> PostgreSQL -> BatiSimply.
     """
-    print("=== DÉBUT DE LA SYNCHRONISATION SQL SERVER → BATISIMPLY ===")
+    print("=== DÉBUT DE LA SYNCHRONISATION SQL SERVER -> BATISIMPLY ===")
     messages = []
     overall_success = True
     
     try:
         # 1. Transfert des chantiers
-        print("🔄 Synchronisation des chantiers...")
+        print("[SYNC] Synchronisation des chantiers...")
         success, message = transfer_chantiers_sqlserver_to_postgres()
         print(message)
         messages.append(message)
@@ -769,7 +814,7 @@ def sync_sqlserver_to_batisimply():
             overall_success = False
         
         # 2. Transfert des devis
-        print("🔄 Synchronisation des devis...")
+        print("[SYNC] Synchronisation des devis...")
         success, message = transfer_devis_sqlserver_to_postgres()
         print(message)
         messages.append(message)
@@ -783,14 +828,14 @@ def sync_sqlserver_to_batisimply():
         else:
             overall_success = False
         
-        print("=== FIN DE LA SYNCHRONISATION SQL SERVER → BATISIMPLY ===")
+        print("=== FIN DE LA SYNCHRONISATION SQL SERVER -> BATISIMPLY ===")
         
         if overall_success:
-            return True, "✅ Synchronisation SQL Server → BatiSimply terminée avec succès"
+            return True, "[OK] Synchronisation SQL Server -> BatiSimply terminée avec succès"
         else:
-            return False, "⚠️ Synchronisation SQL Server → BatiSimply terminée avec des erreurs"
+            return False, "[ATTENTION] Synchronisation SQL Server -> BatiSimply terminée avec des erreurs"
             
     except Exception as e:
-        error_msg = f"❌ Erreur lors de la synchronisation SQL Server → BatiSimply : {str(e)}"
+        error_msg = f"[ERREUR] Erreur lors de la synchronisation SQL Server -> BatiSimply : {str(e)}"
         print(error_msg)
         return False, error_msg

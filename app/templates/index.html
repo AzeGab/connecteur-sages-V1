@@ -63,7 +63,7 @@
 
         <!-- Zone de notification message -->
 {% if message %}
-{% set _type = message_type if message_type is defined and message_type else ('success' if '✅' in message else ('error' if '❌' in message else 'info')) %}
+{% set _type = message_type if message_type is defined and message_type else ('success' if '[OK]' in message else ('error' if '[ERREUR]' in message else 'info')) %}
 <div id="notification"
      class="flex items-start gap-4 p-5 rounded-2xl border shadow-sm mb-8 animate-fade-in
             {% if _type == 'success' %} bg-green-50 border-green-200 {% elif _type == 'error' %} bg-red-50 border-red-200 {% else %} bg-blue-50 border-blue-200 {% endif %}"
@@ -123,7 +123,7 @@
                             <div class="flex items-center justify-center mb-4">
                                 <i class="fas fa-arrow-right text-2xl"></i>
                             </div>
-                            <h4 class="text-xl font-bold mb-2">{{ 'Codial' if software == 'codial' else 'Batigest' }} → Batisimply</h4>
+                            <h4 class="text-xl font-bold mb-2">{{ 'Codial' if software == 'codial' else 'Batigest' }} -> Batisimply</h4>
                             <p class="text-blue-100 text-sm">Synchroniser vers Batisimply</p>
                         </div>
                         <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
@@ -136,7 +136,7 @@
                             <div class="flex items-center justify-center mb-4">
                                 <i class="fas fa-arrow-left text-2xl"></i>
                             </div>
-                            <h4 class="text-xl font-bold mb-2">Batisimply → {{ 'Codial' if software == 'codial' else 'Batigest' }}</h4>
+                            <h4 class="text-xl font-bold mb-2">Batisimply -> {{ 'Codial' if software == 'codial' else 'Batigest' }}</h4>
                             <p class="text-purple-100 text-sm">Synchroniser vers {{ 'Codial' if software == 'codial' else 'Batigest' }}</p>
                         </div>
                         <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
@@ -258,7 +258,7 @@
             const title = document.getElementById('progressTitle');
             const message = document.getElementById('progressMessage');
             
-            title.textContent = `Synchronisation ${from} → ${to}`;
+            title.textContent = `Synchronisation ${from} -> ${to}`;
             message.textContent = 'Initialisation...';
             
             container.classList.remove('hidden');

@@ -20,12 +20,12 @@ def transfer_chantiers_batisimply_to_postgres():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion PostgreSQL manquantes"
+            return False, "[ERREUR] Informations de connexion PostgreSQL manquantes"
 
         # Récupération du token BatiSimply
         token = recup_batisimply_token()
         if not token:
-            return False, "❌ Impossible de récupérer le token BatiSimply"
+            return False, "[ERREUR] Impossible de récupérer le token BatiSimply"
 
         # Connexion PostgreSQL
         postgres_conn = connect_to_postgres(
@@ -36,7 +36,7 @@ def transfer_chantiers_batisimply_to_postgres():
             creds["postgres"].get("port", "5432")
         )
         if not postgres_conn:
-            return False, "❌ Connexion PostgreSQL échouée"
+            return False, "[ERREUR] Connexion PostgreSQL échouée"
 
         postgres_cursor = postgres_conn.cursor()
 
@@ -53,12 +53,12 @@ def transfer_chantiers_batisimply_to_postgres():
         )
 
         if response.status_code != 200:
-            return False, f"❌ Erreur API BatiSimply : {response.status_code}"
+            return False, f"[ERREUR] Erreur API BatiSimply : {response.status_code}"
 
         try:
             chantiers = response.json()
         except json.JSONDecodeError as e:
-            return False, f"❌ Erreur de parsing JSON de l'API BatiSimply : {str(e)}. Réponse: {response.text[:200]}"
+            return False, f"[ERREUR] Erreur de parsing JSON de l'API BatiSimply : {str(e)}. Réponse: {response.text[:200]}"
 
         # Vérifier que chantiers est une liste ou un dictionnaire
         if isinstance(chantiers, dict):
@@ -73,13 +73,13 @@ def transfer_chantiers_batisimply_to_postgres():
                 # Si c'est un dictionnaire simple, le traiter comme un seul chantier
                 chantiers = [chantiers]
         elif not isinstance(chantiers, list):
-            return False, f"❌ Format de réponse inattendu de l'API BatiSimply. Attendu: liste ou dict, reçu: {type(chantiers)}"
+            return False, f"[ERREUR] Format de réponse inattendu de l'API BatiSimply. Attendu: liste ou dict, reçu: {type(chantiers)}"
 
         # Insertion dans PostgreSQL avec gestion des conflits
         for chantier in chantiers:
             # Vérifier que chantier est un dictionnaire
             if not isinstance(chantier, dict):
-                print(f"⚠️ Chantier ignoré (format inattendu): {type(chantier)} - {chantier}")
+                print(f"[ATTENTION] Chantier ignoré (format inattendu): {type(chantier)} - {chantier}")
                 continue
             code = chantier.get('id')  # L'ID BatiSimply devient le code
             nom_client = chantier.get('name')
@@ -104,10 +104,10 @@ def transfer_chantiers_batisimply_to_postgres():
         postgres_cursor.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(chantiers)} chantier(s) transféré(s) depuis BatiSimply vers PostgreSQL"
+        return True, f"[OK] {len(chantiers)} chantier(s) transféré(s) depuis BatiSimply vers PostgreSQL"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert BatiSimply -> PostgreSQL : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert BatiSimply -> PostgreSQL : {str(e)}"
 
 def transfer_chantiers_postgres_to_sqlserver():
     """
@@ -117,7 +117,7 @@ def transfer_chantiers_postgres_to_sqlserver():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "sqlserver" not in creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion manquantes"
+            return False, "[ERREUR] Informations de connexion manquantes"
 
         # Établissement des connexions
         sqlserver_conn = connect_to_sqlserver(
@@ -135,7 +135,7 @@ def transfer_chantiers_postgres_to_sqlserver():
         )
         
         if not sqlserver_conn or not postgres_conn:
-            return False, "❌ Connexion aux bases échouée"
+            return False, "[ERREUR] Connexion aux bases échouée"
 
         # Création des curseurs
         sqlserver_cursor = sqlserver_conn.cursor()
@@ -153,7 +153,7 @@ def transfer_chantiers_postgres_to_sqlserver():
             for col in columns_info:
                 print(f"  - {col[0]}: {col[1]} (max: {col[2]})")
         except Exception as e:
-            print(f"⚠️ Impossible de récupérer la structure de la table: {e}")
+            print(f"[ATTENTION] Impossible de récupérer la structure de la table: {e}")
 
         # Récupération des chantiers non synchronisés
         query = "SELECT * FROM batigest_chantiers WHERE sync = FALSE"
@@ -181,7 +181,7 @@ def transfer_chantiers_postgres_to_sqlserver():
             
             # Ignorer les chantiers avec des données vides
             if not code_truncated or not nom_client_truncated:
-                print(f"⚠️ Chantier ignoré (données vides): code='{code_truncated}', nom='{nom_client_truncated}'")
+                print(f"[ATTENTION] Chantier ignoré (données vides): code='{code_truncated}', nom='{nom_client_truncated}'")
                 continue
             
             # Vérifier si le chantier existe déjà dans SQL Server
@@ -206,7 +206,7 @@ def transfer_chantiers_postgres_to_sqlserver():
                     """
                     sqlserver_cursor.execute(insert_query, (code_truncated, nom_client_truncated, date_debut_safe, date_fin_safe, description_truncated))
             except Exception as e:
-                print(f"⚠️ Erreur lors de l'insertion/mise à jour du chantier {code_truncated}: {e}")
+                print(f"[ATTENTION] Erreur lors de l'insertion/mise à jour du chantier {code_truncated}: {e}")
                 print(f"   Données: code='{code_truncated}', nom='{nom_client_truncated}', desc='{description_truncated}'")
                 continue
             
@@ -223,10 +223,10 @@ def transfer_chantiers_postgres_to_sqlserver():
         sqlserver_conn.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(chantiers)} chantier(s) transféré(s) vers SQL Server"
+        return True, f"[OK] {len(chantiers)} chantier(s) transféré(s) vers SQL Server"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert PostgreSQL -> SQL Server : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert PostgreSQL -> SQL Server : {str(e)}"
 
 # ============================================================================
 # TRANSFERT DES HEURES BATISIMPLY -> POSTGRESQL -> SQL SERVER
@@ -240,12 +240,12 @@ def transfer_heures_batisimply_to_postgres():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion PostgreSQL manquantes"
+            return False, "[ERREUR] Informations de connexion PostgreSQL manquantes"
 
         # Récupération du token BatiSimply
         token = recup_batisimply_token()
         if not token:
-            return False, "❌ Impossible de récupérer le token BatiSimply"
+            return False, "[ERREUR] Impossible de récupérer le token BatiSimply"
 
         # Connexion PostgreSQL
         postgres_conn = connect_to_postgres(
@@ -256,7 +256,7 @@ def transfer_heures_batisimply_to_postgres():
             creds["postgres"].get("port", "5432")
         )
         if not postgres_conn:
-            return False, "❌ Connexion PostgreSQL échouée"
+            return False, "[ERREUR] Connexion PostgreSQL échouée"
 
         postgres_cursor = postgres_conn.cursor()
 
@@ -274,7 +274,7 @@ def transfer_heures_batisimply_to_postgres():
 
         start_date_str = start_utc.strftime("%Y-%m-%dT00:00:00Z")
         end_date_str = end_utc.strftime("%Y-%m-%dT23:59:59Z")
-        print(f"🗓️ Fenêtre d'import des heures: {start_date_str} → {end_date_str}")
+        print(f"[CALENDRIER] Fenêtre d'import des heures: {start_date_str} -> {end_date_str}")
 
         # Récupération des heures depuis BatiSimply
         headers = {
@@ -295,12 +295,12 @@ def transfer_heures_batisimply_to_postgres():
         )
 
         if response.status_code != 200:
-            return False, f"❌ Erreur API BatiSimply : {response.status_code}. Réponse: {response.text[:200]}"
+            return False, f"[ERREUR] Erreur API BatiSimply : {response.status_code}. Réponse: {response.text[:200]}"
 
         try:
             heures = response.json()
         except json.JSONDecodeError as e:
-            return False, f"❌ Erreur de parsing JSON de l'API BatiSimply : {str(e)}. Réponse: {response.text[:200]}"
+            return False, f"[ERREUR] Erreur de parsing JSON de l'API BatiSimply : {str(e)}. Réponse: {response.text[:200]}"
 
         # Vérifier que heures est une liste ou un dictionnaire
         if isinstance(heures, dict):
@@ -313,7 +313,7 @@ def transfer_heures_batisimply_to_postgres():
             else:
                 heures = [heures]
         elif not isinstance(heures, list):
-            return False, f"❌ Format de réponse inattendu de l'API BatiSimply. Attendu: liste ou dict, reçu: {type(heures)}"
+            return False, f"[ERREUR] Format de réponse inattendu de l'API BatiSimply. Attendu: liste ou dict, reçu: {type(heures)}"
 
         # Configuration du timezone
         tz_name = creds.get("timezone", "Europe/Paris")
@@ -331,7 +331,7 @@ def transfer_heures_batisimply_to_postgres():
         for h in heures:
             # Vérifier que heure est un dictionnaire
             if not isinstance(h, dict):
-                print(f"⚠️ Heure ignorée (format inattendu): {type(h)} - {h}")
+                print(f"[ATTENTION] Heure ignorée (format inattendu): {type(h)} - {h}")
                 continue
                 
             heure_id = h.get("id")
@@ -408,10 +408,10 @@ def transfer_heures_batisimply_to_postgres():
         postgres_cursor.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(heures)} heure(s) transférée(s) depuis BatiSimply vers PostgreSQL"
+        return True, f"[OK] {len(heures)} heure(s) transférée(s) depuis BatiSimply vers PostgreSQL"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert BatiSimply -> PostgreSQL : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert BatiSimply -> PostgreSQL : {str(e)}"
 
 def transfer_heures_postgres_to_sqlserver():
     """
@@ -421,7 +421,7 @@ def transfer_heures_postgres_to_sqlserver():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "sqlserver" not in creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion manquantes"
+            return False, "[ERREUR] Informations de connexion manquantes"
 
         # Établissement des connexions
         sqlserver_conn = connect_to_sqlserver(
@@ -439,7 +439,7 @@ def transfer_heures_postgres_to_sqlserver():
         )
         
         if not sqlserver_conn or not postgres_conn:
-            return False, "❌ Connexion aux bases échouée"
+            return False, "[ERREUR] Connexion aux bases échouée"
 
         # Création des curseurs
         sqlserver_cursor = sqlserver_conn.cursor()
@@ -480,16 +480,16 @@ def transfer_heures_postgres_to_sqlserver():
             # Affichage des résultats de la recherche
             results = sqlserver_cursor.fetchall()
             if results:
-                print("✅ Utilisateurs trouvés :")
+                print("[OK] Utilisateurs trouvés :")
                 for row in results:
                     print(f"  - {row}")
             else:
-                print(f"⚠️ Aucun utilisateur trouvé avec l'ID {id_utilisateur}")
+                print(f"[ATTENTION] Aucun utilisateur trouvé avec l'ID {id_utilisateur}")
                 continue
 
             code_salarie = results[0][0]  # On prend le Code du premier résultat
             if not code_projet:
-                print(f"⏭️ id_heure {id_heure} ignorée: code_projet manquant")
+                print(f"[IGNORE] id_heure {id_heure} ignorée: code_projet manquant")
                 continue
             code_chantier = str(code_projet)
             nb_h0 = (total_heure / 60) if total_heure else 0
@@ -523,8 +523,8 @@ def transfer_heures_postgres_to_sqlserver():
                 )
 
                 if keys_changed:
-                    print("🔄 Clé modifiée pour id_heure", id_heure,
-                          f": ({old_code_chantier}, {old_code_salarie}, {old_date}) → ({code_chantier}, {code_salarie}, {date_debut})")
+                    print("[SYNC] Clé modifiée pour id_heure", id_heure,
+                          f": ({old_code_chantier}, {old_code_salarie}, {old_date}) -> ({code_chantier}, {code_salarie}, {date_debut})")
 
                     # Tenter une mise à jour de l'ancienne ligne vers la nouvelle clé et valeurs
                     sqlserver_cursor.execute(
@@ -598,7 +598,7 @@ def transfer_heures_postgres_to_sqlserver():
                 transferred_ids.append(id_heure)
                 continue
 
-            # Pas de mapping existant (nouvelle heure) → upsert sur la nouvelle clé
+            # Pas de mapping existant (nouvelle heure) -> upsert sur la nouvelle clé
             if new_exists:
                 existing_h0, existing_h3, existing_h4 = new_exists
                 if existing_h0 != nb_h0 or existing_h3 != nb_h3 or existing_h4 != nb_h4:
@@ -647,10 +647,10 @@ def transfer_heures_postgres_to_sqlserver():
         sqlserver_conn.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(transferred_ids)} heure(s) transférée(s) vers SQL Server"
+        return True, f"[OK] {len(transferred_ids)} heure(s) transférée(s) vers SQL Server"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert PostgreSQL -> SQL Server : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert PostgreSQL -> SQL Server : {str(e)}"
 
 def update_code_projet_chantiers():
     """
@@ -659,7 +659,7 @@ def update_code_projet_chantiers():
     try:
         creds = load_credentials()
         if not creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion PostgreSQL manquantes"
+            return False, "[ERREUR] Informations de connexion PostgreSQL manquantes"
 
         postgres_conn = connect_to_postgres(
             creds["postgres"]["host"],
@@ -669,7 +669,7 @@ def update_code_projet_chantiers():
             creds["postgres"].get("port", "5432")
         )
         if not postgres_conn:
-            return False, "❌ Connexion PostgreSQL échouée"
+            return False, "[ERREUR] Connexion PostgreSQL échouée"
 
         postgres_cursor = postgres_conn.cursor()
 
@@ -687,10 +687,10 @@ def update_code_projet_chantiers():
         postgres_cursor.close()
         postgres_conn.close()
 
-        return True, f"✅ {updated_count} heure(s) mise(s) à jour avec le code projet"
+        return True, f"[OK] {updated_count} heure(s) mise(s) à jour avec le code projet"
 
     except Exception as e:
-        return False, f"❌ Erreur lors de la mise à jour des codes projet : {str(e)}"
+        return False, f"[ERREUR] Erreur lors de la mise à jour des codes projet : {str(e)}"
 
 # ============================================================================
 # TRANSFERT DES DEVIS BATISIMPLY -> POSTGRESQL -> SQL SERVER
@@ -704,12 +704,12 @@ def transfer_devis_batisimply_to_postgres():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion PostgreSQL manquantes"
+            return False, "[ERREUR] Informations de connexion PostgreSQL manquantes"
 
         # Récupération du token BatiSimply
         token = recup_batisimply_token()
         if not token:
-            return False, "❌ Impossible de récupérer le token BatiSimply"
+            return False, "[ERREUR] Impossible de récupérer le token BatiSimply"
 
         # Connexion PostgreSQL
         postgres_conn = connect_to_postgres(
@@ -720,7 +720,7 @@ def transfer_devis_batisimply_to_postgres():
             creds["postgres"].get("port", "5432")
         )
         if not postgres_conn:
-            return False, "❌ Connexion PostgreSQL échouée"
+            return False, "[ERREUR] Connexion PostgreSQL échouée"
 
         postgres_cursor = postgres_conn.cursor()
 
@@ -745,23 +745,23 @@ def transfer_devis_batisimply_to_postgres():
                 if response.status_code == 200 and response.headers.get('content-type', '').startswith('application/json'):
                     break
             except Exception as e:
-                print(f"⚠️ Erreur avec l'endpoint {endpoint}: {e}")
+                print(f"[ATTENTION] Erreur avec l'endpoint {endpoint}: {e}")
                 continue
         
         if not response:
-            return True, "ℹ️ Aucun endpoint valide trouvé pour les devis - fonctionnalité non disponible"
+            return True, "[INFO] Aucun endpoint valide trouvé pour les devis - fonctionnalité non disponible"
 
         if response.status_code != 200:
-            return False, f"❌ Erreur API BatiSimply : {response.status_code}. Réponse: {response.text[:200]}"
+            return False, f"[ERREUR] Erreur API BatiSimply : {response.status_code}. Réponse: {response.text[:200]}"
 
         # Vérifier si la réponse est du HTML (erreur 404 ou redirection)
         if response.headers.get('content-type', '').startswith('text/html'):
-            return True, "ℹ️ L'API des devis retourne du HTML - fonctionnalité non disponible via cette API"
+            return True, "[INFO] L'API des devis retourne du HTML - fonctionnalité non disponible via cette API"
 
         try:
             devis = response.json()
         except json.JSONDecodeError as e:
-            return False, f"❌ Erreur de parsing JSON de l'API BatiSimply : {str(e)}. Réponse: {response.text[:200]}"
+            return False, f"[ERREUR] Erreur de parsing JSON de l'API BatiSimply : {str(e)}. Réponse: {response.text[:200]}"
 
         # Vérifier que devis est une liste ou un dictionnaire
         if isinstance(devis, dict):
@@ -776,13 +776,13 @@ def transfer_devis_batisimply_to_postgres():
                 # Si c'est un dictionnaire simple, le traiter comme un seul devis
                 devis = [devis]
         elif not isinstance(devis, list):
-            return False, f"❌ Format de réponse inattendu de l'API BatiSimply. Attendu: liste ou dict, reçu: {type(devis)}"
+            return False, f"[ERREUR] Format de réponse inattendu de l'API BatiSimply. Attendu: liste ou dict, reçu: {type(devis)}"
 
         # Insertion dans PostgreSQL avec gestion des conflits
         for devi in devis:
             # Vérifier que devi est un dictionnaire
             if not isinstance(devi, dict):
-                print(f"⚠️ Devis ignoré (format inattendu): {type(devi)} - {devi}")
+                print(f"[ATTENTION] Devis ignoré (format inattendu): {type(devi)} - {devi}")
                 continue
             code = devi.get('id')  # L'ID BatiSimply devient le code
             nom = devi.get('name')
@@ -805,10 +805,10 @@ def transfer_devis_batisimply_to_postgres():
         postgres_cursor.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(devis)} devi(s) transféré(s) depuis BatiSimply vers PostgreSQL"
+        return True, f"[OK] {len(devis)} devi(s) transféré(s) depuis BatiSimply vers PostgreSQL"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert BatiSimply -> PostgreSQL : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert BatiSimply -> PostgreSQL : {str(e)}"
 
 def transfer_devis_postgres_to_sqlserver():
     """
@@ -818,7 +818,7 @@ def transfer_devis_postgres_to_sqlserver():
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "sqlserver" not in creds or "postgres" not in creds:
-            return False, "❌ Informations de connexion manquantes"
+            return False, "[ERREUR] Informations de connexion manquantes"
 
         # Établissement des connexions
         sqlserver_conn = connect_to_sqlserver(
@@ -836,7 +836,7 @@ def transfer_devis_postgres_to_sqlserver():
         )
         
         if not sqlserver_conn or not postgres_conn:
-            return False, "❌ Connexion aux bases échouée"
+            return False, "[ERREUR] Connexion aux bases échouée"
 
         # Création des curseurs
         sqlserver_cursor = sqlserver_conn.cursor()
@@ -886,10 +886,10 @@ def transfer_devis_postgres_to_sqlserver():
         sqlserver_conn.close()
         postgres_conn.close()
 
-        return True, f"✅ {len(devis)} devi(s) transféré(s) vers SQL Server"
+        return True, f"[OK] {len(devis)} devi(s) transféré(s) vers SQL Server"
 
     except Exception as e:
-        return False, f"❌ Erreur lors du transfert PostgreSQL -> SQL Server : {str(e)}"
+        return False, f"[ERREUR] Erreur lors du transfert PostgreSQL -> SQL Server : {str(e)}"
 
 # ============================================================================
 # FONCTIONS DE SYNCHRONISATION COMPLÈTE
@@ -899,13 +899,13 @@ def sync_batisimply_to_sqlserver():
     """
     Synchronisation complète BatiSimply -> PostgreSQL -> SQL Server.
     """
-    print("=== DÉBUT DE LA SYNCHRONISATION BATISIMPLY → SQL SERVER ===")
+    print("=== DÉBUT DE LA SYNCHRONISATION BATISIMPLY -> SQL SERVER ===")
     messages = []
     overall_success = True
     
     try:
         # 1. Transfert des chantiers
-        print("🔄 Synchronisation des chantiers...")
+        print("[SYNC] Synchronisation des chantiers...")
         success, message = transfer_chantiers_batisimply_to_postgres()
         print(message)
         messages.append(message)
@@ -920,14 +920,14 @@ def sync_batisimply_to_sqlserver():
             overall_success = False
         
         # 2. Transfert des heures
-        print("🔄 Synchronisation des heures...")
+        print("[SYNC] Synchronisation des heures...")
         success, message = transfer_heures_batisimply_to_postgres()
         print(message)
         messages.append(message)
         
         if success:
             # Mettre à jour les codes projet des heures
-            print("🔄 Mise à jour des codes projet...")
+            print("[SYNC] Mise à jour des codes projet...")
             success_update, message_update = update_code_projet_chantiers()
             print(message_update)
             messages.append(message_update)
@@ -941,7 +941,7 @@ def sync_batisimply_to_sqlserver():
             overall_success = False
         
         # 3. Transfert des devis
-        print("🔄 Synchronisation des devis...")
+        print("[SYNC] Synchronisation des devis...")
         success, message = transfer_devis_batisimply_to_postgres()
         print(message)
         messages.append(message)
@@ -955,14 +955,14 @@ def sync_batisimply_to_sqlserver():
         else:
             overall_success = False
         
-        print("=== FIN DE LA SYNCHRONISATION BATISIMPLY → SQL SERVER ===")
+        print("=== FIN DE LA SYNCHRONISATION BATISIMPLY -> SQL SERVER ===")
         
         if overall_success:
-            return True, "✅ Synchronisation BatiSimply → SQL Server terminée avec succès"
+            return True, "[OK] Synchronisation BatiSimply -> SQL Server terminée avec succès"
         else:
-            return False, "⚠️ Synchronisation BatiSimply → SQL Server terminée avec des erreurs"
+            return False, "[ATTENTION] Synchronisation BatiSimply -> SQL Server terminée avec des erreurs"
             
     except Exception as e:
-        error_msg = f"❌ Erreur lors de la synchronisation BatiSimply → SQL Server : {str(e)}"
+        error_msg = f"[ERREUR] Erreur lors de la synchronisation BatiSimply -> SQL Server : {str(e)}"
         print(error_msg)
         return False, error_msg

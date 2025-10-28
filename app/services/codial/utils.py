@@ -22,7 +22,7 @@ def init_codial_tables():
         # Connexion à PostgreSQL
         creds = load_credentials()
         if not creds or "postgres" not in creds:
-            print("❌ Informations PostgreSQL manquantes")
+            print("[ERREUR] Informations PostgreSQL manquantes")
             return False
 
         pg = creds["postgres"]
@@ -30,7 +30,7 @@ def init_codial_tables():
             pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
         )
         if not postgres_conn:
-            print("❌ Connexion à PostgreSQL échouée")
+            print("[ERREUR] Connexion à PostgreSQL échouée")
             return False
 
         postgres_cursor = postgres_conn.cursor()
@@ -96,11 +96,11 @@ def init_codial_tables():
         postgres_cursor.close()
         postgres_conn.close()
 
-        print("✅ Tables Codial initialisées avec succès")
+        print("[OK] Tables Codial initialisées avec succès")
         return True
 
     except Exception as e:
-        print(f"❌ Erreur lors de l'initialisation de la table Codial : {e}")
+        print(f"[ERREUR] Erreur lors de l'initialisation de la table Codial : {e}")
         return False
 
 def check_codial_connection():
@@ -113,9 +113,9 @@ def check_codial_connection():
         hfsql_conn = connect_to_hfsql()
         if hfsql_conn:
             hfsql_conn.close()
-            return True, "✅ Connexion HFSQL (Codial) réussie"
+            return True, "[OK] Connexion HFSQL (Codial) réussie"
         else:
-            return False, "❌ Connexion HFSQL (Codial) échouée"
+            return False, "[ERREUR] Connexion HFSQL (Codial) échouée"
             
     except Exception as e:
-        return False, f"❌ Erreur de connexion HFSQL (Codial) : {str(e)}"
+        return False, f"[ERREUR] Erreur de connexion HFSQL (Codial) : {str(e)}"

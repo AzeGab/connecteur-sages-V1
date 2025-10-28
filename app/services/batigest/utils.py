@@ -18,7 +18,7 @@ def init_batigest_tables():
         # Connexion à PostgreSQL
         creds = load_credentials()
         if not creds or "postgres" not in creds:
-            print("❌ Informations PostgreSQL manquantes")
+            print("[ERREUR] Informations PostgreSQL manquantes")
             return False
 
         pg = creds["postgres"]
@@ -26,7 +26,7 @@ def init_batigest_tables():
             pg["host"], pg["user"], pg["password"], pg["database"], pg.get("port", "5432")
         )
         if not postgres_conn:
-            print("❌ Connexion à PostgreSQL échouée")
+            print("[ERREUR] Connexion à PostgreSQL échouée")
             return False
 
         postgres_cursor = postgres_conn.cursor()
@@ -101,11 +101,11 @@ def init_batigest_tables():
         postgres_cursor.close()
         postgres_conn.close()
 
-        print("✅ Tables Batigest initialisées avec succès")
+        print("[OK] Tables Batigest initialisées avec succès")
         return True
 
     except Exception as e:
-        print(f"❌ Erreur lors de l'initialisation de la table : {e}")
+        print(f"[ERREUR] Erreur lors de l'initialisation de la table : {e}")
         return False
 
 def check_batigest_connection():
@@ -115,11 +115,11 @@ def check_batigest_connection():
     try:
         creds = load_credentials()
         if not creds:
-            return False, "❌ Aucune configuration trouvée"
+            return False, "[ERREUR] Aucune configuration trouvée"
 
         # Vérification PostgreSQL
         if "postgres" not in creds:
-            return False, "❌ Configuration PostgreSQL manquante"
+            return False, "[ERREUR] Configuration PostgreSQL manquante"
 
         pg = creds["postgres"]
         postgres_conn = connect_to_postgres(
@@ -127,10 +127,10 @@ def check_batigest_connection():
         )
         
         if not postgres_conn:
-            return False, "❌ Connexion PostgreSQL échouée"
+            return False, "[ERREUR] Connexion PostgreSQL échouée"
 
         postgres_conn.close()
-        return True, "✅ Connexion Batigest réussie"
+        return True, "[OK] Connexion Batigest réussie"
 
     except Exception as e:
-        return False, f"❌ Erreur de connexion Batigest : {str(e)}"
+        return False, f"[ERREUR] Erreur de connexion Batigest : {str(e)}"

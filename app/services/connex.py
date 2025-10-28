@@ -47,10 +47,10 @@ def connect_to_sqlserver(server, user, password, database):
     )
     try:
         conn = pyodbc.connect(conn_str)
-        print("✅ Connexion SQL Server réussie")
+        print("[OK] Connexion SQL Server réussie")
         return conn
     except Exception as e:
-        print("❌ Erreur de connexion SQL Server:", e)
+        print("[ERREUR] Connexion SQL Server:", e)
         return None
 
 # ============================================================================
@@ -82,13 +82,13 @@ def connect_to_postgres(host, user, password, database, port="5432"):
             client_encoding='utf8',
             options='-c client_encoding=utf8'
         )
-        print("✅ Connexion PostgreSQL réussie")
+        print("[OK] Connexion PostgreSQL réussie")
         return conn
     except psycopg2.OperationalError as e:
-        print(f"❌ Erreur de connexion PostgreSQL : {e}")
+        print(f"[ERREUR] Connexion PostgreSQL : {e}")
         return None
     except Exception as e:
-        print(f"❌ Erreur PostgreSQL : {e}")
+        print(f"[ERREUR] PostgreSQL : {e}")
         return None
     
 # ============================================================================
@@ -108,7 +108,7 @@ def connect_to_hfsql(host: str, user: str = "admin", password: str = "", databas
         if host.upper().startswith("DSN="):
             conn_str = f"{host};UID={user};PWD={password}"
             conn = pypyodbc.connect(conn_str)
-            print("✅ Connexion HFSQL via DSN réussie")
+            print("[OK] Connexion HFSQL via DSN réussie")
             return conn
 
         # Essayer plusieurs noms de driver possibles
@@ -131,17 +131,17 @@ def connect_to_hfsql(host: str, user: str = "admin", password: str = "", databas
                     "PWD={password}"
                 ).format(driver=drv, host=host, port=port, database=database, user=user, password=password)
                 conn = pypyodbc.connect(conn_str)
-                print(f"✅ Connexion HFSQL réussie avec le driver '{drv}'")
+                print(f"[OK] Connexion HFSQL réussie avec le driver '{drv}'")
                 return conn
             except Exception as e:  # garder la dernière erreur pour diagnostic
                 last_error = e
                 continue
 
-        print("❌ Erreur HFSQL (pilote/DSN):", last_error)
-        print("ℹ️ Vérifiez que le pilote ODBC HFSQL Client/Serveur est installé et que le nom du driver est correct.")
+        print("[ERREUR] HFSQL (pilote/DSN):", last_error)
+        print("[INFO] Vérifiez que le pilote ODBC HFSQL Client/Serveur est installé et que le nom du driver est correct.")
         return None
     except Exception as e:
-        print("❌ Erreur HFSQL :", e)
+        print("[ERREUR] HFSQL :", e)
         return None
 
 # ============================================================================
@@ -231,8 +231,8 @@ def recup_batisimply_token():
             missing.append("client_secret")
 
     if missing:
-        print(f"❌ Paramètres BatiSimply manquants ({grant_type}) : {', '.join(missing)}")
-        print("ℹ️ Renseigne la section 'batisimply' dans credentials.json ou les variables d'environnement BATISIMPLY_*.")
+        print(f"[ERREUR] Paramètres BatiSimply manquants ({grant_type}) : {', '.join(missing)}")
+        print("[INFO] Renseigne la section 'batisimply' dans credentials.json ou les variables d'environnement BATISIMPLY_*.")
         return None
 
     # 3) Construire le payload selon le grant
@@ -267,8 +267,8 @@ def recup_batisimply_token():
     try:
         resp = session.post(url, data=payload, headers=headers, timeout=12)
     except requests.RequestException as e:
-        print(f"❌ Erreur réseau lors de la récupération du token : {e}")
-        print(f"ℹ️ URL SSO utilisée: {url} | grant_type={grant_type} | client_id={client_id}")
+        print(f"[ERREUR] Erreur réseau lors de la récupération du token : {e}")
+        print(f"[INFO] URL SSO utilisée: {url} | grant_type={grant_type} | client_id={client_id}")
         return None
 
     content_type = resp.headers.get("Content-Type", "")
@@ -283,26 +283,26 @@ def recup_batisimply_token():
                 pass
         if not err_msg:
             err_msg = resp.text[:500].replace("\n", " ")
-        print(f"❌ Token SSO échec [{resp.status_code}] {err_msg}")
-        print(f"ℹ️ URL SSO utilisée: {url} | grant_type={grant_type} | client_id={client_id}")
+        print(f"[ERREUR] Token SSO échec [{resp.status_code}] {err_msg}")
+        print(f"[INFO] URL SSO utilisée: {url} | grant_type={grant_type} | client_id={client_id}")
         return None
 
     # 5) Extraire access_token
     try:
         data = resp.json()
     except ValueError:
-        print(f"❌ Réponse SSO non JSON: {resp.text[:200]}")
+        print(f"[ERREUR] Réponse SSO non JSON: {resp.text[:200]}")
         return None
 
     access_token = data.get("access_token")
     if not access_token:
-        print(f"❌ 'access_token' absent dans la réponse SSO: {data}")
+        print(f"[ERREUR] 'access_token' absent dans la réponse SSO: {data}")
         return None
 
     if "expires_in" in data:
-        print(f"✅ Token récupéré (expire dans {data['expires_in']}s)")
+        print(f"[OK] Token récupéré (expire dans {data['expires_in']}s)")
     else:
-        print("✅ Token récupéré")
+        print("[OK] Token récupéré")
 
     return access_token
 

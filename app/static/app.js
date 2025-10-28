@@ -7,16 +7,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Fonctions de synchronisation
     window.syncBatigestToBatisimply = function() {
-        showSyncStatus('Synchronisation Batigest → Batisimply en cours...', 'blue');
+        showSyncStatus('Synchronisation Batigest -> Batisimply en cours...', 'blue');
         setTimeout(() => {
-            showSyncSuccess('Synchronisation Batigest → Batisimply terminée avec succès !');
+            showSyncSuccess('Synchronisation Batigest -> Batisimply terminée avec succès !');
         }, 3000);
     };
 
     window.syncBatisimplyToBatigest = function() {
-        showSyncStatus('Synchronisation Batisimply → Batigest en cours...', 'purple');
+        showSyncStatus('Synchronisation Batisimply -> Batigest en cours...', 'purple');
         setTimeout(() => {
-            showSyncSuccess('Synchronisation Batisimply → Batigest terminée avec succès !');
+            showSyncSuccess('Synchronisation Batisimply -> Batigest terminée avec succès !');
         }, 3000);
     };
 

@@ -120,7 +120,7 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
         Tuple[bool, Optional[Dict]]: (est_valide, informations_licence)
     """
     if not license_key:
-        print("❌ Clé de licence vide")
+        print("[ERREUR] Clé de licence vide")
         return False, None
     
     # Nettoyage
@@ -160,12 +160,12 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
             if valid and info:
                 # Heartbeat optionnel
                 send_license_heartbeat(license_key)
-                print("✅ Licence valide via service central")
+                print("[OK] Licence valide via service central")
                 return True, info
 
         # 2) Fallback Supabase (ancien comportement)
         if not SUPABASE_KEY:
-            print("❌ SUPABASE_KEY manquant. Définissez-le dans votre .env")
+            print("[ERREUR] SUPABASE_KEY manquant. Définissez-le dans votre .env")
             return False, None
         # Appel à l'API Supabase
         headers = {
@@ -207,9 +207,9 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
                 
                 # Vérifier si la licence est active
                 is_active = license_info.get("is_active", False)
-                print(f"✅ is_active: {is_active}")
+                print(f"[OK] is_active: {is_active}")
                 if not is_active:
-                    print("❌ Licence inactive")
+                    print("[ERREUR] Licence inactive")
                     return False, license_info  # Licence inactive
                 
                 # Vérifier si la licence n'est pas expirée
@@ -228,12 +228,12 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
                         print(f"🕐 Expire le: {expiry_datetime}")
                         
                         if now > expiry_datetime:
-                            print("❌ Licence expirée")
+                            print("[ERREUR] Licence expirée")
                             return False, license_info  # Licence expirée
                         else:
-                            print("✅ Licence non expirée")
+                            print("[OK] Licence non expirée")
                     except ValueError as e:
-                        print(f"⚠️ Erreur de parsing de date: {e}")
+                        print(f"[ATTENTION] Erreur de parsing de date: {e}")
                         # Si la date n'est pas valide, on considère la licence comme valide
                         pass
                 
@@ -242,21 +242,21 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
                 max_usage = license_info.get("max_usage")
                 print(f"📊 usage_count: {usage_count}, max_usage: {max_usage}")
                 if max_usage and max_usage > 0 and usage_count >= max_usage:
-                    print("❌ Limite d'usage atteinte")
+                    print("[ERREUR] Limite d'usage atteinte")
                     return False, license_info  # Limite d'usage atteinte
                 elif max_usage == -1:
-                    print("✅ Usage illimité")
+                    print("[OK] Usage illimité")
                 else:
-                    print("✅ Usage dans les limites")
+                    print("[OK] Usage dans les limites")
                 
                 # Vérifier si la licence n'est pas archivée
                 is_archived = license_info.get("is_archived", False)
                 print(f"📦 is_archived: {is_archived}")
                 if is_archived:
-                    print("❌ Licence archivée")
+                    print("[ERREUR] Licence archivée")
                     return False, license_info  # Licence archivée
                 
-                print("✅ Licence valide")
+                print("[OK] Licence valide")
                 # Sauvegarder au format local attendu
                 save_license_info(license_key, {
                     "key": license_key,
@@ -272,21 +272,21 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
                 return True, license_info
             else:
                 # Aucune licence trouvée
-                print("❌ Aucune licence trouvée avec cette clé")
+                print("[ERREUR] Aucune licence trouvée avec cette clé")
                 return False, None
         else:
             # Erreur serveur
-            print(f"❌ Erreur API Supabase: {response.status_code} - {response.text}")
+            print(f"[ERREUR] Erreur API Supabase: {response.status_code} - {response.text}")
             return False, None
             
     except requests.exceptions.RequestException as e:
-        print(f"❌ Erreur de connexion à Supabase: {e}")
+        print(f"[ERREUR] Erreur de connexion à Supabase: {e}")
         return False, None
     except json.JSONDecodeError as e:
-        print(f"❌ Erreur de décodage de la réponse Supabase: {e}")
+        print(f"[ERREUR] Erreur de décodage de la réponse Supabase: {e}")
         return False, None
     except Exception as e:
-        print(f"❌ Erreur inattendue: {e}")
+        print(f"[ERREUR] Erreur inattendue: {e}")
         return False, None
 
 def save_license_info(license_key: str, license_info: Dict) -> None:
