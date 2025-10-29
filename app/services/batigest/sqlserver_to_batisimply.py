@@ -561,6 +561,10 @@ def transfer_devis_sqlserver_to_postgres():
     Transfère les devis depuis SQL Server (Batigest) vers PostgreSQL.
     """
     try:
+        # Garde-fou global: ne rien faire en mode chantier
+        _creds_mode = (load_credentials() or {}).get("mode", "chantier").strip().lower()
+        if _creds_mode != "devis":
+            return True, "[INFO] Mode 'chantier' actif: transfert des devis vers PostgreSQL ignoré"
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "sqlserver" not in creds or "postgres" not in creds:
@@ -798,6 +802,10 @@ def sync_sqlserver_to_batisimply():
     overall_success = True
     
     try:
+        # Respect du mode (chantier|devis) depuis credentials.json
+        creds = load_credentials() or {}
+        mode = (creds.get("mode") or "chantier").strip().lower()
+        print(f"[INFO] Mode courant: {mode}")
         # 1. Transfert des chantiers
         print("[SYNC] Synchronisation des chantiers...")
         success, message = transfer_chantiers_sqlserver_to_postgres()
@@ -813,20 +821,23 @@ def sync_sqlserver_to_batisimply():
         else:
             overall_success = False
         
-        # 2. Transfert des devis
-        print("[SYNC] Synchronisation des devis...")
-        success, message = transfer_devis_sqlserver_to_postgres()
-        print(message)
-        messages.append(message)
-        
-        if success:
-            success, message = transfer_devis_postgres_to_batisimply()
+        # 2. Transfert des devis (uniquement en mode 'devis')
+        if mode == "devis":
+            print("[SYNC] Synchronisation des devis...")
+            success, message = transfer_devis_sqlserver_to_postgres()
             print(message)
             messages.append(message)
-            if not success:
+            
+            if success:
+                success, message = transfer_devis_postgres_to_batisimply()
+                print(message)
+                messages.append(message)
+                if not success:
+                    overall_success = False
+            else:
                 overall_success = False
         else:
-            overall_success = False
+            print("[INFO] Mode 'chantier' actif: envoi des devis désactivé.")
         
         print("=== FIN DE LA SYNCHRONISATION SQL SERVER -> BATISIMPLY ===")
         

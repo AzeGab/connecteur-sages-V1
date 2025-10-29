@@ -976,14 +976,14 @@ def update_license(request: Request, license_key: str = Form(...)):
         TemplateResponse: Page HTML de configuration
     """
     try:
-        print(f"🔍 Tentative de mise à jour de la licence: {license_key[:8]}...")
+        print(f"[DEBUG] Tentative de mise à jour de la licence: {license_key[:8]}...")
         
         # Valider la clé de licence avec rafraîchissement
         is_valid, license_info = refresh_license_validation(license_key)
         
-        print(f"📊 Résultat de validation: {is_valid}")
+        print(f"[INFO] Résultat de validation: {is_valid}")
         if license_info:
-            print(f"📋 Données de licence: {license_info}")
+            print(f"[INFO] Données de licence: {license_info}")
         
         if is_valid and license_info:
             # La licence est déjà sauvegardée par refresh_license_validation
@@ -1060,14 +1060,14 @@ async def refresh_license(request: Request, license_key: str = Form(...)):
         JSONResponse: Résultat de la validation
     """
     try:
-        print(f"🔍 Tentative de rafraîchissement de la licence: {license_key[:8]}...")
+        print(f"[DEBUG] Tentative de rafraîchissement de la licence: {license_key[:8]}...")
         
         # Valider la clé de licence
         is_valid, license_data = refresh_license_validation(license_key)
         
-        print(f"📊 Résultat de validation: {is_valid}")
+        print(f"[INFO] Résultat de validation: {is_valid}")
         if license_data:
-            print(f"📋 Données de licence: {license_data}")
+            print(f"[INFO] Données de licence: {license_data}")
         
         if is_valid:
             # Sauvegarder les informations de licence mises à jour

@@ -76,13 +76,21 @@ def transfer_chantiers_batisimply_to_postgres():
             return False, f"[ERREUR] Format de réponse inattendu de l'API BatiSimply. Attendu: liste ou dict, reçu: {type(chantiers)}"
 
         # Insertion dans PostgreSQL avec gestion des conflits
+        inserted_count = 0
         for chantier in chantiers:
             # Vérifier que chantier est un dictionnaire
             if not isinstance(chantier, dict):
                 print(f"[ATTENTION] Chantier ignoré (format inattendu): {type(chantier)} - {chantier}")
                 continue
-            code = chantier.get('id')  # L'ID BatiSimply devient le code
-            nom_client = chantier.get('name')
+            # Normaliser et valider les champs obligatoires
+            raw_id = chantier.get('id')
+            code = str(raw_id).strip() if raw_id is not None else ""
+            raw_name = chantier.get('name')
+            nom_client = str(raw_name).strip() if raw_name is not None else ""
+
+            if not code or not nom_client:
+                print(f"[ATTENTION] Chantier ignoré (code/nom manquant) : id='{raw_id}' name='{raw_name}'")
+                continue
             date_debut = chantier.get('startDate')
             date_fin = chantier.get('endDate')
             description = chantier.get('status', '')  # Utiliser le statut comme description
@@ -99,12 +107,13 @@ def transfer_chantiers_batisimply_to_postgres():
             """
             
             postgres_cursor.execute(query_postgres, (code, date_debut, date_fin, nom_client, description))
+            inserted_count += 1
 
         postgres_conn.commit()
         postgres_cursor.close()
         postgres_conn.close()
 
-        return True, f"[OK] {len(chantiers)} chantier(s) transféré(s) depuis BatiSimply vers PostgreSQL"
+        return True, f"[OK] {inserted_count} chantier(s) transféré(s) depuis BatiSimply vers PostgreSQL"
 
     except Exception as e:
         return False, f"[ERREUR] Erreur lors du transfert BatiSimply -> PostgreSQL : {str(e)}"
@@ -149,14 +158,22 @@ def transfer_chantiers_postgres_to_sqlserver():
                 WHERE TABLE_NAME = 'ChantierDef' AND TABLE_SCHEMA = 'dbo'
             """)
             columns_info = sqlserver_cursor.fetchall()
-            print("📋 Structure de la table ChantierDef :")
+            print("[INFO] Structure de la table ChantierDef :")
             for col in columns_info:
                 print(f"  - {col[0]}: {col[1]} (max: {col[2]})")
         except Exception as e:
             print(f"[ATTENTION] Impossible de récupérer la structure de la table: {e}")
 
-        # Récupération des chantiers non synchronisés
-        query = "SELECT * FROM batigest_chantiers WHERE sync = FALSE"
+        # Récupération des chantiers non synchronisés et valides
+        query = (
+            """
+            SELECT *
+            FROM batigest_chantiers
+            WHERE NOT sync
+              AND code IS NOT NULL AND code <> ''
+              AND nom_client IS NOT NULL AND nom_client <> ''
+            """
+        )
         postgres_cursor.execute(query)
         chantiers = postgres_cursor.fetchall()
 
@@ -176,7 +193,7 @@ def transfer_chantiers_postgres_to_sqlserver():
             date_fin_safe = date_fin if date_fin else datetime.now().date()
             
             # Debug: afficher les longueurs des chaînes
-            print(f"🔍 Debug chantier: code='{code_truncated}' (len={len(code_truncated)}), nom_client='{nom_client_truncated}' (len={len(nom_client_truncated)}), etat='{description_truncated}' (len={len(description_truncated)})")
+            print(f"[DEBUG] Debug chantier: code='{code_truncated}' (len={len(code_truncated)}), nom_client='{nom_client_truncated}' (len={len(nom_client_truncated)}), etat='{description_truncated}' (len={len(description_truncated)})")
             print(f"   Données originales: code='{code}', nom_client='{nom_client}', description='{description}'")
             
             # Ignorer les chantiers avec des données vides
@@ -462,7 +479,7 @@ def transfer_heures_postgres_to_sqlserver():
             WHERE status_management = 'VALIDATED' AND NOT sync AND code_projet IS NOT NULL
         """)
         heures = postgres_cursor.fetchall()
-        print(f"📦 {len(heures)} heure(s) à traiter...")
+        print(f"[INFO] {len(heures)} heure(s) à traiter...")
 
         transferred_ids = []
 
@@ -470,7 +487,7 @@ def transfer_heures_postgres_to_sqlserver():
             id_heure, date_debut, id_utilisateur, code_projet, total_heure, panier, trajet = h
 
             # Recherche de l'utilisateur avec plus de détails
-            print(f"\n🔍 Recherche de l'utilisateur {id_utilisateur} dans Salarie...")
+            print(f"\n[DEBUG] Recherche de l'utilisateur {id_utilisateur} dans Salarie...")
             sqlserver_cursor.execute("""
                 SELECT TOP 5 * 
                 FROM Salarie 
@@ -701,6 +718,10 @@ def transfer_devis_batisimply_to_postgres():
     Transfère les devis depuis BatiSimply vers PostgreSQL.
     """
     try:
+        # Garde-fou global: ne rien faire en mode chantier
+        _creds_mode = (load_credentials() or {}).get("mode", "chantier").strip().lower()
+        if _creds_mode != "devis":
+            return True, "[INFO] Mode 'chantier' actif: transfert des devis depuis BatiSimply ignoré"
         # Vérification des identifiants
         creds = load_credentials()
         if not creds or "postgres" not in creds:
@@ -904,6 +925,10 @@ def sync_batisimply_to_sqlserver():
     overall_success = True
     
     try:
+        # Respect du mode (chantier|devis) depuis credentials.json
+        creds = load_credentials() or {}
+        mode = (creds.get("mode") or "chantier").strip().lower()
+        print(f"[INFO] Mode courant: {mode}")
         # 1. Transfert des chantiers
         print("[SYNC] Synchronisation des chantiers...")
         success, message = transfer_chantiers_batisimply_to_postgres()
@@ -940,20 +965,23 @@ def sync_batisimply_to_sqlserver():
         else:
             overall_success = False
         
-        # 3. Transfert des devis
-        print("[SYNC] Synchronisation des devis...")
-        success, message = transfer_devis_batisimply_to_postgres()
-        print(message)
-        messages.append(message)
-        
-        if success:
-            success, message = transfer_devis_postgres_to_sqlserver()
+        # 3. Transfert des devis (uniquement en mode 'devis')
+        if mode == "devis":
+            print("[SYNC] Synchronisation des devis...")
+            success, message = transfer_devis_batisimply_to_postgres()
             print(message)
             messages.append(message)
-            if not success:
+            
+            if success:
+                success, message = transfer_devis_postgres_to_sqlserver()
+                print(message)
+                messages.append(message)
+                if not success:
+                    overall_success = False
+            else:
                 overall_success = False
         else:
-            overall_success = False
+            print("[INFO] Mode 'chantier' actif: envoi des devis désactivé.")
         
         print("=== FIN DE LA SYNCHRONISATION BATISIMPLY -> SQL SERVER ===")
         

@@ -20,6 +20,7 @@ import pypyodbc  # pour PyInstaller
 import os
 import sys
 from dotenv import load_dotenv
+from app.utils.console import install_console_colors
 
 from app.routes import form_routes
 from app.utils.paths import templates_path, static_path
@@ -30,6 +31,7 @@ from app.middleware.license_middleware import LicenseMiddleware
 # ============================================================================
 # Charger les variables d'environnement
 load_dotenv()
+install_console_colors()
 
 # Création de l'instance FastAPI
 app = FastAPI(

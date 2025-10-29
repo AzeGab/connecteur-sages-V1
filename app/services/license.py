@@ -125,7 +125,7 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
     
     # Nettoyage
     license_key = license_key.strip()
-    print(f"🔍 Validation de la clé: {license_key[:8]}...")
+    print(f"[DEBUG] Validation de la clé: {license_key[:8]}...")
 
     # Mode test: super-clé 'Cobalt' (activé seulement si debug ou ALLOW_TEST_LICENSE=true)
     # Lire le flag debug directement depuis credentials.json pour éviter toute dépendance
@@ -139,7 +139,7 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
         debug_mode = False
     allow_test_env = os.getenv("ALLOW_TEST_LICENSE", "false").lower() == "true"
     if (debug_mode or allow_test_env) and license_key.lower() == "cobalt":
-        print("🧪 Super-clé de test détectée (Cobalt) – licence acceptée en mode debug")
+        print("[TEST] Super-clé de test détectée (Cobalt) – licence acceptée en mode debug")
         far_future = (datetime.now() + timedelta(days=3650)).isoformat()
         test_license = {
             "client_id": "TEST-COBALT",
@@ -180,8 +180,8 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
             "select": "*",
             "license_key": f"eq.{license_key.strip()}"
         }
-        print(f"🌐 URL de requête: {url}")
-        print(f"🔎 Paramètres: {params}")
+        print(f"[INFO] URL de requête: {url}")
+        print(f"[DEBUG] Paramètres: {params}")
         
         response = requests.get(
             url,
@@ -190,20 +190,20 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
             timeout=10  # Timeout de 10 secondes
         )
         
-        print(f"📡 Statut de la réponse: {response.status_code}")
+        print(f"[INFO] Statut de la réponse: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
-            print(f"📊 Données reçues: {len(data)} licences trouvées")
+            print(f"[INFO] Données reçues: {len(data)} licences trouvées")
             try:
-                print(f"📩 Content-Range: {response.headers.get('Content-Range')}")
+                print(f"[INFO] Content-Range: {response.headers.get('Content-Range')}")
             except Exception:
                 pass
             
             # Vérifier si on a des résultats
             if data and len(data) > 0:
                 license_info = data[0]  # Prendre le premier résultat
-                print(f"📋 Licence trouvée: ID {license_info.get('id')}")
+                print(f"[INFO] Licence trouvée: ID {license_info.get('id')}")
                 
                 # Vérifier si la licence est active
                 is_active = license_info.get("is_active", False)
@@ -214,7 +214,7 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
                 
                 # Vérifier si la licence n'est pas expirée
                 expires_at = license_info.get("expires_at")
-                print(f"📅 expires_at: {expires_at}")
+                print(f"[INFO] expires_at: {expires_at}")
                 if expires_at:
                     try:
                         # Gérer différents formats de date
@@ -224,8 +224,8 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
                             expiry_datetime = datetime.strptime(expires_at, "%Y-%m-%d")
                         
                         now = datetime.now(expiry_datetime.tzinfo)
-                        print(f"🕐 Maintenant: {now}")
-                        print(f"🕐 Expire le: {expiry_datetime}")
+                        print(f"[INFO] Maintenant: {now}")
+                        print(f"[INFO] Expire le: {expiry_datetime}")
                         
                         if now > expiry_datetime:
                             print("[ERREUR] Licence expirée")
@@ -240,7 +240,7 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
                 # Vérifier l'usage count si applicable
                 usage_count = license_info.get("usage_count", 0)
                 max_usage = license_info.get("max_usage")
-                print(f"📊 usage_count: {usage_count}, max_usage: {max_usage}")
+                print(f"[INFO] usage_count: {usage_count}, max_usage: {max_usage}")
                 if max_usage and max_usage > 0 and usage_count >= max_usage:
                     print("[ERREUR] Limite d'usage atteinte")
                     return False, license_info  # Limite d'usage atteinte
@@ -251,7 +251,7 @@ def validate_license_key(license_key: str) -> Tuple[bool, Optional[Dict]]:
                 
                 # Vérifier si la licence n'est pas archivée
                 is_archived = license_info.get("is_archived", False)
-                print(f"📦 is_archived: {is_archived}")
+                print(f"[INFO] is_archived: {is_archived}")
                 if is_archived:
                     print("[ERREUR] Licence archivée")
                     return False, license_info  # Licence archivée
