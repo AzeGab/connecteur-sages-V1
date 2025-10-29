@@ -63,7 +63,9 @@ def transfer_chantiers_batisimply_to_postgres():
         # Vérifier que chantiers est une liste ou un dictionnaire
         if isinstance(chantiers, dict):
             # Si c'est un dictionnaire, vérifier s'il contient une liste de chantiers
-            if 'content' in chantiers:
+            if 'elements' in chantiers:
+                chantiers = chantiers['elements']
+            elif 'content' in chantiers:
                 chantiers = chantiers['content']
             elif 'data' in chantiers:
                 chantiers = chantiers['data']
@@ -91,7 +93,11 @@ def transfer_chantiers_batisimply_to_postgres():
             if raw_project_code is not None:
                 code = str(raw_project_code).strip()
             elif raw_id is not None:
-                code = str(raw_id).strip()
+                # Fallback: utiliser l'id zéro-rempli pour préserver un code compatible Batigest
+                try:
+                    code = str(int(raw_id)).zfill(8)
+                except Exception:
+                    code = str(raw_id).strip()
             else:
                 code = ""
             raw_name = chantier.get('name')
@@ -408,6 +414,32 @@ def transfer_heures_batisimply_to_postgres():
             total_heure = h.get("totalTimeMinutes")
             panier = h.get("hasPackedLunch", False)
             trajet = h.get("hasHomeToWorkJourney", False)
+
+            # Fallback 1: si aucun project_code mais id_projet fourni, tenter de récupérer le projet pour obtenir le code exact
+            if (not project_code) and (id_projet is not None):
+                try:
+                    resp_proj = requests.get(
+                        f"https://api.staging.batisimply.fr/api/project/{id_projet}",
+                        headers=headers,
+                        timeout=12,
+                    )
+                    if resp_proj.status_code == 200:
+                        try:
+                            pjson = resp_proj.json() or {}
+                        except Exception:
+                            pjson = {}
+                        project_code = (
+                            str(pjson.get("projectCode") or pjson.get("code") or pjson.get("project_code") or "").strip()
+                        ) or None
+                except requests.RequestException:
+                    project_code = None
+
+            # Fallback 2: à défaut, utiliser l'id zéro-rempli pour rester compatible avec Batigest
+            if (not project_code) and (id_projet is not None):
+                try:
+                    project_code = str(int(id_projet)).zfill(8)
+                except Exception:
+                    project_code = None
 
             # Upsert: met à jour si l'heure existe déjà et remet sync=false si modification
             postgres_cursor.execute("""
@@ -740,39 +772,79 @@ def update_code_projet_chantiers():
 
         updated_count = postgres_cursor.rowcount
 
-        # Deuxième passe: compléter via l'API pour les id_projet restants
+        # Deuxième passe: compléter/corriger via l'API pour:
+        #  - code_projet manquant
+        #  - code_projet égal à LPAD(id_projet, 8, '0') (fallback générique à corriger par le vrai projectCode)
         postgres_cursor.execute(
-            "SELECT DISTINCT id_projet FROM batigest_heures WHERE code_projet IS NULL AND id_projet IS NOT NULL"
+            """
+            SELECT DISTINCT id_projet, code_projet
+            FROM batigest_heures
+            WHERE id_projet IS NOT NULL
+              AND (
+                    code_projet IS NULL
+                 OR code_projet = LPAD(id_projet::text, 8, '0')
+              )
+            """
         )
-        missing_ids = [row[0] for row in postgres_cursor.fetchall()]
+        missing_rows = postgres_cursor.fetchall()
+        missing_ids = [(row[0], row[1]) for row in missing_rows]
 
         if missing_ids:
             token = recup_batisimply_token()
             if token:
                 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-                for pid in missing_ids:
-                    try:
-                        resp = requests.get(
-                            f"https://api.staging.batisimply.fr/api/project/{pid}",
-                            headers=headers,
-                            timeout=12,
-                        )
-                        if resp.status_code == 200:
-                            try:
-                                pdata = resp.json() or {}
-                            except Exception:
-                                pdata = {}
+                try:
+                    # Récupérer la liste des projets accessibles (contient projectCode)
+                    list_resp = requests.get(
+                        "https://api.staging.batisimply.fr/api/project",
+                        headers=headers,
+                        timeout=15,
+                    )
+                    projects = []
+                    if list_resp.status_code == 200:
+                        try:
+                            pj = list_resp.json()
+                            if isinstance(pj, dict):
+                                # support elements/content/items/data formats
+                                for key in ("elements", "content", "items", "data"):
+                                    if key in pj and isinstance(pj[key], list):
+                                        projects = pj[key]
+                                        break
+                                if not projects and all(k in pj for k in ("id", "projectCode")):
+                                    projects = [pj]
+                            elif isinstance(pj, list):
+                                projects = pj
+                        except Exception:
+                            projects = []
+
+                    # Construire un mapping id -> projectCode/code
+                    id_to_code = {}
+                    for p in projects or []:
+                        try:
+                            pid_val = p.get("id")
                             pcode = (
-                                str(pdata.get("projectCode") or pdata.get("code") or pdata.get("project_code") or "").strip()
+                                str(p.get("projectCode") or p.get("code") or p.get("project_code") or "").strip()
                             )
-                            if pcode:
-                                postgres_cursor.execute(
-                                    "UPDATE batigest_heures SET code_projet = %s WHERE id_projet = %s AND code_projet IS NULL",
-                                    (pcode, pid),
-                                )
-                                updated_count += postgres_cursor.rowcount
-                    except requests.RequestException:
-                        pass
+                            if pid_val is not None and pcode:
+                                id_to_code[int(pid_val)] = pcode
+                        except Exception:
+                            continue
+
+                    for pid, current_code in missing_ids:
+                        pcode = id_to_code.get(int(pid))
+                        if pcode and pcode != (current_code or ""):
+                            postgres_cursor.execute(
+                                "UPDATE batigest_heures SET code_projet = %s WHERE id_projet = %s AND code_projet IS NULL",
+                                (pcode, pid),
+                            )
+                            updated_count += postgres_cursor.rowcount
+                            postgres_cursor.execute(
+                                "UPDATE batigest_heures SET code_projet = %s WHERE id_projet = %s AND code_projet = LPAD(id_projet::text, 8, '0')",
+                                (pcode, pid),
+                            )
+                            updated_count += postgres_cursor.rowcount
+                except requests.RequestException:
+                    pass
 
         postgres_conn.commit()
         postgres_cursor.close()
