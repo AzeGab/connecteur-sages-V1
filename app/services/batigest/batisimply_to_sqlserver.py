@@ -84,7 +84,16 @@ def transfer_chantiers_batisimply_to_postgres():
                 continue
             # Normaliser et valider les champs obligatoires
             raw_id = chantier.get('id')
-            code = str(raw_id).strip() if raw_id is not None else ""
+            raw_project_code = (
+                chantier.get('projectCode') or chantier.get('project_code') or chantier.get('code')
+            )
+            code = None
+            if raw_project_code is not None:
+                code = str(raw_project_code).strip()
+            elif raw_id is not None:
+                code = str(raw_id).strip()
+            else:
+                code = ""
             raw_name = chantier.get('name')
             nom_client = str(raw_name).strip() if raw_name is not None else ""
 
@@ -355,6 +364,18 @@ def transfer_heures_batisimply_to_postgres():
             start_iso = h.get("startDate")
             end_iso = h.get("endDate")
             
+            project_obj = h.get("project", {}) or {}
+            # Essayer de récupérer directement le code chantier fourni par l'API (projectCode)
+            project_code = (
+                project_obj.get("projectCode")
+                or project_obj.get("code")
+                or project_obj.get("project_code")
+            )
+            if isinstance(project_code, int):
+                project_code = str(project_code)
+            if isinstance(project_code, str):
+                project_code = project_code.strip()
+
             # Normalisation timezone: API renvoie en UTC (Z). Convertir en heure locale naive.
             try:
                 if isinstance(start_iso, str) and start_iso.endswith("Z"):
@@ -382,7 +403,7 @@ def transfer_heures_batisimply_to_postgres():
                 date_fin = h.get("endDate")
                 
             user_id = h.get("user", {}).get("id")
-            id_projet = h.get("project", {}).get("id")
+            id_projet = project_obj.get("id")
             status = h.get("managementStatus")
             total_heure = h.get("totalTimeMinutes")
             panier = h.get("hasPackedLunch", False)
@@ -393,9 +414,9 @@ def transfer_heures_batisimply_to_postgres():
                 INSERT INTO batigest_heures(
                     id_heure, date_debut, date_fin, id_utilisateur,
                     id_projet, status_management,
-                    total_heure, panier, trajet, sync
+                    total_heure, panier, trajet, code_projet, sync
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id_heure) DO UPDATE SET
                     date_debut = EXCLUDED.date_debut,
                     date_fin = EXCLUDED.date_fin,
@@ -405,6 +426,7 @@ def transfer_heures_batisimply_to_postgres():
                     total_heure = EXCLUDED.total_heure,
                     panier = EXCLUDED.panier,
                     trajet = EXCLUDED.trajet,
+                    code_projet = COALESCE(EXCLUDED.code_projet, batigest_heures.code_projet),
                     sync = CASE WHEN (
                         batigest_heures.date_debut IS DISTINCT FROM EXCLUDED.date_debut OR
                         batigest_heures.date_fin IS DISTINCT FROM EXCLUDED.date_fin OR
@@ -413,12 +435,13 @@ def transfer_heures_batisimply_to_postgres():
                         batigest_heures.status_management IS DISTINCT FROM EXCLUDED.status_management OR
                         batigest_heures.total_heure IS DISTINCT FROM EXCLUDED.total_heure OR
                         batigest_heures.panier IS DISTINCT FROM EXCLUDED.panier OR
-                        batigest_heures.trajet IS DISTINCT FROM EXCLUDED.trajet
+                        batigest_heures.trajet IS DISTINCT FROM EXCLUDED.trajet OR
+                        (EXCLUDED.code_projet IS NOT NULL AND batigest_heures.code_projet IS DISTINCT FROM EXCLUDED.code_projet)
                     ) THEN FALSE ELSE batigest_heures.sync END
             """, (
                 heure_id, date_debut, date_fin, user_id,
                 id_projet, status,
-                total_heure, panier, trajet, False
+                total_heure, panier, trajet, project_code, False
             ))
 
         postgres_conn.commit()
@@ -474,7 +497,7 @@ def transfer_heures_postgres_to_sqlserver():
 
         # Récupération des heures non synchronisées avec code_projet
         postgres_cursor.execute("""
-            SELECT id_heure, date_debut, id_utilisateur, code_projet, total_heure, panier, trajet
+            SELECT id_heure, date_debut, id_utilisateur, code_projet, total_heure, panier, trajet, id_projet
             FROM batigest_heures
             WHERE status_management = 'VALIDATED' AND NOT sync AND code_projet IS NOT NULL
         """)
@@ -484,7 +507,7 @@ def transfer_heures_postgres_to_sqlserver():
         transferred_ids = []
 
         for h in heures:
-            id_heure, date_debut, id_utilisateur, code_projet, total_heure, panier, trajet = h
+            id_heure, date_debut, id_utilisateur, code_projet, total_heure, panier, trajet, id_projet = h
 
             # Recherche de l'utilisateur avec plus de détails
             print(f"\n[DEBUG] Recherche de l'utilisateur {id_utilisateur} dans Salarie...")
@@ -508,8 +531,17 @@ def transfer_heures_postgres_to_sqlserver():
             if not code_projet:
                 print(f"[IGNORE] id_heure {id_heure} ignorée: code_projet manquant")
                 continue
+            # Normaliser le code chantier pour respecter Batigest (8 caractères)
             code_chantier = str(code_projet)
-            nb_h0 = (total_heure / 60) if total_heure else 0
+            if not code_chantier.isdigit() or len(code_chantier) != 8:
+                try:
+                    # fallback: utiliser id_projet si numérique
+                    if id_projet is not None:
+                        code_chantier = str(int(id_projet)).zfill(8)
+                except Exception:
+                    pass
+            # total_heure vient de BatiSimply (minutes). Conversion en heures décimales pour NbH0.
+            nb_h0 = (float(total_heure) / 60.0) if total_heure is not None else 0.0
             nb_h3 = 1 if trajet else 0
             nb_h4 = 1 if panier else 0
 
@@ -690,16 +722,58 @@ def update_code_projet_chantiers():
 
         postgres_cursor = postgres_conn.cursor()
 
-        # Mettre à jour les codes projet des heures en utilisant la correspondance avec les chantiers
+        # Mettre à jour les codes projet des heures avec plusieurs stratégies de correspondance:
+        # - id_projet::text = code (cas BatiSimply -> Postgres)
+        # - id_projet = code::bigint quand code est numérique
+        # - LPAD(id_projet::text, 8, '0') = code (cas codes Batigest '00000001')
         postgres_cursor.execute("""
-            UPDATE batigest_heures 
-            SET code_projet = batigest_chantiers.code
-            FROM batigest_chantiers 
-            WHERE batigest_heures.id_projet::text = batigest_chantiers.code
-            AND batigest_heures.code_projet IS NULL
+            UPDATE batigest_heures AS h
+            SET code_projet = c.code
+            FROM batigest_chantiers AS c
+            WHERE h.code_projet IS NULL
+              AND (
+                    h.id_projet::text = c.code
+                 OR (c.code ~ '^[0-9]+$' AND h.id_projet = c.code::bigint)
+                 OR LPAD(h.id_projet::text, 8, '0') = c.code
+              )
         """)
 
         updated_count = postgres_cursor.rowcount
+
+        # Deuxième passe: compléter via l'API pour les id_projet restants
+        postgres_cursor.execute(
+            "SELECT DISTINCT id_projet FROM batigest_heures WHERE code_projet IS NULL AND id_projet IS NOT NULL"
+        )
+        missing_ids = [row[0] for row in postgres_cursor.fetchall()]
+
+        if missing_ids:
+            token = recup_batisimply_token()
+            if token:
+                headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+                for pid in missing_ids:
+                    try:
+                        resp = requests.get(
+                            f"https://api.staging.batisimply.fr/api/project/{pid}",
+                            headers=headers,
+                            timeout=12,
+                        )
+                        if resp.status_code == 200:
+                            try:
+                                pdata = resp.json() or {}
+                            except Exception:
+                                pdata = {}
+                            pcode = (
+                                str(pdata.get("projectCode") or pdata.get("code") or pdata.get("project_code") or "").strip()
+                            )
+                            if pcode:
+                                postgres_cursor.execute(
+                                    "UPDATE batigest_heures SET code_projet = %s WHERE id_projet = %s AND code_projet IS NULL",
+                                    (pcode, pid),
+                                )
+                                updated_count += postgres_cursor.rowcount
+                    except requests.RequestException:
+                        pass
+
         postgres_conn.commit()
         postgres_cursor.close()
         postgres_conn.close()
